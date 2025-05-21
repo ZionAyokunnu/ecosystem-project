@@ -9,7 +9,176 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      historical_trends: {
+        Row: {
+          created_at: string | null
+          indicator_id: string
+          trend_id: string
+          value: number
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          indicator_id: string
+          trend_id?: string
+          value: number
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          indicator_id?: string
+          trend_id?: string
+          value?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_trends_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+        ]
+      }
+      indicators: {
+        Row: {
+          category: string
+          created_at: string | null
+          current_value: number
+          description: string | null
+          indicator_id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          current_value: number
+          description?: string | null
+          indicator_id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          current_value?: number
+          description?: string | null
+          indicator_id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      relationships: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          influence_weight: number
+          parent_id: string
+          relationship_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          influence_weight: number
+          parent_id: string
+          relationship_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          influence_weight?: number
+          parent_id?: string
+          relationship_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationships_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "relationships_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+        ]
+      }
+      simulation_changes: {
+        Row: {
+          change_id: string
+          created_at: string | null
+          indicator_id: string
+          new_value: number
+          previous_value: number
+          simulation_id: string
+        }
+        Insert: {
+          change_id?: string
+          created_at?: string | null
+          indicator_id: string
+          new_value: number
+          previous_value: number
+          simulation_id: string
+        }
+        Update: {
+          change_id?: string
+          created_at?: string | null
+          indicator_id?: string
+          new_value?: number
+          previous_value?: number
+          simulation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_changes_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "simulation_changes_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulation_profiles"
+            referencedColumns: ["simulation_id"]
+          },
+        ]
+      }
+      simulation_profiles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          name: string
+          simulation_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          name: string
+          simulation_id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          name?: string
+          simulation_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
