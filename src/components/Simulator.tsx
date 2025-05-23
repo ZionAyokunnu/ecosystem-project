@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Indicator, SimulationChange } from '@/types';
 import { getColorByValue } from '@/utils/indicatorUtils';

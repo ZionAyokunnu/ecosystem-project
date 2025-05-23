@@ -25,17 +25,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const [pivotId, setPivotId] = useState<string | null>(null);
   
+  
   useEffect(() => {
     if (!svgRef.current || nodes.length === 0) return;
-    console.clear();
     
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
     const svg = d3.select(svgRef.current)
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("width", "100%")
-      .attr("height", "100%")
-      .attr("preserveAspectRatio", "xMidYMid meet")
+      .attr("width", width)
+      .attr("height", height)
       .append("g")
       .attr("transform", `translate(${width / 2}, ${height / 2})`);
     
@@ -55,38 +53,32 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       });
     });
     
-    // Build inverse child-to-parent mapping
-    const childToParents = new Map<string, string[]>();
+    // Build connections
     links.forEach(link => {
-      if (!childToParents.has(link.child_id)) {
-        childToParents.set(link.child_id, []);
-      }
-      childToParents.get(link.child_id)!.push(link.parent_id);
-    });
-
-    // Attach each child node under its parent(s)
-    childToParents.forEach((parentIds, childId) => {
-      const childNode = nodeMap.get(childId);
-      parentIds.forEach(parentId => {
-        const parentNode = nodeMap.get(parentId);
-        if (parentNode && childNode && !parentNode.children.some(c => c.id === childNode.id)) {
-          parentNode.children.push(childNode);
+      const parent = nodeMap.get(link.parent_id);
+      const child = nodeMap.get(link.child_id);
+      
+      if (parent && child) {
+        // Add to children array if not already present
+        if (!parent.children.some((c: any) => c.id === child.id)) {
+          parent.children.push(child);
         }
-      });
+        
+        // Track parent relationships for multi-parent handling
+        child.parents.add(link.parent_id);
+      }
     });
-
-    // Determine root nodes as those never appearing as a child
-    const rootNodes = Array.from(nodeMap.values()).filter(node =>
-      !childToParents.has(node.id)
-    );
+    
+    // Find root nodes (nodes with no parents)
+    const rootNodes = Array.from(nodeMap.values()).filter(node => node.parents.size === 0);
     
     if (rootNodes.length === 0) {
       console.error("No root nodes found in the data");
       return;
     }
     
-    // Determine root data: pivoted or full forest (treat 'root' as no pivot)
-    const hierarchyData = pivotId !== null && pivotId !== 'root'
+    // Determine root data: pivoted or full forest
+    const hierarchyData = pivotId
       ? nodeMap.get(pivotId)!
       : { id: 'root', name: 'Root', children: rootNodes };
     
@@ -159,10 +151,9 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .style("cursor", (d: any) => (d.children?.length ? "pointer" : "default"))
       .attr("pointer-events", "all")
       .on("click", function(event: any, d: any) {
-        if (d.children && d.children.length) {
-          setPivotId(d.data.id);
-        } else {
+        if (d.children?.length) {
           onSelect?.(d.data.id);
+          setPivotId(d.data.id);
         }
       })
       .on("mouseover", function(event, d: any) {
@@ -184,13 +175,6 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         d3.select(this).style("opacity", 0.9);
         tooltip.style("visibility", "hidden");
       });
-
-    // Fade-in transition for arcs
-    path
-      .style("opacity", 0)
-      .transition()
-      .duration(500)
-      .style("opacity", 0.9);
 
     // Add titles (deduped, without synthetic root)
     const format = d3.format(",d");
@@ -227,21 +211,9 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         .attr("fill-opacity", d => +labelVisible(d.current))
         .attr("transform", d => labelTransform(d.current))
         .text(d => d.data.name);
-      // Fade-in transition for labels
-      label
-        .style("opacity", 0)
-        .transition()
-        .duration(500)
-        .style("opacity", 1);
     }
 
     function clicked(event, p) {
-      // Determine new pivot: drill up to parent, or reset to no pivot
-      const newPivotId = p.parent ? p.parent.data.id : null;
-      setPivotId(newPivotId);
-      if (newPivotId) {
-        onSelect?.(newPivotId);
-      }
       console.log('Clicked node:', p.data.id, 'depth:', p.depth);
       parent.datum(p.parent || root);
       root.each(d => d.target = {
@@ -299,13 +271,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           Reset
         </button>
       )}
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${width} ${height}`}
-        width="100%"
-        height="100%"
-        preserveAspectRatio="xMidYMid meet"
-      />
+      <svg ref={svgRef} width={width} height={height} />
     </div>
   );
 };

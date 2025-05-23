@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
 import SunburstChart from '@/components/SunburstChart';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import DescriptionPanel from '@/components/DescriptionPanel';
 import TrendGraph from '@/components/TrendGraph';
 import Simulator from '@/components/Simulator';
@@ -14,12 +12,12 @@ import {
   transformToSunburstData, 
   getTopDrivers, 
   simulateChanges, 
-  buildIndicatorTree, 
-  getParentChain 
+  buildIndicatorTree
 } from '@/utils/indicatorUtils';
 import { getIndicatorById, predictTrend, createSimulation } from '@/services/api';
 import { Indicator, SimulationChange, PredictionResult } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
@@ -65,14 +63,6 @@ const DetailView: React.FC = () => {
           setLocalIndicators(indicators);
           setSimulationChanges([]);
           
-          // Build breadcrumbs
-          const ancestors = getParentChain(indicatorId, indicators, relationships);
-          const breadcrumbItems = [
-            ...ancestors.slice(0, 5).map(ind => ({ id: ind.indicator_id, name: ind.name })),
-            { id: indicator.indicator_id, name: indicator.name }
-          ];
-          setBreadcrumbs(breadcrumbItems);
-          
           // Get prediction data
           setIsPredicting(true);
           try {
@@ -92,6 +82,23 @@ const DetailView: React.FC = () => {
             userSettings.topDriversCount
           );
           setTopDrivers(drivers);
+
+          // Compute breadcrumbs from relationships
+          const childToParent = new Map<string, string>();
+          relationships.forEach(({ parent_id, child_id }) => {
+            childToParent.set(child_id, parent_id);
+          });
+          const path: Array<{ id: string; name: string }> = [];
+          let currentIdTemp = indicator.indicator_id;
+          while (currentIdTemp) {
+            const indItem = indicators.find(i => i.indicator_id === currentIdTemp);
+            if (!indItem) break;
+            path.unshift({ id: indItem.indicator_id, name: indItem.name });
+            const parent = childToParent.get(currentIdTemp);
+            currentIdTemp = parent || '';
+          }
+          setBreadcrumbs(path);
+
           setSimulationDrivers(drivers);
         }
       } catch (err) {
@@ -224,7 +231,7 @@ const DetailView: React.FC = () => {
             <>
               <Breadcrumbs
                 items={breadcrumbs}
-                onNavigate={handleBreadcrumbClick}
+                onNavigate={id => navigate(`/detail/${id}`)}
               />
               
               <Tabs defaultValue="analysis" className="w-full">
