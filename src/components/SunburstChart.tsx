@@ -64,15 +64,22 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       childToParents.get(link.child_id)!.push(link.parent_id);
     });
 
-    // Attach each child node under its parent(s)
-    childToParents.forEach((parentIds, childId) => {
-      const childNode = nodeMap.get(childId);
-      parentIds.forEach(parentId => {
-        const parentNode = nodeMap.get(parentId);
-        if (parentNode && childNode && !parentNode.children.some(c => c.id === childNode.id)) {
-          parentNode.children.push(childNode);
+    // Attach each child node under its parent(s) with relationship info
+    links.forEach(link => {
+      const parent = nodeMap.get(link.parent_id);
+      const child = nodeMap.get(link.child_id);
+      if (parent && child) {
+        // Add to children array if not already present
+        if (!parent.children.some((c: any) => c.id === child.id)) {
+          // Store the relationship info in the child for later reference
+          const childWithRelationship = {
+            ...child,
+            weight: link.influence_weight,
+            correlation: link.correlation_score ?? 0.1  // Default to 0.1 if not provided
+          };
+          parent.children.push(childWithRelationship);
         }
-      });
+      }
     });
 
     // Determine root nodes as those never appearing as a child
@@ -173,6 +180,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             <div class="font-medium">${d.data.name}</div>
             <div>Value: ${d.data.value.toFixed(1)}</div>
             ${d.data.category ? `<div>Category: ${d.data.category}</div>` : ''}
+            ${d.data.weight !== undefined ? `<div>Influence: ${d.data.weight}</div>` : ''}
+            ${d.data.correlation !== undefined ? `<div>Correlation: ${(d.data.correlation * 100).toFixed(1)}%</div>` : ''}
           `);
       })
       .on("mousemove", function(event) {
