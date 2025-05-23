@@ -7,13 +7,15 @@ interface DescriptionPanelProps {
   positiveDrivers: Indicator[];
   negativeDrivers: Indicator[];
   recommendations?: string[];
+  correlations?: Record<string, number>; // Added to display correlation scores
 }
 
 const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   coreIndicator,
   positiveDrivers,
   negativeDrivers,
-  recommendations = []
+  recommendations = [],
+  correlations = {}
 }) => {
   const renderIndicatorList = (indicators: Indicator[], type: 'positive' | 'negative') => {
     if (indicators.length === 0) {
@@ -22,14 +24,24 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     
     return (
       <ul className="mt-1 space-y-1">
-        {indicators.map(indicator => (
-          <li key={indicator.indicator_id} className="flex items-center">
-            <span className={`inline-block w-3 h-3 rounded-full mr-2 ${
-              type === 'positive' ? 'bg-green-500' : 'bg-red-500'
-            }`}></span>
-            <span>{indicator.name} ({indicator.current_value.toFixed(1)})</span>
-          </li>
-        ))}
+        {indicators.map(indicator => {
+          const correlation = correlations[indicator.indicator_id];
+          const correlationText = correlation !== undefined 
+            ? ` (${(correlation * 100).toFixed(1)}%)` 
+            : '';
+          
+          return (
+            <li key={indicator.indicator_id} className="flex items-center">
+              <span className={`inline-block w-3 h-3 rounded-full mr-2 ${
+                type === 'positive' ? 'bg-green-500' : 'bg-red-500'
+              }`}></span>
+              <span>
+                {indicator.name} ({indicator.current_value.toFixed(1)})
+                <span className="text-gray-500 text-sm">{correlationText}</span>
+              </span>
+            </li>
+          );
+        })}
       </ul>
     );
   };

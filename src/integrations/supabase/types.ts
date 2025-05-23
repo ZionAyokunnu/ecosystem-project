@@ -74,6 +74,7 @@ export type Database = {
       relationships: {
         Row: {
           child_id: string
+          correlation_score: number
           created_at: string | null
           influence_weight: number
           parent_id: string
@@ -82,6 +83,7 @@ export type Database = {
         }
         Insert: {
           child_id: string
+          correlation_score?: number
           created_at?: string | null
           influence_weight: number
           parent_id: string
@@ -90,6 +92,7 @@ export type Database = {
         }
         Update: {
           child_id?: string
+          correlation_score?: number
           created_at?: string | null
           influence_weight?: number
           parent_id?: string

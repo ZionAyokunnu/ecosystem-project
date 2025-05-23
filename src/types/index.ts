@@ -1,4 +1,3 @@
-
 export interface Indicator {
   indicator_id: string;
   name: string;
@@ -14,6 +13,7 @@ export interface Relationship {
   parent_id: string;
   child_id: string;
   influence_weight: number;
+  correlation_score: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -56,6 +56,7 @@ export interface SunburstLink {
   parent_id: string;
   child_id: string;
   weight: number;
+  correlation?: number;
 }
 
 export interface PredictionResult {

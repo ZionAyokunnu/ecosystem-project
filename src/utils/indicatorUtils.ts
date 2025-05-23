@@ -116,10 +116,48 @@ export const transformToSunburstData = (
   const links = relationships.map(relationship => ({
     parent_id: relationship.parent_id,
     child_id: relationship.child_id,
-    weight: relationship.influence_weight
+    weight: relationship.influence_weight,
+    correlation: relationship.correlation_score
   }));
   
   return { nodes, links };
+};
+
+// Calculate net score for an indicator based on correlation scores
+export const calculateNetScore = (
+  indicatorId: string,
+  indicators: Indicator[],
+  relationships: Relationship[]
+): number => {
+  const indicator = indicators.find(ind => ind.indicator_id === indicatorId);
+  if (!indicator) return 0;
+  
+  // Find the self-relationship and all child relationships
+  const selfRel = relationships.find(
+    rel => rel.parent_id === indicatorId && rel.child_id === indicatorId
+  );
+  
+  const childRels = relationships.filter(
+    rel => rel.parent_id === indicatorId && rel.child_id !== indicatorId
+  );
+  
+  // Calculate net score using correlation scores
+  let netScore = 0;
+  
+  // Add self contribution (defaults to 0.1 or 10% if not found)
+  if (selfRel) {
+    netScore += selfRel.correlation_score * indicator.current_value;
+  }
+  
+  // Add children contributions
+  childRels.forEach(rel => {
+    const childIndicator = indicators.find(ind => ind.indicator_id === rel.child_id);
+    if (childIndicator) {
+      netScore += rel.correlation_score * childIndicator.current_value;
+    }
+  });
+  
+  return netScore;
 };
 
 // Simulate changes to indicator values based on a change to one indicator
@@ -187,7 +225,9 @@ export const simulateChanges = (
         if (!originalParent) continue;
         
         const parentChangePct = (parentIndicator.current_value - originalParent.current_value) / 100;
-        const childImpact = parentChangePct * normalizedWeight * 100;
+        
+        // Apply both influence_weight and correlation_score to determine the impact
+        const childImpact = parentChangePct * normalizedWeight * relation.correlation_score * 100;
         
         // Apply impact to child
         const childIndex = updatedIndicators.findIndex(ind => ind.indicator_id === relation.child_id);
@@ -214,7 +254,7 @@ export const simulateChanges = (
             // Add to queue to process its children
             queue.push({ 
               id: relation.child_id, 
-              influence: current.influence * normalizedWeight, 
+              influence: current.influence * normalizedWeight * relation.correlation_score, 
               depth: current.depth + 1 
             });
           }
@@ -236,14 +276,14 @@ export const getTopDrivers = (
   // Get direct parent relationships
   const parentRelationships = relationships.filter(rel => rel.child_id === coreIndicator);
   
-  // Calculate impact scores for each parent
+  // Calculate impact scores for each parent, now factoring in correlation_score
   const parentImpacts = parentRelationships.map(rel => {
     const parent = indicators.find(ind => ind.indicator_id === rel.parent_id);
     if (!parent) return null;
     
     return {
       indicator: parent,
-      impactScore: (parent.current_value / 100) * (rel.influence_weight / 100)
+      impactScore: (parent.current_value / 100) * (rel.influence_weight / 100) * rel.correlation_score
     };
   }).filter(Boolean) as { indicator: Indicator, impactScore: number }[];
   

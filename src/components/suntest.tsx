@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { SunburstNode, SunburstLink } from '@/types';
@@ -61,7 +62,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       if (parent && child) {
         // Add to children array if not already present
         if (!parent.children.some((c: any) => c.id === child.id)) {
-          parent.children.push(child);
+          // Store the relationship info in the child for later reference
+          const childWithRelationship = {
+            ...child,
+            weight: link.weight,
+            correlation: link.correlation || 0.1 // Default to 0.1 if not provided
+          };
+          parent.children.push(childWithRelationship);
         }
         
         // Track parent relationships for multi-parent handling
@@ -158,12 +165,21 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       })
       .on("mouseover", function(event, d: any) {
         d3.select(this).style("opacity", 1);
+        
+        // Get the relationship data if it exists
+        const weight = d.data.weight !== undefined ? d.data.weight : 'N/A';
+        const correlation = d.data.correlation !== undefined 
+          ? (d.data.correlation * 100).toFixed(1) + '%' 
+          : 'N/A';
+        
         tooltip
           .style("visibility", "visible")
           .html(`
             <div class="font-medium">${d.data.name}</div>
             <div>Value: ${d.data.value.toFixed(1)}</div>
             ${d.data.category ? `<div>Category: ${d.data.category}</div>` : ''}
+            ${weight !== 'N/A' ? `<div>Influence: ${weight}</div>` : ''}
+            ${correlation !== 'N/A' ? `<div>Correlation: ${correlation}</div>` : ''}
           `);
       })
       .on("mousemove", function(event) {
