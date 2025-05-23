@@ -18,7 +18,6 @@ import { getIndicatorById, predictTrend, createSimulation } from '@/services/api
 import { Indicator, SimulationChange, PredictionResult } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import Breadcrumbs from '@/components/Breadcrumbs';
-
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
@@ -97,8 +96,9 @@ const DetailView: React.FC = () => {
             const parent = childToParent.get(currentIdTemp);
             currentIdTemp = parent || '';
           }
+          console.log('Computed breadcrumb path:', path);
           setBreadcrumbs(path);
-
+          console.log('Breadcrumbs state after setBreadcrumbs:', path);
           setSimulationDrivers(drivers);
         }
       } catch (err) {
@@ -115,6 +115,10 @@ const DetailView: React.FC = () => {
     
     loadIndicatorData();
   }, [indicatorId, indicators, relationships, loading, userSettings.topDriversCount]);
+
+  useEffect(() => {
+    console.log('Breadcrumbs updated:', breadcrumbs);
+  }, [breadcrumbs]);
   
   const handleIndicatorSelect = (selectedId: string) => {
     if (selectedId === indicatorId) return;
@@ -209,7 +213,11 @@ const DetailView: React.FC = () => {
     );
   }
   
+  console.log('DetailView render, breadcrumbs:', breadcrumbs);
+  
   return (
+    // right before JSX
+    console.log('DetailView render, breadcrumbs:', breadcrumbs),
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
         <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">

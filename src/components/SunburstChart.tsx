@@ -54,7 +54,11 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         parents: new Set<string>()
       });
     });
-    
+      // 1) Debug: dump all nodes & links
+  console.log("▶️ Sunburst data dump:", {
+    allNodes: Array.from(nodeMap.values()).map(n => n.id),
+    allLinks: links.map(l => `${l.parent_id}→${l.child_id}`)
+  });
     // Build inverse child-to-parent mapping
     const childToParents = new Map<string, string[]>();
     links.forEach(link => {
@@ -64,8 +68,26 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       childToParents.get(link.child_id)!.push(link.parent_id);
     });
 
+      // 2) Debug: show the mapping
+  console.log("▶️ childToParents map:", Object.fromEntries(childToParents));
+
+  // Drop self-parent entries so root detection ignores self-links
+  childToParents.forEach((parents, childId) => {
+    childToParents.set(childId, parents.filter(p => p !== childId));
+  });
+  // Recompute orphan candidates: those with no non-self parents
+  const orphanIds = Array.from(nodeMap.values())
+    .filter(node => {
+      const parents = childToParents.get(node.id) || [];
+      return parents.length === 0;
+    })
+    .map(node => node.id);
+  console.log("▶️ Non-self orphan (root) candidates:", orphanIds);
+
     // Attach each child node under its parent(s) with relationship info
     links.forEach(link => {
+      // Skip self-links to prevent cycles
+      if (link.parent_id === link.child_id) return;
       const parent = nodeMap.get(link.parent_id);
       const child = nodeMap.get(link.child_id);
       if (parent && child) {
@@ -74,24 +96,24 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           // Store the relationship info in the child for later reference
           const childWithRelationship = {
             ...child,
-            weight: link.influence_weight,
-            correlation: link.correlation_score ?? 0.1  // Default to 0.1 if not provided
+            weight: link.weight,
+            correlation: link.correlation ?? 0.1  // Default to 0.1 if not provided
           };
           parent.children.push(childWithRelationship);
         }
       }
     });
 
-    // Determine root nodes as those never appearing as a child
-    const rootNodes = Array.from(nodeMap.values()).filter(node =>
-      !childToParents.has(node.id)
-    );
-    
+    // Build actual root nodes from orphanIds (non-self parents)
+    const rootNodes = orphanIds
+      .map(id => nodeMap.get(id))
+      .filter((n): n is any => !!n);
+
     if (rootNodes.length === 0) {
       console.error("No root nodes found in the data");
       return;
     }
-    
+
     // Determine root data: pivoted or full forest (treat 'root' as no pivot)
     const hierarchyData = pivotId !== null && pivotId !== 'root'
       ? nodeMap.get(pivotId)!

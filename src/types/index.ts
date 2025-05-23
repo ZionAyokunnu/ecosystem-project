@@ -53,6 +53,8 @@ export interface SunburstNode {
 }
 
 export interface SunburstLink {
+  correlation_score: number;
+  influence_weight: any;
   parent_id: string;
   child_id: string;
   weight: number;
