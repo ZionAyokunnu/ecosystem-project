@@ -205,6 +205,10 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           .reverse()
           .filter(node => node.data.id !== 'root')
           .map(node => ({ id: node.data.id, name: node.data.name }));
+        // Fallback: ensure trail is not empty for root node like Core/Wellbeing
+        if (trail.length === 0 && d.data.id === '1a714141-915c-49f3-981b-9f02cc435be0') {
+          trail.push({ id: d.data.id, name: d.data.name });
+        }
         onBreadcrumbsChange?.(trail);
 
         if (d.children && d.children.length > 0) {
