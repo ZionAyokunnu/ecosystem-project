@@ -27,29 +27,31 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
 
-  // Compute dynamic drivers
+  // Compute dynamic drivers - pass coreIndicator directly since it's guaranteed to exist by props
   const { laggingDrivers, thrivingDrivers, visibleLinkedIndicators } = useDriverComputation(
     coreIndicator,
-    indicators,
-    relationships,
-    visibleNodes
+    indicators || [],
+    relationships || [],
+    visibleNodes || []
   );
 
   // Generate recommendations
   const recommendations = useRecommendations(
-    laggingDrivers,
-    thrivingDrivers,
-    indicators,
-    relationships
+    laggingDrivers || [],
+    thrivingDrivers || [],
+    indicators || [],
+    relationships || []
   );
 
   // Generate LLM analysis
   useEffect(() => {
     const generateAnalysis = async () => {
+      if (!coreIndicator) return;
+      
       setIsLoadingAnalysis(true);
       try {
-        const thrivingNames = thrivingDrivers.map(d => d.name).join(', ');
-        const laggingNames = laggingDrivers.map(d => d.name).join(', ');
+        const thrivingNames = (thrivingDrivers || []).map(d => d.name).join(', ');
+        const laggingNames = (laggingDrivers || []).map(d => d.name).join(', ');
         
         const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
         
@@ -63,9 +65,9 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
       }
     };
 
-    if (coreIndicator && thrivingDrivers.length > 0 && laggingDrivers.length > 0) {
+    if (coreIndicator && (thrivingDrivers?.length > 0 || laggingDrivers?.length > 0)) {
       generateAnalysis();
-    } else {
+    } else if (coreIndicator) {
       setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
     }
   }, [coreIndicator, thrivingDrivers, laggingDrivers]);
@@ -74,8 +76,19 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     setMounted(true);
   }, []);
 
+  // Early return if no core indicator
+  if (!coreIndicator) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
   const renderIndicatorList = (indicators: Indicator[], type: 'positive' | 'negative') => {
-    if (indicators.length === 0) {
+    if (!indicators || indicators.length === 0) {
       return <p className="text-gray-500 italic">No {type === 'positive' ? 'thriving' : 'lagging'} drivers identified.</p>;
     }
     
@@ -140,11 +153,11 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 className="font-medium text-green-700 mb-1">Thriving Drivers</h3>
-            {renderIndicatorList(thrivingDrivers, 'positive')}
+            {renderIndicatorList(thrivingDrivers || [], 'positive')}
           </div>
           <div>
             <h3 className="font-medium text-red-700 mb-1">Lagging Drivers</h3>
-            {renderIndicatorList(laggingDrivers, 'negative')}
+            {renderIndicatorList(laggingDrivers || [], 'negative')}
           </div>
         </div>
         
@@ -167,7 +180,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                       <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 mt-0.5" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-sm">Based on analysis of {visibleLinkedIndicators.length} connected indicators</p>
+                      <p className="text-sm">Based on analysis of {visibleLinkedIndicators?.length || 0} connected indicators</p>
                     </TooltipContent>
                   </Tooltip>
                 </li>

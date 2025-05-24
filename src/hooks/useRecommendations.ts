@@ -9,6 +9,11 @@ export const useRecommendations = (
   relationships: Relationship[]
 ): string[] => {
   return useMemo(() => {
+    // Return empty array if we don't have the required data
+    if (!laggingDrivers || !thrivingDrivers || !indicators.length || !relationships.length) {
+      return [];
+    }
+
     const recommendations: string[] = [];
     
     if (laggingDrivers.length > 0) {
