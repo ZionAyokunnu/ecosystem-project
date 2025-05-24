@@ -8,7 +8,7 @@ import DescriptionPanel from '@/components/DescriptionPanel';
 import TrendGraph from '@/components/TrendGraph';
 import { transformToSunburstData, getTopDrivers } from '@/utils/indicatorUtils';
 import { predictTrend } from '@/services/api';
-import { Indicator, PredictionResult } from '@/types';
+import { Indicator, PredictionResult, SunburstNode } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -18,6 +18,7 @@ const Overview: React.FC = () => {
   const [rootIndicator, setRootIndicator] = useState<Indicator | null>(null);
   const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
+  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
   const [topDrivers, setTopDrivers] = useState<{positiveDrivers: Indicator[], negativeDrivers: Indicator[]}>({
     positiveDrivers: [],
     negativeDrivers: []
@@ -65,6 +66,21 @@ const Overview: React.FC = () => {
       setTopDrivers(drivers);
     }
   }, [rootIndicator, indicators, relationships, userSettings.topDriversCount]);
+  
+  // Set visible nodes from sunburst data
+  useEffect(() => {
+    if (indicators.length > 0 && relationships.length > 0) {
+      const sunburstData = transformToSunburstData(indicators, relationships);
+      const nodes: SunburstNode[] = sunburstData.nodes.map(node => ({
+        id: node.id,
+        name: node.name,
+        value: node.value,
+        color: node.color,
+        category: node.category
+      }));
+      setVisibleNodes(nodes);
+    }
+  }, [indicators, relationships]);
   
   const handleIndicatorSelect = (indicatorId: string) => {
     navigate(`/detail/${indicatorId}`);
@@ -146,13 +162,9 @@ const Overview: React.FC = () => {
                   
                   <DescriptionPanel
                     coreIndicator={rootIndicator}
-                    positiveDrivers={topDrivers.positiveDrivers}
-                    negativeDrivers={topDrivers.negativeDrivers}
-                    recommendations={[
-                      `Focus on improving ${topDrivers.negativeDrivers[0]?.name || 'lagging indicators'} to boost overall ${rootIndicator.name}.`,
-                      `Continue to strengthen ${topDrivers.positiveDrivers[0]?.name || 'thriving indicators'} to maintain positive momentum.`,
-                      `Consider targeted investments in key areas to address systemic challenges.`
-                    ]}
+                    indicators={indicators}
+                    relationships={relationships}
+                    visibleNodes={visibleNodes}
                   />
                   
                   {isPredicting ? (

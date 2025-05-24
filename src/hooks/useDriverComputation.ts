@@ -9,12 +9,21 @@ interface DriverResults {
 }
 
 export const useDriverComputation = (
-  coreIndicator: Indicator,
+  coreIndicator: Indicator | null,
   indicators: Indicator[],
   relationships: Relationship[],
   visibleNodes: SunburstNode[]
 ): DriverResults => {
   return useMemo(() => {
+    // Return empty results if we don't have the required data
+    if (!coreIndicator || !indicators.length || !relationships.length || !visibleNodes.length) {
+      return {
+        laggingDrivers: [],
+        thrivingDrivers: [],
+        visibleLinkedIndicators: []
+      };
+    }
+
     // Get set of visible node IDs for filtering
     const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
     
