@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -15,9 +16,10 @@ import {
   buildIndicatorTree
 } from '@/utils/indicatorUtils';
 import { getIndicatorById, predictTrend, createSimulation } from '@/services/api';
-import { Indicator, SimulationChange, PredictionResult } from '@/types';
+import { Indicator, SimulationChange, PredictionResult, SunburstNode } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import Breadcrumbs from '@/components/Breadcrumbs';
+
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
@@ -36,6 +38,7 @@ const DetailView: React.FC = () => {
     positiveDrivers: [],
     negativeDrivers: []
   });
+  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
@@ -115,6 +118,21 @@ const DetailView: React.FC = () => {
     
     loadIndicatorData();
   }, [indicatorId, indicators, relationships, loading, userSettings.topDriversCount]);
+
+  // Set visible nodes from sunburst data
+  useEffect(() => {
+    if (localIndicators.length > 0 && relationships.length > 0) {
+      const sunburstData = transformToSunburstData(localIndicators, relationships);
+      const nodes: SunburstNode[] = sunburstData.nodes.map(node => ({
+        id: node.id,
+        name: node.name,
+        value: node.value,
+        color: node.color,
+        category: node.category
+      }));
+      setVisibleNodes(nodes);
+    }
+  }, [localIndicators, relationships]);
 
   useEffect(() => {
     console.log('Breadcrumbs updated:', breadcrumbs);
@@ -270,13 +288,9 @@ const DetailView: React.FC = () => {
                   
                   <DescriptionPanel
                     coreIndicator={coreIndicator}
-                    positiveDrivers={topDrivers.positiveDrivers}
-                    negativeDrivers={topDrivers.negativeDrivers}
-                    recommendations={[
-                      `Focus on improving ${topDrivers.negativeDrivers[0]?.name || 'lagging indicators'} to boost ${coreIndicator.name}.`,
-                      `Continue to strengthen ${topDrivers.positiveDrivers[0]?.name || 'thriving indicators'} to maintain positive momentum.`,
-                      `Consider targeted investments in key areas to address systemic challenges.`
-                    ]}
+                    indicators={indicators}
+                    relationships={relationships}
+                    visibleNodes={visibleNodes}
                   />
                   
                   {isPredicting ? (
