@@ -42,6 +42,7 @@ const DetailView: React.FC = () => {
   
   // Load core indicator and prepare data
   useEffect(() => {
+    console.log('DetailView useEffect:', { indicatorId, loading, indicatorsCount: indicators.length });
     if (!indicatorId || loading || indicators.length === 0) return;
     
     const loadIndicatorData = async () => {
@@ -96,9 +97,8 @@ const DetailView: React.FC = () => {
             const parent = childToParent.get(currentIdTemp);
             currentIdTemp = parent || '';
           }
-          console.log('Computed breadcrumb path:', path);
+          console.log('Computed breadcrumbs path:', path);
           setBreadcrumbs(path);
-          console.log('Breadcrumbs state after setBreadcrumbs:', path);
           setSimulationDrivers(drivers);
         }
       } catch (err) {
@@ -255,6 +255,7 @@ const DetailView: React.FC = () => {
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
                         onSelect={handleIndicatorSelect}
+                        onBreadcrumbsChange={setBreadcrumbs}
                       />
                     </div>
                   </div>

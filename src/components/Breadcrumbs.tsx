@@ -10,7 +10,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, onNavigate }) => {
   return (
     <nav className="flex px-4 py-3 bg-gray-50 rounded-md mb-4" aria-label="Breadcrumb">
       <ol className="inline-flex items-center space-x-1 md:space-x-3">
-        {items.map((item, index) => (
+       {items.map((item, index) => (
           <li key={`${item.id}-${index}`} className="inline-flex items-center">
             {index > 0 && (
               <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
