@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -21,19 +20,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Disable declaration file generation during build
     rollupOptions: {
       external: [],
     },
-  },
-  esbuild: {
-    // Configure esbuild to handle TypeScript without declaration files
-    tsconfigRaw: {
-      compilerOptions: {
-        declaration: false,
-        declarationMap: false,
-        composite: false,
-      }
-    }
   }
 }));
