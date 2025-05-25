@@ -19,4 +19,13 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      external: [],
+    },
+  },
+  define: {
+    // Force TypeScript to not emit declaration files
+    __DEV__: mode === 'development',
+  }
 }));

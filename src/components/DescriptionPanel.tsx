@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 
+
+
 interface DescriptionPanelProps {
   coreIndicator: Indicator;
   indicators: Indicator[];
