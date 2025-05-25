@@ -143,6 +143,7 @@ const Overview: React.FC = () => {
                     nodes={sunburstData.nodes}
                     links={sunburstData.links}
                     onSelect={handleIndicatorSelect}
+                    onVisibleNodesChange={setVisibleNodes}
                   />
                 </div>
               </div>

@@ -25,23 +25,45 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   visibleNodes,
   correlations = {}
 }) => {
+  // Debug: log inputs at the very top of the component
+  console.log('🔍 [DescriptionPanel] inputs:', {
+    core: coreIndicator.indicator_id,
+    visibleNodeIds: visibleNodes.map(n => n.id),
+    laggingIds: (() => {
+      // We need to call useDriverComputation here, but it's below. So, for correct order, move this log after laggingDrivers is available.
+      return undefined;
+    })(),
+    thrivingIds: (() => undefined)(),
+  });
   const [analysisText, setAnalysisText] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
 
-  // Compute dynamic drivers - pass coreIndicator directly since it's guaranteed to exist by props
+  // Use localIndicators if present, otherwise fallback to indicators
+  const localIndicators = (typeof (window as any).localIndicators !== "undefined")
+    ? (window as any).localIndicators
+    : indicators;
+
+  // Compute dynamic drivers using localIndicators (simulation-adjusted)
   const { laggingDrivers, thrivingDrivers, visibleLinkedIndicators } = useDriverComputation(
     coreIndicator,
-    indicators || [],
+    localIndicators || [],
     relationships || [],
     visibleNodes || []
   );
+  // Debug: log inputs with drivers after computation
+  console.log('🔍 [DescriptionPanel] inputs:', {
+    core: coreIndicator.indicator_id,
+    visibleNodeIds: visibleNodes.map(n => n.id),
+    laggingIds: laggingDrivers.map(d => d.indicator_id),
+    thrivingIds: thrivingDrivers.map(d => d.indicator_id),
+  });
 
-  // Generate recommendations
+  // Generate recommendations using localIndicators (simulation-adjusted)
   const recommendations = useRecommendations(
     laggingDrivers || [],
     thrivingDrivers || [],
-    indicators || [],
+    localIndicators || [],
     relationships || []
   );
 

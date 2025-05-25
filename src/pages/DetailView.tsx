@@ -116,27 +116,38 @@ const DetailView: React.FC = () => {
       }
     };
     
+    
     loadIndicatorData();
   }, [indicatorId, indicators, relationships, loading, userSettings.topDriversCount]);
 
-  // Set visible nodes from sunburst data
-  useEffect(() => {
-    if (localIndicators.length > 0 && relationships.length > 0) {
-      const sunburstData = transformToSunburstData(localIndicators, relationships);
-      const nodes: SunburstNode[] = sunburstData.nodes.map(node => ({
-        id: node.id,
-        name: node.name,
-        value: node.value,
-        color: node.color,
-        category: node.category
-      }));
-      setVisibleNodes(nodes);
-    }
-  }, [localIndicators, relationships]);
+  // (Removed: Set visible nodes from sunburst data. Now handled by SunburstChart callback)
+
+  
 
   useEffect(() => {
     console.log('Breadcrumbs updated:', breadcrumbs);
   }, [breadcrumbs]);
+
+  // STEP 2 — watch visibleNodes coming from Sunburst
+  useEffect(() => {
+    console.log(
+      "STEP 2 ▶️ [DetailView] visibleNodes state:",
+      visibleNodes.map((n) => n.id)
+    );
+  }, [visibleNodes]);
+
+  useEffect(() => {
+    if (!coreIndicator) return;
+    const drivers = getTopDrivers(
+      coreIndicator.indicator_id,
+      indicators,
+      relationships,
+      userSettings.topDriversCount
+    );
+    setTopDrivers(drivers);
+    setSimulationDrivers(drivers);
+  }, [coreIndicator, indicators, relationships, userSettings.topDriversCount]);
+
   
   const handleIndicatorSelect = (selectedId: string) => {
     if (selectedId === indicatorId) return;
@@ -229,7 +240,15 @@ const DetailView: React.FC = () => {
         </div>
       </div>
     );
-  }
+  };
+
+    const handleCoreChange = (newId: string | null) => {
+    if (!newId) return;                         // Ignore synthetic root for now
+    const found = indicators.find(i => i.indicator_id === newId);
+    if (found && found.indicator_id !== coreIndicator?.indicator_id) {
+      setCoreIndicator(found);
+    }
+  };
   
   console.log('DetailView render, breadcrumbs:', breadcrumbs);
   
@@ -274,6 +293,8 @@ const DetailView: React.FC = () => {
                         links={sunburstData.links}
                         onSelect={handleIndicatorSelect}
                         onBreadcrumbsChange={setBreadcrumbs}
+                        onVisibleNodesChange={setVisibleNodes}
+                        onCoreChange={handleCoreChange}
                       />
                     </div>
                   </div>
@@ -314,6 +335,8 @@ const DetailView: React.FC = () => {
                       <SunburstChart
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
+                        onCoreChange={handleCoreChange}
+                        // onVisibleNodesChange={setVisibleNodes}
                       />
                     </div>
                   </div>
