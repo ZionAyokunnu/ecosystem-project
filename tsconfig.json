@@ -26,9 +26,12 @@
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "declaration": false,
+      
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "dist",
     "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.d.ts"]
 }

@@ -45,6 +45,7 @@ const DetailView: React.FC = () => {
   
   // Load core indicator and prepare data
   useEffect(() => {
+    console.log('DetailView useEffect:', { indicatorId, loading, indicatorsCount: indicators.length });
     if (!indicatorId || loading || indicators.length === 0) return;
     
     const loadIndicatorData = async () => {
@@ -85,24 +86,23 @@ const DetailView: React.FC = () => {
           );
           setTopDrivers(drivers);
 
-          // Compute breadcrumbs from relationships
-          const childToParent = new Map<string, string>();
-          relationships.forEach(({ parent_id, child_id }) => {
-            childToParent.set(child_id, parent_id);
-          });
+          setSimulationDrivers(drivers);
+          // Compute breadcrumbs from relationships, skipping self-links
           const path: Array<{ id: string; name: string }> = [];
+          const visited = new Set<string>();
           let currentIdTemp = indicator.indicator_id;
-          while (currentIdTemp) {
+          while (currentIdTemp && !visited.has(currentIdTemp)) {
+            visited.add(currentIdTemp);
             const indItem = indicators.find(i => i.indicator_id === currentIdTemp);
             if (!indItem) break;
             path.unshift({ id: indItem.indicator_id, name: indItem.name });
-            const parent = childToParent.get(currentIdTemp);
-            currentIdTemp = parent || '';
+            // find a parent link that is not a self-link
+            const parentRel = relationships.find(rel =>
+              rel.child_id === currentIdTemp && rel.parent_id !== currentIdTemp
+            );
+            currentIdTemp = parentRel?.parent_id ?? '';
           }
-          console.log('Computed breadcrumb path:', path);
           setBreadcrumbs(path);
-          console.log('Breadcrumbs state after setBreadcrumbs:', path);
-          setSimulationDrivers(drivers);
         }
       } catch (err) {
         console.error('Error loading indicator data:', err);
@@ -256,7 +256,7 @@ const DetailView: React.FC = () => {
           ) : coreIndicator ? (
             <>
               <Breadcrumbs
-                items={breadcrumbs}
+                items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
                 onNavigate={id => navigate(`/detail/${id}`)}
               />
               
@@ -273,6 +273,7 @@ const DetailView: React.FC = () => {
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
                         onSelect={handleIndicatorSelect}
+                        onBreadcrumbsChange={setBreadcrumbs}
                       />
                     </div>
                   </div>

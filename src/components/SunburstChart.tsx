@@ -11,6 +11,7 @@ interface SunburstChartProps {
   onSelect?: (indicatorId: string) => void;
   maxLayers?: number;
   showLabels?: boolean;
+  onBreadcrumbsChange?: (items: Array<{ id: string; name: string }>) => void;
 }
 
 const SunburstChart: React.FC<SunburstChartProps> = ({
@@ -20,10 +21,16 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   height = 600,
   onSelect,
   maxLayers = 3,
-  showLabels = false
+  showLabels = false,
+  onBreadcrumbsChange
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [pivotId, setPivotId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // whenever the input nodes or links change, reset to top-level view
+    setPivotId(null);
+  }, [nodes, links]);
   
   useEffect(() => {
     if (!svgRef.current || nodes.length === 0) return;
@@ -96,8 +103,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           // Store the relationship info in the child for later reference
           const childWithRelationship = {
             ...child,
-            weight: link.weight,
-            correlation: link.correlation ?? 0.1  // Default to 0.1 if not provided
+            weight: link.influence_weight,
+            correlation: link.correlation_score ?? 0.1  // Default to 0.1 if not provided
           };
           parent.children.push(childWithRelationship);
         }
@@ -188,9 +195,27 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .style("cursor", (d: any) => (d.children?.length ? "pointer" : "default"))
       .attr("pointer-events", "all")
       .on("click", function(event: any, d: any) {
-        if (d.children && d.children.length) {
+        // Synthetic root click: just reset pivot, leave breadcrumbs intact
+        if (d.data.id === 'root') {
+          setPivotId(null);
+          return;
+        }
+        // Build and emit breadcrumb trail for this node
+        const trail = d.ancestors()
+          .reverse()
+          .filter(node => node.data.id !== 'root')
+          .map(node => ({ id: node.data.id, name: node.data.name }));
+        // Fallback: ensure trail is not empty for root node like Core/Wellbeing
+        if (trail.length === 0 && d.data.id === '1a714141-915c-49f3-981b-9f02cc435be0') {
+          trail.push({ id: d.data.id, name: d.data.name });
+        }
+        onBreadcrumbsChange?.(trail);
+
+        if (d.children && d.children.length > 0) {
+          // Drill in for parent nodes
           setPivotId(d.data.id);
         } else {
+          // Leaf node: trigger navigation
           onSelect?.(d.data.id);
         }
       })
@@ -268,11 +293,17 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     function clicked(event, p) {
       // Determine new pivot: drill up to parent, or reset to no pivot
-      const newPivotId = p.parent ? p.parent.data.id : null;
+      const targetNode = p;
+      const trail = targetNode.ancestors()
+        .reverse()
+        .filter(node => node.data.id !== 'root')
+        .map(node => ({ id: node.data.id, name: node.data.name }));
+      onBreadcrumbsChange?.(trail);
+
+      let newPivotId = p.parent ? p.parent.data.id : null;
+      if (newPivotId === 'root') newPivotId = null;
       setPivotId(newPivotId);
-      if (newPivotId) {
-        onSelect?.(newPivotId);
-      }
+      // Don't call onSelect here
       console.log('Clicked node:', p.data.id, 'depth:', p.depth);
       parent.datum(p.parent || root);
       root.each(d => d.target = {
@@ -318,7 +349,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     return () => {
       tooltip.remove();
     };
-  }, [nodes, links, width, height, onSelect,  maxLayers, pivotId, showLabels]);
+  }, [nodes, links, width, height, onSelect,  maxLayers, pivotId, showLabels, onBreadcrumbsChange]);
   
   return (
     <div className="flex flex-col items-center">

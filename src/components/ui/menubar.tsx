@@ -7,6 +7,16 @@ import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+// const MenubarMenu: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Menu>> = MenubarPrimitive.Menu
+
+// const MenubarGroup: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Group>> = MenubarPrimitive.Group
+
+// const MenubarPortal: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Portal>> = MenubarPrimitive.Portal
+
+// const MenubarSub: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Sub>> = MenubarPrimitive.Sub
+
+// const MenubarRadioGroup: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.RadioGroup>> = MenubarPrimitive.RadioGroup
+
 const Menubar = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Root>

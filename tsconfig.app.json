@@ -6,14 +6,17 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "declaration": false,
+    "declaration": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
+
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "dist",
+
     "jsx": "react-jsx",
 
     /* Linting */
