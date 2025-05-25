@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -20,6 +21,7 @@ import { Indicator, SimulationChange, PredictionResult, SunburstNode } from '@/t
 import { toast } from '@/components/ui/use-toast';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
+
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
@@ -38,6 +40,7 @@ const DetailView: React.FC = () => {
     positiveDrivers: [],
     negativeDrivers: []
   });
+  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
