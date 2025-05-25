@@ -28,6 +28,10 @@ export default defineConfig(({ mode }) => ({
     // Force TypeScript to not emit declaration files
     __DEV__: mode === 'development',
   }
+<<<<<<< HEAD
+}));
+=======
 
 }));
 
+>>>>>>> 55cba5b2e8e561ca656f0db043f918c2a867144e

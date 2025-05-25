@@ -25,23 +25,45 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   visibleNodes,
   correlations = {}
 }) => {
+  // Debug: log inputs at the very top of the component
+  console.log('🔍 [DescriptionPanel] inputs:', {
+    core: coreIndicator.indicator_id,
+    visibleNodeIds: visibleNodes.map(n => n.id),
+    laggingIds: (() => {
+      // We need to call useDriverComputation here, but it's below. So, for correct order, move this log after laggingDrivers is available.
+      return undefined;
+    })(),
+    thrivingIds: (() => undefined)(),
+  });
   const [analysisText, setAnalysisText] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
 
-  // Compute dynamic drivers - pass coreIndicator directly since it's guaranteed to exist by props
+  // Use localIndicators if present, otherwise fallback to indicators
+  const localIndicators = (typeof (window as any).localIndicators !== "undefined")
+    ? (window as any).localIndicators
+    : indicators;
+
+  // Compute dynamic drivers using localIndicators (simulation-adjusted)
   const { laggingDrivers, thrivingDrivers, visibleLinkedIndicators } = useDriverComputation(
     coreIndicator,
-    indicators || [],
+    localIndicators || [],
     relationships || [],
     visibleNodes || []
   );
+  // Debug: log inputs with drivers after computation
+  console.log('🔍 [DescriptionPanel] inputs:', {
+    core: coreIndicator.indicator_id,
+    visibleNodeIds: visibleNodes.map(n => n.id),
+    laggingIds: laggingDrivers.map(d => d.indicator_id),
+    thrivingIds: thrivingDrivers.map(d => d.indicator_id),
+  });
 
-  // Generate recommendations
+  // Generate recommendations using localIndicators (simulation-adjusted)
   const recommendations = useRecommendations(
     laggingDrivers || [],
     thrivingDrivers || [],
-    indicators || [],
+    localIndicators || [],
     relationships || []
   );
 
@@ -89,8 +111,53 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     );
   }
 
+
+  // Generate LLM analysis
+  useEffect(() => {
+    const generateAnalysis = async () => {
+      if (!coreIndicator) return;
+      
+      setIsLoadingAnalysis(true);
+      try {
+        const thrivingNames = (thrivingDrivers || []).map(d => d.name).join(', ');
+        const laggingNames = (laggingDrivers || []).map(d => d.name).join(', ');
+        
+        const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
+        
+        const analysis = await queryLocalLLM(prompt);
+        setAnalysisText(analysis);
+      } catch (error) {
+        console.error('Failed to generate LLM analysis:', error);
+        setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
+      } finally {
+        setIsLoadingAnalysis(false);
+      }
+    };
+
+    if (coreIndicator && (thrivingDrivers?.length > 0 || laggingDrivers?.length > 0)) {
+      generateAnalysis();
+    } else if (coreIndicator) {
+      setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
+    }
+  }, [coreIndicator, thrivingDrivers, laggingDrivers]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Early return if no core indicator
+  if (!coreIndicator) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
   const renderIndicatorList = (indicators: Indicator[], type: 'positive' | 'negative') => {
-    if (!indicators || indicators.length === 0) {
+    if (!indicators || !indicators || indicators.length === 0) {
       return <p className="text-gray-500 italic">No {type === 'positive' ? 'thriving' : 'lagging'} drivers identified.</p>;
     }
     
@@ -192,7 +259,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
         )}
       </div>
     </TooltipProvider>
-  );
+     );
 };
 
 export default DescriptionPanel;

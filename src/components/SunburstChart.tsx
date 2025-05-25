@@ -12,6 +12,8 @@ interface SunburstChartProps {
   maxLayers?: number;
   showLabels?: boolean;
   onBreadcrumbsChange?: (items: Array<{ id: string; name: string }>) => void;
+  onVisibleNodesChange?: (visible: SunburstNode[]) => void;
+  onCoreChange?: (id: string | null) => void;
 }
 
 const SunburstChart: React.FC<SunburstChartProps> = ({
@@ -19,17 +21,23 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   links,
   width = 600,
   height = 600,
-  onSelect,
+  onSelect, 
   maxLayers = 3,
   showLabels = false,
-  onBreadcrumbsChange
+  onBreadcrumbsChange,
+  onVisibleNodesChange,
+  onCoreChange
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [pivotId, setPivotId] = useState<string | null>(null);
 
+    // Track previous visible node IDs to avoid infinite update loops
+  const prevVisibleIds = useRef<string[]>([]);
+
   useEffect(() => {
     // whenever the input nodes or links change, reset to top-level view
     setPivotId(null);
+    onCoreChange?.(null);
   }, [nodes, links]);
   
   useEffect(() => {
@@ -162,7 +170,25 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         x => x.data.id === d.data.id && x.depth === d.depth
       ) === i
     );
+    
     console.log('Visible Nodes:', visibleNodes.map(d => ({ id: d.data.id, depth: d.depth })));
+    // Notify parent of visible nodes change
+    if (onVisibleNodesChange) {
+      const mapped = visibleNodes.map(d => ({
+        id: d.data.id,
+        name: d.data.name,
+        value: d.data.value,
+        color: d.data.color,
+        category: d.data.category
+      }));
+      console.log("STEP 1 ▶️ Sunburst emits visibleNodes:", mapped.map(n => n.id));
+      const currentIds = mapped.map(n => n.id);
+      // Only emit if IDs have changed
+      if (JSON.stringify(currentIds) !== JSON.stringify(prevVisibleIds.current)) {
+        prevVisibleIds.current = currentIds;
+        onVisibleNodesChange(mapped);
+      }
+    }
 
     // Define arc generator
     const arc = d3.arc<any>()
@@ -198,6 +224,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         // Synthetic root click: just reset pivot, leave breadcrumbs intact
         if (d.data.id === 'root') {
           setPivotId(null);
+          onCoreChange?.(null)
           return;
         }
         // Build and emit breadcrumb trail for this node
@@ -214,6 +241,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         if (d.children && d.children.length > 0) {
           // Drill in for parent nodes
           setPivotId(d.data.id);
+          onCoreChange?.(d.data.id);
         } else {
           // Leaf node: trigger navigation
           onSelect?.(d.data.id);

@@ -26,6 +26,12 @@ export const useDriverComputation = (
 
     // Get set of visible node IDs for filtering
     const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
+      console.log("🚦 Driver hook input", {
+        coreIndicator,
+        visibleNodeIds: visibleNodes.map(v => v.id),
+        indicators,
+        relationships
+      });
     
     // Traverse relationships to find linked indicators up to 3 levels deep
     const getLinkedIndicators = (startId: string, depth: number = 0, visited: Set<string> = new Set()): string[] => {
@@ -60,7 +66,10 @@ export const useDriverComputation = (
     
     const laggingDrivers = sortedByValue.slice(0, 3);
     const thrivingDrivers = sortedByValue.slice(-3).reverse();
-    
+    // Debug logs
+    console.log('🔧 [useDriverComputation] core:', coreIndicator.indicator_id, 'visibleLinked:', visibleLinkedIndicators.map(i => i.indicator_id));
+    console.log('🔧 [useDriverComputation] laggingDrivers:', laggingDrivers.map(d => d.indicator_id));
+    console.log('🔧 [useDriverComputation] thrivingDrivers:', thrivingDrivers.map(d => d.indicator_id));
     return {
       laggingDrivers,
       thrivingDrivers,

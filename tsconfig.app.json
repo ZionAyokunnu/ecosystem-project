@@ -16,7 +16,10 @@
     "noEmit": false,
     "declaration": true,
     "outDir": "dist",
+<<<<<<< HEAD
+=======
 
+>>>>>>> 55cba5b2e8e561ca656f0db043f918c2a867144e
     "jsx": "react-jsx",
 
     /* Linting */
