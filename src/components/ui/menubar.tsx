@@ -7,7 +7,6 @@ import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-
 // const MenubarMenu: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Menu>> = MenubarPrimitive.Menu
 
 // const MenubarGroup: React.ComponentType<React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Group>> = MenubarPrimitive.Group
@@ -201,7 +200,7 @@ const MenubarSeparator = React.forwardRef<
 ))
 MenubarSeparator.displayName = MenubarPrimitive.Separator.displayName
 
-const MenubarShortcut = ({
+const MenubarShortcut: React.FC<React.HTMLAttributes<HTMLSpanElement>> = ({
   className,
   ...props
 }) => {
