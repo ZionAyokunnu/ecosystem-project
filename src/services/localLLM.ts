@@ -23,7 +23,7 @@ export const queryLocalLLM = async (prompt: string): Promise<string> => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'phi4-mini', prompt })
+      body: JSON.stringify({ model: 'tinyllama:1.1b', prompt })
     });
 
     if (!response.ok) {

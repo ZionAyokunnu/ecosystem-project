@@ -322,6 +322,8 @@ const visibleIndicators = useMemo(
                         onBreadcrumbsChange={setBreadcrumbs}
                         onVisibleNodesChange={setVisibleNodes}
                         onCoreChange={handleCoreChange}
+                        maxLayers={userSettings.maxLayers}
+                        maxDrillDepth={userSettings.maxDrillDepth}
                       />
                     </div>
                   </div>

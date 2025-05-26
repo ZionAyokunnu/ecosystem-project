@@ -156,7 +156,9 @@ const Overview: React.FC = () => {
                     links={sunburstData.links}
                     onSelect={handleIndicatorSelect}
                     onVisibleNodesChange={setVisibleNodes}
-                    onCoreChange={handleCoreChange}          // <‑‑ new
+                    onCoreChange={handleCoreChange}  
+                    maxLayers={userSettings.maxLayers}
+                    maxDrillDepth={userSettings.maxDrillDepth} 
                   />
                 </div>
               </div>
