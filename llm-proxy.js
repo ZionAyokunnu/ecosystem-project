@@ -13,7 +13,7 @@ app.post('/api/local-llm', async (req, res) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'phi4-mini',       // <-- the model you pulled
+      model: 'tinyllama:1.1b',       // <-- the model you pulled
       prompt,
       stream: false             // we just want the full answer
     })
