@@ -31,15 +31,25 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [pivotId, setPivotId] = useState<string | null>(null);
+  // stack of drill‑in pivots so we can step back one level at a time
+  const [pivotStack, setPivotStack] = useState<string[]>([]);
+    // which slice is currently selected (for highlight)
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
     // Track previous visible node IDs to avoid infinite update loops
   const prevVisibleIds = useRef<string[]>([]);
 
-  useEffect(() => {
-    // whenever the input nodes or links change, reset to top-level view
+const prevCount = useRef(nodes.length + links.length);
+
+useEffect(() => {
+  const thisCount = nodes.length + links.length;
+  if (thisCount !== prevCount.current) {          // real data size changed
     setPivotId(null);
+    setPivotStack([]);          // clear breadcrumb stack
     onCoreChange?.(null);
-  }, [nodes, links]);
+    prevCount.current = thisCount;
+  }
+}, [nodes, links]);
   
   useEffect(() => {
     if (!svgRef.current || nodes.length === 0) return;
@@ -164,8 +174,9 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Initialize current positions for transitions
     root.each((d: any) => (d.current = d));
     
-    // Filter to nodes in the desired depth range, then dedupe by id@depth
-    const allNodes = root.descendants().filter((d: any) => d.depth > 0 && d.depth <= layers);
+    // Include depth 0 when we have pivoted; otherwise skip the synthetic "Root"
+    const minDepth = pivotId ? 0 : 1;
+    const allNodes = root.descendants().filter((d: any) => d.depth >= minDepth && d.depth <= layers);
     const visibleNodes = allNodes.filter((d, i, arr) =>
       arr.findIndex(
         x => x.data.id === d.data.id && x.depth === d.depth
@@ -217,14 +228,22 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .attr("d", arc as any)
       .style("fill", (d: any) => d.data.color || "#ccc")
       .style("stroke", "white")
-      .style("stroke-width", 1)
+      .style("stroke-width", (d: any) =>
+      selectedId && d.data.id === selectedId ? 3 : 1
+      )
+      .style("stroke", (d: any) =>
+      selectedId && d.data.id === selectedId ? "#111" : "white"
+      )
       .style("opacity", 0.9)
       .style("cursor", (d: any) => (d.children?.length ? "pointer" : "default"))
       .attr("pointer-events", "all")
       .on("click", function(event: any, d: any) {
+            // remember which wedge was just clicked so we can highlight it
+        setSelectedId(d.data.id);
         // Synthetic root click: just reset pivot, leave breadcrumbs intact
         if (d.data.id === 'root') {
           setPivotId(null);
+          setPivotStack([]);                     // back to very top
           onCoreChange?.(null)
           console.log('STEP ③0 ▶️ Sunburst onCoreChange fired:', null);
           return;
@@ -242,13 +261,34 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
         if (d.children && d.children.length > 0) {
           // Drill in for parent nodes
+          setPivotStack(prev => [...prev, d.data.id]);   // push this level
           setPivotId(d.data.id);
           onCoreChange?.(d.data.id);
           console.log('STEP ③0 ▶️ Sunburst onCoreChange fired:', d.data.id);
-        } else {
-          // Leaf node: trigger navigation
-          onSelect?.(d.data.id);
         }
+          else {
+            // Leaf node ▼
+            // Zoom so that the leaf’s *parent* is centred,
+            // **but** tell the outside world that *this* leaf is the “selected core”
+            // to drive the DescriptionPanel and TrendGraph.
+
+            if (d.parent) {
+              const parentId = d.parent.data.id;
+
+              // Zoom logic (centre on parent)
+              setPivotStack(prev =>
+                prev.length && prev[prev.length - 1] === parentId ? prev : [...prev, parentId]
+              );
+              setPivotId(parentId);
+
+              // UI logic
+              setSelectedId(d.data.id);          // highlight the clicked leaf
+              onCoreChange?.(d.data.id);         // panel now shows leaf details
+
+              console.log('STEP ③0 ▶️ Sunburst leaf clicked - zoom →', parentId, ' core →', d.data.id);
+            }
+            // No navigation for leaf nodes
+          }
       })
       .on("mouseover", function(event, d: any) {
         d3.select(this).style("opacity", 1);
@@ -323,20 +363,22 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     }
 
     function clicked(event, p) {
-      // Determine new pivot: drill up to parent, or reset to no pivot
-      const targetNode = p;
-      const trail = targetNode.ancestors()
-        .reverse()
-        .filter(node => node.data.id !== 'root')
-        .map(node => ({ id: node.data.id, name: node.data.name }));
-      onBreadcrumbsChange?.(trail);
+      // centre‑circle click ➜ pop one level off the stack
+      if (pivotStack.length === 0) {
+        return;                       // already at global root
+      }
+      const newStack = [...pivotStack];
+      newStack.pop();                 // step out one level
+      const newPivot = newStack.length > 0 ? newStack[newStack.length - 1] : null;
 
-      let newPivotId = p.parent ? p.parent.data.id : null;
-      if (newPivotId === 'root') newPivotId = null;
-      setPivotId(newPivotId);
-      // Don't call onSelect here
-      console.log('Clicked node:', p.data.id, 'depth:', p.depth);
-      parent.datum(p.parent || root);
+      setPivotStack(newStack);
+      setPivotId(newPivot);
+      onCoreChange?.(newPivot);
+
+      // rebind centre datum for next click
+      parent.datum(newPivot ? nodeMap.get(newPivot) : root);
+
+      // keep the existing nice transition (unchanged ↓)
       root.each(d => d.target = {
         x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
         x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
@@ -380,7 +422,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     return () => {
       tooltip.remove();
     };
-  }, [nodes, links, width, height, onSelect,  maxLayers, pivotId, showLabels, onBreadcrumbsChange]);
+  }, [nodes, links, width, height, onSelect, maxLayers, pivotId, selectedId, showLabels, onBreadcrumbsChange]);
   
   return (
     <div className="flex flex-col items-center">
