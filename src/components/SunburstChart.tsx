@@ -16,6 +16,7 @@ interface SunburstChartProps {
   onCoreChange?: (id: string | null) => void;
 }
 
+
 const SunburstChart: React.FC<SunburstChartProps> = ({
   nodes,
   links,
@@ -225,6 +226,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         if (d.data.id === 'root') {
           setPivotId(null);
           onCoreChange?.(null)
+          console.log('STEP ③0 ▶️ Sunburst onCoreChange fired:', null);
           return;
         }
         // Build and emit breadcrumb trail for this node
@@ -242,6 +244,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           // Drill in for parent nodes
           setPivotId(d.data.id);
           onCoreChange?.(d.data.id);
+          console.log('STEP ③0 ▶️ Sunburst onCoreChange fired:', d.data.id);
         } else {
           // Leaf node: trigger navigation
           onSelect?.(d.data.id);
