@@ -15,7 +15,7 @@ interface EcosystemContextProps {
 }
 
 const defaultUserSettings: UserSettings = {
-  maxDrillDepth: 3,          
+  maxDrillDepth: 5,
   topDriversCount: 3,
   showPercentileDrivers: false,
   percentileThreshold: 95
