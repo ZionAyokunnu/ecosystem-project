@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
 import SunburstChart from '@/components/SunburstChart';
@@ -29,6 +29,7 @@ const DetailView: React.FC = () => {
   
   const [coreIndicator, setCoreIndicator] = useState<Indicator | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string, name: string }>>([]);
+  const [currentCoreId, setCurrentCoreId] = useState<string | null>(indicatorId ?? null);
   const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
   const [localIndicators, setLocalIndicators] = useState<Indicator[]>([]);
   const [simulationChanges, setSimulationChanges] = useState<SimulationChange[]>([]);
@@ -41,11 +42,34 @@ const DetailView: React.FC = () => {
     negativeDrivers: []
   });
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
-  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
-  
+
+const handleCoreChange = useCallback(
+  (newId: string | null) => {
+    if (!newId) return;            // synthetic root; ignore
+    setCurrentCoreId(newId);       // drives TrendGraph
+    const found = indicators.find(ind => ind.indicator_id === newId);
+    if (found) {
+      setCoreIndicator(found);     // drives DescriptionPanel header & value
+    }
+  },
+  [indicators]
+);
+
+// IDs of wedges currently shown
+const visibleIds = useMemo(
+  () => visibleNodes.map(n => n.id),
+  [visibleNodes]
+);
+
+// Actual Indicator objects that match those IDs
+const visibleIndicators = useMemo(
+  () => localIndicators.filter(ind => visibleIds.includes(ind.indicator_id)),
+  [localIndicators, visibleIds]
+);
+
   // Load core indicator and prepare data
   useEffect(() => {
     console.log('DetailView useEffect:', { indicatorId, loading, indicatorsCount: indicators.length });
@@ -131,13 +155,20 @@ const DetailView: React.FC = () => {
     console.log('Breadcrumbs updated:', breadcrumbs);
   }, [breadcrumbs]);
 
-  // STEP 2 — watch visibleNodes coming from Sunburst
   useEffect(() => {
-    console.log(
-      "STEP 2 ▶️ [DetailView] visibleNodes state:",
-      visibleNodes.map((n) => n.id)
-    );
-  }, [visibleNodes]);
+    if (!currentCoreId) return;
+
+    console.log('STEP ③2 ▶️ fetching prediction for', currentCoreId);
+    setIsPredicting(true);
+
+    predictTrend(currentCoreId)
+      .then(setPredictionData)
+      .catch(err => {
+        console.error('Error predicting trend:', err);
+        setPredictionData(null);
+      })
+      .finally(() => setIsPredicting(false));
+  }, [currentCoreId]);
 
   useEffect(() => {
     if (!coreIndicator) return;
@@ -212,7 +243,7 @@ const DetailView: React.FC = () => {
       console.error('Error saving simulation:', err);
       toast({
         title: "Error Saving Simulation",
-        description: "There was a problem saving your simulation.",
+        description: "There was a problem saving your sim<suulation.",
         variant: "destructive"
       });
     }
@@ -245,13 +276,6 @@ const DetailView: React.FC = () => {
     );
   };
 
-    const handleCoreChange = (newId: string | null) => {
-    if (!newId) return;                         // Ignore synthetic root for now
-    const found = indicators.find(i => i.indicator_id === newId);
-    if (found && found.indicator_id !== coreIndicator?.indicator_id) {
-      setCoreIndicator(found);
-    }
-  };
   
   console.log('DetailView render, breadcrumbs:', breadcrumbs);
   
@@ -327,9 +351,11 @@ const DetailView: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  ) : predictionData ? (
-                    <TrendGraph predictionData={predictionData} />
-                  ) : null}
+                  ) : (
+                    predictionData && (
+                      <TrendGraph predictionData={predictionData} />
+                    )
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="simulation" className="pt-4">
@@ -345,7 +371,7 @@ const DetailView: React.FC = () => {
                   </div>
                   
                   <Simulator
-                    indicators={localIndicators}
+                    indicators={visibleIndicators}
                     coreIndicator={coreIndicator}
                     onSimulate={handleSimulate}
                     changes={simulationChanges}

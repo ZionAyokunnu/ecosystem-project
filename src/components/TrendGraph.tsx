@@ -5,31 +5,35 @@ import { PredictionResult } from '@/types';
 
 interface TrendGraphProps {
   predictionData: PredictionResult;
+  onYearClick?: (year: number) => void;   // optional drill‑down handler
 }
 
-const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData }) => {
+const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData, onYearClick }) => {
   const { years, values } = predictionData;
-  
-  // Determine the cutoff point between historical and predicted data
+
+  // Build one record per year with separate keys so Recharts can draw two distinct lines
   const currentYear = new Date().getFullYear();
-  const historicalEndIndex = years.findIndex(year => year >= currentYear);
-  
-  // Prepare data for chart
   const chartData = years.map((year, i) => ({
     year,
-    value: values[i],
-    type: year >= currentYear ? 'predicted' : 'historical'
+    historicalValue: year <= currentYear ? values[i] : null,
+    predictedValue: year >= currentYear ? values[i] : null
   }));
-  
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Historical & Predicted Trends</h2>
-      
+
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            onClick={(e) => {
+              // e.activeLabel is the x‑axis label (year) that was clicked
+              if (e && typeof e.activeLabel === 'number' && onYearClick) {
+                onYearClick(e.activeLabel);
+              }
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" />
@@ -38,19 +42,19 @@ const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData }) => {
             <Legend />
             <Line
               type="monotone"
-              dataKey="value"
+              dataKey="historicalValue"
               stroke="#3B82F6"
               strokeWidth={2}
               dot={{ r: 4 }}
               name="Historical"
-              activeDot={{ r: 8 }}
               connectNulls
               isAnimationActive={true}
-              animationDuration={1000}
+              animationDuration={800}
+              cursor="pointer"
             />
             <Line
               type="monotone"
-              dataKey="value"
+              dataKey="predictedValue"
               stroke="#10B981"
               strokeWidth={2}
               strokeDasharray="5 5"
@@ -58,18 +62,19 @@ const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData }) => {
               name="Predicted"
               connectNulls
               isAnimationActive={true}
-              animationDuration={1000}
+              animationDuration={800}
+              cursor="pointer"
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
-      
+
       <div className="mt-4 p-3 bg-blue-50 rounded-md">
         <h3 className="font-medium text-blue-800 mb-1">Trend Analysis</h3>
         <p className="text-blue-600">{predictionData.summary}</p>
       </div>
     </div>
   );
-};
+}
 
 export default TrendGraph;

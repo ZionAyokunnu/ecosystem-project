@@ -5,8 +5,15 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
     server: {
-        host: "::",
-        port: 8080,
+        // run Vite on its default port so it never collides with the proxy
+        port: 5173,
+        host: 'localhost',
+        proxy: {
+          '/api': {
+            target: 'http://localhost:8080', // llm‑proxy
+            changeOrigin: true,
+          },
+        },
     },
     plugins: [
         react(),

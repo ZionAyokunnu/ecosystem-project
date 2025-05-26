@@ -23,7 +23,7 @@ export const queryLocalLLM = async (prompt: string): Promise<string> => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({ model: 'tinyllama:1.1b', prompt })
     });
 
     if (!response.ok) {
@@ -31,6 +31,7 @@ export const queryLocalLLM = async (prompt: string): Promise<string> => {
     }
 
     const data: LLMResponse = await response.json();
+    console.log('[localLLM] raw response from proxy:', data);
     return data.analysisText;
   } catch (error) {
     console.error('Local LLM query failed:', error);
