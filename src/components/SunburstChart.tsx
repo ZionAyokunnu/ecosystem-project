@@ -11,7 +11,6 @@ interface SunburstChartProps {
   onSelect?: (indicatorId: string) => void;
   maxLayers?: number;
   showLabels?: boolean;
-  maxDrillDepth?: number;
   onBreadcrumbsChange?: (items: Array<{ id: string; name: string }>) => void;
   onVisibleNodesChange?: (visible: SunburstNode[]) => void;
   onCoreChange?: (id: string | null) => void;
@@ -23,8 +22,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   width = 600,
   height = 600,
   onSelect, 
-  maxLayers = 4,
-  maxDrillDepth = 4,
+  maxLayers = 3,
   showLabels = false,
   onBreadcrumbsChange,
   onVisibleNodesChange,
@@ -40,29 +38,18 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Track previous visible node IDs to avoid infinite update loops
   const prevVisibleIds = useRef<string[]>([]);
 
-  /**
-   * We only want to reset the pivot when the *topology* of the graph changes,
-   * not every time a new `nodes` / `links` array instance is passed in.
-   * Compute a simple string hash of all node & link IDs and compare it with
-   * the previous render.
-   */
-  const hashTopology = (ns: SunburstNode[], ls: SunburstLink[]) =>
-    ns.map(n => n.id).join('|') +
-    '//' +
-    ls.map(l => `${l.parent_id}->${l.child_id}`).join('|');
-
-  const prevTopology = useRef<string>('');
+  const prevCount = useRef(nodes.length + links.length);
 
   useEffect(() => {
-    const hash = hashTopology(nodes, links);
-    if (hash !== prevTopology.current) {
-      // the structure truly changed → reset the zoom/pivot
+    const thisCount = nodes.length + links.length;
+    if (thisCount !== prevCount.current) {          // real data size changed
       setPivotId(null);
-      setPivotStack([]);
+      setPivotStack([]);          // clear breadcrumb stack
       onCoreChange?.(null);
-      prevTopology.current = hash;
+      prevCount.current = thisCount;
     }
   }, [nodes, links]);
+
   
   useEffect(() => {
     if (!svgRef.current || nodes.length === 0) return;
@@ -188,7 +175,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     root.each((d: any) => (d.current = d));
     
     // Include depth 0 when we have pivoted; otherwise skip the synthetic "Root"
-    const minDepth = pivotId ? 0 : 1;
+    const minDepth = pivotId ? 0 : 2;
     const allNodes = root.descendants().filter((d: any) => d.depth >= minDepth && d.depth <= layers);
     const visibleNodes = allNodes.filter((d, i, arr) =>
       arr.findIndex(
@@ -251,8 +238,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .style("cursor", (d: any) => (d.children?.length ? "pointer" : "default"))
       .attr("pointer-events", "all")
       .on("click", function(event: any, d: any) {
-          // Stop drilling if we've reached the user-defined ceiling
-        if (pivotStack.length >= maxDrillDepth) return;
+
             // remember which wedge was just clicked so we can highlight it
         setSelectedId(d.data.id);
         // Synthetic root click: just reset pivot, leave breadcrumbs intact

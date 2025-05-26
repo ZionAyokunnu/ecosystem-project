@@ -157,8 +157,6 @@ const Overview: React.FC = () => {
                     onSelect={handleIndicatorSelect}
                     onVisibleNodesChange={setVisibleNodes}
                     onCoreChange={handleCoreChange}  
-                    maxLayers={userSettings.maxLayers}
-                    maxDrillDepth={userSettings.maxDrillDepth} 
                   />
                 </div>
               </div>

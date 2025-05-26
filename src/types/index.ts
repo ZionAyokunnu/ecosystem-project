@@ -77,7 +77,6 @@ export interface SimulationResult {
 
 export interface UserSettings {
   maxDrillDepth: number;
-  maxLayers: number;
   topDriversCount: number;
   showPercentileDrivers: boolean;
   percentileThreshold: number;
