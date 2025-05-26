@@ -23,8 +23,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   width = 600,
   height = 600,
   onSelect, 
-  maxLayers = 3,
-  maxDrillDepth = 3,
+  maxLayers = 4,
+  maxDrillDepth = 4,
   showLabels = false,
   onBreadcrumbsChange,
   onVisibleNodesChange,
@@ -188,7 +188,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     root.each((d: any) => (d.current = d));
     
     // Include depth 0 when we have pivoted; otherwise skip the synthetic "Root"
-    const minDepth = pivotId ? 0 : 2;
+    const minDepth = pivotId ? 0 : 1;
     const allNodes = root.descendants().filter((d: any) => d.depth >= minDepth && d.depth <= layers);
     const visibleNodes = allNodes.filter((d, i, arr) =>
       arr.findIndex(
