@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
 import SunburstChart from '@/components/SunburstChart';
@@ -16,6 +16,18 @@ const Overview: React.FC = () => {
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings } = useEcosystem();
   const [rootIndicator, setRootIndicator] = useState<Indicator | null>(null);
+
+  // keep track of whichever slice is currently centred in the Sunburst
+  const handleCoreChange = useCallback(
+    (newId: string | null) => {
+      if (!newId) return;                         // ignore synthetic root
+      const found = indicators.find(i => i.indicator_id === newId);
+      if (found) {
+        setRootIndicator(found);                  // drives DescriptionPanel + TrendGraph
+      }
+    },
+    [indicators]
+  );
   const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
@@ -144,6 +156,7 @@ const Overview: React.FC = () => {
                     links={sunburstData.links}
                     onSelect={handleIndicatorSelect}
                     onVisibleNodesChange={setVisibleNodes}
+                    onCoreChange={handleCoreChange}  
                   />
                 </div>
               </div>
