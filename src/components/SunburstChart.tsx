@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { SunburstNode, SunburstLink } from '@/types';
 import { set } from 'date-fns';
@@ -164,12 +164,30 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     console.log('PivotId:', pivotId);
     console.log('Hierarchy Data:', hierarchyData);
 
-    // Create hierarchy
+
+        // Create a lookup of influence_score for parent→child links
+    const influenceScoreMap = new Map(
+      links.map(link => [`${link.parent_id}_${link.child_id}`, link.correlation])
+    );
+
+
+
+        // Create hierarchy
     const root = d3.hierarchy(hierarchyData as any)
-    
+      .count()
+      .sort((a, b) => {
+        const pid = a.parent?.data.id;
+        if (!pid) return 0;
+        const scoreA = influenceScoreMap.get(`${pid}_${a.data.id}`) ?? 0;
+        const scoreB = influenceScoreMap.get(`${pid}_${b.data.id}`) ?? 0;
+        return scoreB - scoreA; // descending: highest influence first
+      });
+
+      
+    // Build hierarchy and size/arcs based on node value, sorting siblings by influence_score
     // Calculate node values for sizing
     // root.sum((d: any) => d.value);
-    root.count()
+    // root.count()
     console.log('Root before partition:', root.descendants().map(d => ({ id: d.data.id, depth: d.depth })));
     
     const radius = Math.min(width, height) / 2;
