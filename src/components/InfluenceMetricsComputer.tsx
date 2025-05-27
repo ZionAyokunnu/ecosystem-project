@@ -23,36 +23,48 @@ const InfluenceMetricsComputer: React.FC = () => {
   const [progress, setProgress] = useState(0);
 
   const runComputation = async () => {
+    console.log('InfluenceMetricsComputer: runComputation started');
     setIsComputing(true);
     setResult(null);
     setProgress(0);
+    console.log('InfluenceMetricsComputer: state reset, starting progress simulation');
 
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
+        setProgress(prev => {
+          const next = Math.min(prev + 10, 90);
+          console.log(`InfluenceMetricsComputer: progress → ${next}`);
+          return next;
+        });
       }, 500);
 
+      console.log('InfluenceMetricsComputer: invoking compute-influence-metrics function');
       const { data, error } = await supabase.functions.invoke('compute-influence-metrics', {
         body: {}
       });
+      console.log('InfluenceMetricsComputer: function response', { data, error });
 
       clearInterval(progressInterval);
       setProgress(100);
+      console.log('InfluenceMetricsComputer: progress complete, setting to 100');
 
       if (error) {
         throw error;
       }
 
+      console.log('InfluenceMetricsComputer: computation successful, data:', data);
       setResult(data);
     } catch (error) {
       console.error('Failed to compute influence metrics:', error);
+      console.log('InfluenceMetricsComputer: computation error caught', error);
       setResult({
         success: false,
         error: error.message || 'Failed to compute influence metrics'
       });
     } finally {
       setIsComputing(false);
+      console.log('InfluenceMetricsComputer: runComputation finished, isComputing →', false);
     }
   };
 
