@@ -7,13 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
+import InfluenceMetricsComputer from '@/components/InfluenceMetricsComputer';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { transformToSunburstData } from '@/utils/indicatorUtils';
+import { useEcosystem } from '@/context/EcosystemContext';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+
+
+
 
 const ProfilesView: React.FC = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<SimulationProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const { indicators, relationships} = useEcosystem();
   
+
+
   useEffect(() => {
     const fetchProfiles = async () => {
       setLoading(true);
@@ -85,6 +99,15 @@ const ProfilesView: React.FC = () => {
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Error loading ecosystem data: {error.message}
+        </AlertDescription>
+      </Alert>
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -144,10 +167,28 @@ const ProfilesView: React.FC = () => {
               </Button>
             </div>
           )}
+
+            <div className="space-y-6">
+      {/* Influence Metrics Computer */}
+              <InfluenceMetricsComputer />
+
+
         </div>
       </div>
     </div>
   );
 };
+
+  if (loading) {
+return (
+      <div className="space-y-6">
+        <Skeleton className="h-96 w-full" />
+        <Skeleton className="h-64 w-full" />
+
+</div>
+    );
+  }
+
+
 
 export default ProfilesView;
