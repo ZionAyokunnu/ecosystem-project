@@ -22,7 +22,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   width = 600,
   height = 600,
   onSelect, 
-  maxLayers = 3,
+  maxLayers = 2,
   showLabels = false,
   onBreadcrumbsChange,
   onVisibleNodesChange,
@@ -39,6 +39,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   const prevVisibleIds = useRef<string[]>([]);
 
   const prevCount = useRef(nodes.length + links.length);
+
+  const pivotStackRef = useRef<string[]>([]);
 
   useEffect(() => {
     const thisCount = nodes.length + links.length;
@@ -65,6 +67,20 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .append("g")
       .attr("transform", `translate(${width / 2}, ${height / 2})`);
     
+    const container = svg
+      .on("click", (event) => {
+        console.log("🕵️‍♂️ click at", d3.pointer(event), "pivotStack:", pivotStack);
+        // get mouse coords relative to center
+        const [mx, my] = d3.pointer(event);
+        // Only allow center click if we can step back (pivotStack not empty)
+        if (pivotStackRef.current.length === 0) return;
+        // only treat clicks within the inner radius as "center clicks"
+        if (Math.hypot(mx, my) <= (Math.min(width, height) / 2) / maxLayers) {
+          // simulate the center-circle click:
+          clicked(event, { x0: 0, x1: 2 * Math.PI, depth: 0 });
+        }
+      });
+
     // Build hierarchy data
     const nodeMap = new Map<string, any>();
     
@@ -123,7 +139,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           const childWithRelationship = {
             ...child,
             weight: link.influence_weight,
-            correlation: link.correlation_score ?? 0.1  // Default to 0.1 if not provided
+            correlation: link.influence_score ?? 0.1  // Default to 0.1 if not provided
           };
           parent.children.push(childWithRelationship);
         }
@@ -152,7 +168,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     const root = d3.hierarchy(hierarchyData as any)
     
     // Calculate node values for sizing
-    root.sum((d: any) => d.value);
+    // root.sum((d: any) => d.value);
+    root.count()
     console.log('Root before partition:', root.descendants().map(d => ({ id: d.data.id, depth: d.depth })));
     
     const radius = Math.min(width, height) / 2;
@@ -207,7 +224,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .startAngle(d => d.x0)
       .endAngle(d => d.x1)
       .innerRadius(d => d.y0 * ringWidth)
-      .outerRadius(d => d.y1 * ringWidth);
+      .outerRadius(d => d.y1 * ringWidth * 1.01) // Slightly larger outer radius for better visibility
+      .padAngle(0);
     
     // Create tooltip
     const tooltip = d3.select("body")
@@ -261,8 +279,14 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         onBreadcrumbsChange?.(trail);
 
         if (d.children && d.children.length > 0) {
+          if (pivotStackRef.current[pivotStackRef.current.length - 1] !== d.data.id) {
           // Drill in for parent nodes
-          setPivotStack(prev => [...prev, d.data.id]);   // push this level
+            setPivotStack(prev => {
+              const next = [...prev, d.data.id];
+              pivotStackRef.current = next;  // update ref for click handler
+              return next;
+          });   // push this level
+      }
           setPivotId(d.data.id);
           onCoreChange?.(d.data.id);
           console.log('STEP ③0 ▶️ Sunburst onCoreChange fired:', d.data.id);
@@ -334,12 +358,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       return `${names.join(' > ')}\n${format(d.value)}`;
     });
 
-    const parent = svg.append("circle")
-      .datum(root)
-      .attr("r", ringWidth)
-      .attr("fill", "none")
-      .attr("pointer-events", "all")
-      .on("click", clicked);
+    // removed since WE’ve moved the centre‐click logic onto the main <g> container
+    // const parent = svg.append("circle")
+    //   .datum(root)
+    //   .attr("r", ringWidth)
+    //   .attr("fill", "none")
+    //   .attr("pointer-events", "none")
+    //   .on("click", clicked);
 
     let label: any;
     if (showLabels) {
@@ -364,8 +389,10 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     }
 
     function clicked(event, p) {
+      console.log("↩️ centre clicked, pivotStack BEFORE:", pivotStackRef.current);
       // centre‑circle click ➜ pop one level off the stack
-      if (pivotStack.length === 0) {
+      if (pivotStackRef.current.length === 0) {
+        console.log("🚫 nothing to pop—already at root");
         return;                       // already at global root
       }
       const newStack = [...pivotStack];
@@ -377,7 +404,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       onCoreChange?.(newPivot);
 
       // rebind centre datum for next click
-      parent.datum(newPivot ? nodeMap.get(newPivot) : root);
+      svg.datum(newPivot ? nodeMap.get(newPivot) : root);
 
       // keep the existing nice transition (unchanged ↓)
       root.each(d => d.target = {

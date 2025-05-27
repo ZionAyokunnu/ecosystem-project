@@ -13,7 +13,7 @@ export interface Relationship {
   parent_id: string;
   child_id: string;
   influence_weight: number;
-  correlation_score: number;
+  influence_score: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -53,7 +53,7 @@ export interface SunburstNode {
 }
 
 export interface SunburstLink {
-  correlation_score: number;
+  influence_score: number;
   influence_weight: any;
   parent_id: string;
   child_id: string;

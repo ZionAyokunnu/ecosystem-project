@@ -64,11 +64,36 @@ const visibleIds = useMemo(
   [visibleNodes]
 );
 
-// Actual Indicator objects that match those IDs
-const visibleIndicators = useMemo(
-  () => localIndicators.filter(ind => visibleIds.includes(ind.indicator_id)),
-  [localIndicators, visibleIds]
-);
+// // Actual Indicator objects that match those IDs
+// const visibleIndicators = useMemo(
+//   () => localIndicators.filter(ind => visibleIds.includes(ind.indicator_id)),
+//   [localIndicators, visibleIds]
+// );
+
+const visibleIndicators = useMemo(() => {
+  return visibleNodes
+    // //  ❌ drop the synthetic root (depth 0), if you don’t want it
+    // .filter(node => node.depth > 0)
+    //  ✅ map each wedge back to the full Indicator
+    .map(node => indicators.find(ind => ind.indicator_id === node.id))
+    //  🚨 drop any that somehow didn’t resolve (shouldn’t happen)
+    .filter((ind): ind is Indicator => Boolean(ind))
+}, [visibleNodes, indicators])
+
+useEffect(() => {
+  console.log(
+    "🌞 Sunburst shows:", visibleNodes.length,
+    "→ IDs:", visibleNodes.map(n => n.id)
+  );
+  console.log(
+    "📋 Simulator has:", visibleIndicators.length,
+    "→ IDs:", visibleIndicators.map(i => i.indicator_id)
+  );
+}, [visibleNodes, visibleIndicators]);
+
+ useEffect(() => {
+     console.log('DetailView: visibleIndicators updated', visibleIndicators);
+   }, [visibleIndicators]);
 
   // Load core indicator and prepare data
   useEffect(() => {
@@ -365,12 +390,14 @@ const visibleIndicators = useMemo(
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
                         onCoreChange={handleCoreChange}
-                        // onVisibleNodesChange={setVisibleNodes}
+                        onVisibleNodesChange={setVisibleNodes}
                       />
                     </div>
                   </div>
-                  
+              
+
                   <Simulator
+                    key={visibleIndicators.length}
                     indicators={visibleIndicators}
                     coreIndicator={coreIndicator}
                     onSimulate={handleSimulate}
