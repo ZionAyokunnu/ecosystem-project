@@ -10,7 +10,6 @@ import { format } from 'date-fns';
 import InfluenceMetricsComputer from '@/components/InfluenceMetricsComputer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { transformToSunburstData } from '@/utils/indicatorUtils';
 import { useEcosystem } from '@/context/EcosystemContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -24,7 +23,7 @@ const ProfilesView: React.FC = () => {
   const [profiles, setProfiles] = useState<SimulationProfile[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const { indicators, relationships} = useEcosystem();
+  const { loading: ecoLoading, error: ecoError } = useEcosystem();
   
 
 
@@ -99,15 +98,6 @@ const ProfilesView: React.FC = () => {
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Error loading ecosystem data: {error.message}
-        </AlertDescription>
-      </Alert>
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -119,11 +109,14 @@ const ProfilesView: React.FC = () => {
         
         <div className="p-6">
           {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-4 text-gray-500">Loading simulation profiles...</p>
+            <div>
+              <div className="flex justify-center items-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                  <p className="mt-4 text-gray-500">Loading simulation profiles...</p>
+                </div>
               </div>
+        
             </div>
           ) : profiles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -167,27 +160,25 @@ const ProfilesView: React.FC = () => {
               </Button>
             </div>
           )}
-
-            <div className="space-y-6">
-      {/* Influence Metrics Computer */}
+          <div className="mt-10">
+            {ecoLoading ? (
+              <Skeleton className="h-96 w-full" />
+            ) : ecoError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{ecoError.message}</AlertDescription>
+              </Alert>
+            ) : (
               <InfluenceMetricsComputer />
-
+            )}
+          </div>
+          
 
         </div>
       </div>
     </div>
   );
 };
-
-  if (loading) {
-return (
-      <div className="space-y-6">
-        <Skeleton className="h-96 w-full" />
-        <Skeleton className="h-64 w-full" />
-
-</div>
-    );
-  }
 
 
 
