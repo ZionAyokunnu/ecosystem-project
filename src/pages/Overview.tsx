@@ -17,7 +17,7 @@ import { useLocation } from '@/context/LocationContext';
 import LocationPicker from '@/components/LocationPicker';
 import LocationBreadcrumbs from '@/components/LocationBreadcrumbs';
 import TargetLocationToggle from '@/components/TargetLocationToggle';
-import { getSunburstData } from '@/services/temp';
+import { getSunburstData } from '@/services/locationApi';
 
 const Overview: React.FC = () => {
   const navigate = useNavigate();

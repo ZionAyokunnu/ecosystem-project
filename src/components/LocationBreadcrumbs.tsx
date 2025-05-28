@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation } from '@/context/LocationContext';
-import { getLocationPath } from '@/services/temp';
+import { getLocationPath } from '@/services/locationApi';
 import { LocationPath } from '@/types';
 import { ChevronRight, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
