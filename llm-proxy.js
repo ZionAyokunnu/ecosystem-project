@@ -5,12 +5,18 @@ import cors from 'cors';
 const app = express();
 
 app.use(cors({
-  origin: 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app'
+  origin: [
+    'https://ecosystem-project-zion-ayokunnus-projects.vercel.app',
+    'https://ecosystem-project-elmhv09g7-zion-ayokunnus-projects.vercel.app' // preview or custom domain
+  ],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json());
 
-app.options('https://ecosystem-project-production.up.railway.app/local-llm', (req, res) => {
+app.options('/local-llm', (req, res) => {
   console.log("🔍 This one up. Sending prompt to LLM:", prompt);
   console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
   res.setHeader('Access-Control-Allow-Origin', 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app');
@@ -22,7 +28,7 @@ app.options('https://ecosystem-project-production.up.railway.app/local-llm', (re
 
 console.log('✅ ROUTE ACTIVE - /local-llm');
 
-app.post('https://ecosystem-project-production.up.railway.app/local-llm', async (req, res) => {
+app.post('/local-llm', async (req, res) => {
   const { prompt } = req.body;
   console.log('🧠 Received prompt:', prompt);
 
