@@ -22,17 +22,20 @@ export const queryLocalLLM = async (
 
   ${prompt}`;
 
-
     const request: LLMRequest = {
       model: "local-llm",
       prompt: contextualPrompt
     };
 
-  const response = await fetch(import.meta.env.VITE_LLM_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: contextualPrompt }),
-  });
+    // Always use "/local-llm" (not "/api/local-llm")
+    const response = await fetch(
+      import.meta.env.VITE_LLM_API_URL || "/local-llm",
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: contextualPrompt }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`LLM API error: ${response.status}`);
