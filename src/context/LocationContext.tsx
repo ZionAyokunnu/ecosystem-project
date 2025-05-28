@@ -32,4 +32,6 @@ export const useLocation = (): LocationContextType => {
     throw new Error('useLocation must be used within a LocationProvider');
   }
   return context;
+
 };
+        

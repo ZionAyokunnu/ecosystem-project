@@ -114,6 +114,7 @@ export type Database = {
         Relationships: []
       }
             locations: {
+
         Row: {
           created_at: string
           location_id: string
@@ -155,6 +156,7 @@ export type Database = {
           created_at: string
           location: string | null
           parent_id: string
+          photo: string | null
           story_id: string
           story_text: string
           photo: string | null
@@ -165,6 +167,7 @@ export type Database = {
           created_at?: string
           location?: string | null
           parent_id: string
+          photo?: string | null
           story_id?: string
           story_text: string
           photo: string | null
@@ -175,6 +178,7 @@ export type Database = {
           created_at?: string
           location?: string | null
           parent_id?: string
+          photo?: string | null
           story_id?: string
           story_text?: string
           photo: string | null
@@ -199,8 +203,9 @@ export type Database = {
       relationships: {
         Row: {
           child_id: string
-          influence_score: number
+          child_to_parent_weight: number | null
           created_at: string | null
+          influence_score: number
           influence_weight: number
           parent_id: string
           relationship_id: string
@@ -209,8 +214,9 @@ export type Database = {
         }
         Insert: {
           child_id: string
-          influence_score?: number
+          child_to_parent_weight?: number | null
           created_at?: string | null
+          influence_score?: number
           influence_weight: number
           parent_id: string
           relationship_id?: string
@@ -219,8 +225,9 @@ export type Database = {
         }
         Update: {
           child_id?: string
-          influence_score?: number
+          child_to_parent_weight?: number | null
           created_at?: string | null
+          influence_score?: number
           influence_weight?: number
           parent_id?: string
           relationship_id?: string
