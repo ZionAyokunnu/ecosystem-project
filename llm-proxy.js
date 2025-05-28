@@ -13,7 +13,7 @@ app.post('/api/local-llm', async (req, res) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'tinyllama:1.1b',       // <-- the model you pulled
+      model: 'MODEL_NAME',       // <-- the model you pulled
       prompt,
       stream: false             // we just want the full answer
     })
@@ -28,7 +28,7 @@ app.post('/api/local-llm', async (req, res) => {
   res.json({ analysisText: data.response });
 });
 
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`LLM proxy listening on http://localhost:${PORT}`);
 });
