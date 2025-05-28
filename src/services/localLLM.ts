@@ -29,7 +29,7 @@ export const queryLocalLLM = async (
 
     // Always use "/local-llm" (not "/api/local-llm")
     const response = await fetch(
-      import.meta.env.VITE_LLM_API_URL || "/local-llm",
+      "/local-llm",
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
