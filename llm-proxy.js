@@ -4,28 +4,30 @@ import fetch from 'node-fetch';
 const app = express();
 app.use(express.json());
 
-//  ➜  POST /api/local-llm  { prompt: "..." }
 app.post('/api/local-llm', async (req, res) => {
   const { prompt } = req.body;
 
-  // forward to Ollama
-  const ollama = await fetch('http://localhost:11434/api/generate', {
+  // Fetch to OpenAI API for completions
+  const openai = await fetch('https://api.openai.com/v1/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
     body: JSON.stringify({
-      model: 'MODEL_NAME',       // <-- the model you pulled
+      model: 'text-davinci-003',
       prompt,
-      stream: false             // we just want the full answer
-    })
+      max_tokens: 150,
+      temperature: 0.7,
+    }),
   });
 
-  if (!ollama.ok) {
-    return res.status(ollama.status).json({ error: await ollama.text() });
+  if (!openai.ok) {
+    return res.status(openai.status).json({ error: await openai.text() });
   }
 
-  // Ollama’s /generate returns { response: "…", … }
-  const data = await ollama.json();
-  res.json({ analysisText: data.response });
+  const data = await openai.json();
+  res.json({ analysisText: data.choices[0].text });
 });
 
 const PORT = process.env.PORT || 8080;

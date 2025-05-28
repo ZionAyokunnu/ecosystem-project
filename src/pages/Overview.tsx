@@ -117,6 +117,7 @@ const Overview: React.FC = () => {
       const fetchPrediction = async () => {
         setIsPredicting(true);
         try {
+          const locationId = selectedLocation?.location_id || '00000000-0000-0000-0000-000000000000';
           const prediction = await predictTrend(rootIndicator.indicator_id, selectedLocation?.location_id);
           setPredictionData(prediction);
         } catch (err) {

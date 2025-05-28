@@ -28,14 +28,11 @@ export const queryLocalLLM = async (
       prompt: contextualPrompt
     };
 
-    // Simulate API call to local LLM (replace with actual endpoint)
-    const response = await fetch('/api/local-llm', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: 'tinyllama:1.1b', prompt: contextualPrompt })
-    });
+  const response = await fetch(import.meta.env.VITE_LLM_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
 
     if (!response.ok) {
       throw new Error(`LLM API error: ${response.status}`);
