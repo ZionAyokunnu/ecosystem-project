@@ -1,3 +1,4 @@
+
 export interface Indicator {
   indicator_id: string;
   name: string;
@@ -8,12 +9,31 @@ export interface Indicator {
   updated_at?: string;
 }
 
+export interface Location {
+  location_id: string;
+  name: string;
+  type: 'country' | 'region' | 'city' | 'ward';
+  parent_id: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IndicatorValue {
+  indicator_id: string;
+  location_id: string;
+  year: number;
+  value: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Relationship {
   relationship_id: string;
   parent_id: string;
   child_id: string;
   influence_weight: number;
   influence_score: number;
+  child_to_parent_weight: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -65,7 +85,7 @@ export interface SunburstNode {
 
 export interface SunburstLink {
   influence_score: number;
-  influence_weight: any;
+  influence_weight: number;
   parent_id: string;
   child_id: string;
   weight: number;
@@ -91,4 +111,18 @@ export interface UserSettings {
   topDriversCount: number;
   showPercentileDrivers: boolean;
   percentileThreshold: number;
+}
+
+export interface LocationPath {
+  location_id: string;
+  name: string;
+  type: string;
+  depth: number;
+}
+
+export interface LocationContext {
+  selectedLocation: Location | null;
+  targetLocation: Location | null;
+  setSelectedLocation: (location: Location | null) => void;
+  setTargetLocation: (location: Location | null) => void;
 }
