@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "proxy": "node llm-proxy.js",
+    "start": "node llm-proxy.js",
     "dev:all": "concurrently \"npm:dev\" \"npm:proxy\""
   },
   "dependencies": {
