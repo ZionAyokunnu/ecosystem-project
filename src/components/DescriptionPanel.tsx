@@ -80,7 +80,9 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
         const thrivingNames = (thrivingDrivers || []).map(d => d.name).join(', ');
         const laggingNames = (laggingDrivers || []).map(d => d.name).join(', ');
         
-        const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
+        const prompt = `Provide a concise, one-sentence recommendation and analysis of the current state and trends for "${coreIndicator.name}", whose current value is ${coreIndicator.current_value.toFixed(1)}. Indicate whether this value appears to be improving, declining, or stable. 
+                        Draw insightfully on its relationships with the 3 strongest indicators (${thrivingNames}) with values [${thrivingDrivers.map(d => d.current_value.toFixed(1)).join(', ')}] and the 3 weakest indicators (${laggingNames}) with values [${laggingDrivers.map(d => d.current_value.toFixed(1)).join(', ')}].'
+                        Use language appropriate to the domain and communicate with an engaging, hopeful tone. Avoid generic or vague phrasing.`;
         
         const analysis = await queryLocalLLM(prompt, llmMode);
         setAnalysisText(analysis);

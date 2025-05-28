@@ -12,13 +12,13 @@ interface LLMRequest {
 
 export const queryLocalLLM = async (
   prompt: string,
-  mode: 'business' | 'community' = 'business'
+  mode: 'business' | 'community' = 'community'
 ): Promise<string> => {
   try {
     // Build context-aware prompt
     const contextualPrompt = `${contextText}
 
-  [Context: Respond as a ${mode} stakeholder perspective]
+  [Context: Provide actionable, motivating analysis tailored to the ${mode} domain. Adopt a tone that blends strategic consulting, encouraging mentorship, and values-driven advocacy. Avoid passive observation—recommend meaningful direction.]
 
   ${prompt}`;
 
