@@ -10,7 +10,9 @@ app.use(cors({
 
 app.use(express.json());
 
-app.options('/local-llm', (req, res) => {
+app.options('https://ecosystem-project-production.up.railway.app/local-llm', (req, res) => {
+  console.log("🔍 This one up. Sending prompt to LLM:", prompt);
+  console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
   res.setHeader('Access-Control-Allow-Origin', 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -20,11 +22,13 @@ app.options('/local-llm', (req, res) => {
 
 console.log('✅ ROUTE ACTIVE - /local-llm');
 
-app.post('/local-llm', async (req, res) => {
+app.post('https://ecosystem-project-production.up.railway.app/local-llm', async (req, res) => {
   const { prompt } = req.body;
   console.log('🧠 Received prompt:', prompt);
 
   try {
+    console.log("🔍 Sending prompt to LLM:", prompt);
+    console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
     const openai = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
