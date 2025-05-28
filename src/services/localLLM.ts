@@ -18,7 +18,7 @@ export const queryLocalLLM = async (
     // Build context-aware prompt
     const contextualPrompt = `${contextText}
 
-  [Context: Provide actionable, motivating analysis tailored to the ${mode} domain. Adopt a tone that blends strategic consulting, encouraging mentorship, and values-driven advocacy. Avoid passive observation—recommend meaningful direction.]
+  [Context: Provide brief, eloquent, clear, simple, actionable, motivating analysis tailored to the ${mode} domain. Adopt a tone that blends strategic consulting, urgency, encouraging mentorship, and values-driven advocacy. Avoid passive observation—recommend meaningful direction.]
 
   ${prompt}`;
 
