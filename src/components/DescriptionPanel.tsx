@@ -16,6 +16,7 @@ interface DescriptionPanelProps {
   relationships: Relationship[];
   visibleNodes: SunburstNode[];
   correlations?: Record<string, number>;
+  llmMode?: 'business' | 'community';
 }
 
 const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
@@ -23,12 +24,14 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   indicators,
   relationships,
   visibleNodes,
-  correlations = {}
+  correlations = {},
+  llmMode = 'business'
 }) => {
   // Debug: log inputs at the very top of the component
   console.log('🔍 [DescriptionPanel] inputs:', {
     core: coreIndicator.indicator_id,
     visibleNodeIds: visibleNodes.map(n => n.id),
+    llmMode,
     laggingIds: (() => {
       // We need to call useDriverComputation here, but it's below. So, for correct order, move this log after laggingDrivers is available.
       return undefined;
@@ -79,7 +82,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
         
         const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
         
-        const analysis = await queryLocalLLM(prompt);
+        const analysis = await queryLocalLLM(prompt, llmMode);
         setAnalysisText(analysis);
       } catch (error) {
         console.error('Failed to generate LLM analysis:', error);
@@ -94,7 +97,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     } else if (coreIndicator) {
       setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
     }
-  }, [coreIndicator, thrivingDrivers, laggingDrivers]);
+  }, [coreIndicator, thrivingDrivers, laggingDrivers, llmMode]);
 
   useEffect(() => {
     setMounted(true);
@@ -213,7 +216,12 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
               {isLoadingAnalysis ? (
                 <Skeleton className="h-4 w-80" />
               ) : (
-                <p className="text-gray-600">{analysisText}</p>
+               <div>
+                  <p className="text-gray-600">{analysisText}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Perspective: {llmMode === 'business' ? 'Business Stakeholder' : 'Community Member'}
+                  </p>
+                </div>
               )}
             </div>
           </div>

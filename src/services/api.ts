@@ -12,6 +12,15 @@ export const getIndicators = async (): Promise<Indicator[]> => {
   return data as Indicator[];
 };
 
+export const updateIndicatorValue = async (indicator_id: string, new_value: number): Promise<void> => {
+  const { error } = await supabase
+    .from('indicators')
+    .update({ current_value: new_value, updated_at: new Date().toISOString() })
+    .eq('indicator_id', indicator_id);
+  
+  if (error) throw error;
+};
+
 export const getIndicatorById = async (indicator_id: string): Promise<Indicator> => {
   const { data, error } = await supabase
     .from('indicators')
@@ -65,6 +74,35 @@ export const getTrendsByIndicatorId = async (indicator_id: string): Promise<Hist
   return data as HistoricalTrend[];
 };
 
+// Qualitative Stories API
+export const getQualitativeStories = async (parent_id: string, child_id: string) => {
+  const { data, error } = await supabase
+    .from('qualitative_stories')
+    .select('*')
+    .eq('parent_id', parent_id)
+    .eq('child_id', child_id)
+    .order('created_at', { ascending: false })
+    .limit(3);
+  
+  if (error) throw error;
+  return data;
+};
+
+export const createQualitativeStory = async (story: {
+  parent_id: string;
+  child_id: string;
+  story_text: string;
+  author: string;
+  location: string;
+}) => {
+  const { data, error } = await supabase
+    .from('qualitative_stories')
+    .insert([story])
+    .select();
+  
+  if (error) throw error;
+  return data[0];
+};
 // Prediction API
 export const predictTrend = async (indicator_id: string): Promise<PredictionResult> => {
   // In a real implementation, this would call a machine learning endpoint

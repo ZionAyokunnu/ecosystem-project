@@ -11,11 +11,17 @@ import { predictTrend } from '@/services/api';
 import { Indicator, PredictionResult, SunburstNode } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import QualitativeStoryBox from '@/components/QualitativeStoryBox';
+import LLMContextToggle from '@/components/LLMContextToggle';
 
 const Overview: React.FC = () => {
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings } = useEcosystem();
   const [rootIndicator, setRootIndicator] = useState<Indicator | null>(null);
+  const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
+  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
+  const [currentChildId, setCurrentChildId] = useState<string | null>(null);
+
 
   // keep track of whichever slice is currently centred in the Sunburst
   const handleCoreChange = useCallback(
@@ -23,10 +29,21 @@ const Overview: React.FC = () => {
       if (!newId) return;                         // ignore synthetic root
       const found = indicators.find(i => i.indicator_id === newId);
       if (found) {
-        setRootIndicator(found);                  // drives DescriptionPanel + TrendGraph
+        setRootIndicator(found) // drives DescriptionPanel + TrendGraph
+      
+        // Find parent-child relationship for qualitative stories
+        const parentRelationship = relationships.find(r => r.child_id === newId);
+        if (parentRelationship) {
+          setCurrentParentId(parentRelationship.parent_id);
+          setCurrentChildId(newId);
+        } else {
+          // If it's a root indicator, use it as both parent and child
+          setCurrentParentId(newId);
+          setCurrentChildId(newId);
+        }                 
       }
     },
-    [indicators]
+    [indicators, relationships]
   );
   const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
@@ -133,8 +150,13 @@ const Overview: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
         <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-          <h1 className="text-3xl font-bold">Ecosystem</h1>
-          <p className="mt-2">Exploring socio-economic indicators and their relationships</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">Ecosystem</h1>
+              <p className="mt-2">Exploring socio-economic indicators and their relationships</p>
+            </div>
+            <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
+          </div>
         </div>
         
         <div className="p-6">
@@ -149,7 +171,7 @@ const Overview: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="flex justify-center mb-8">
+              <div className="relative flex justify-center mb-8">
                 <div className="w-full max-w-3xl">
                   <SunburstChart
                     nodes={sunburstData.nodes}
@@ -159,6 +181,16 @@ const Overview: React.FC = () => {
                     onCoreChange={handleCoreChange}  
                   />
                 </div>
+
+                {/* Qualitative Story Box positioned in bottom-right corner */}
+                {currentParentId && currentChildId && (
+                  <div className="absolute bottom-4 right-4">
+                    <QualitativeStoryBox 
+                      parentId={currentParentId}
+                      childId={currentChildId}
+                    />
+                  </div>
+                )}
               </div>
               
               {rootIndicator && (
@@ -179,6 +211,7 @@ const Overview: React.FC = () => {
                     indicators={indicators}
                     relationships={relationships}
                     visibleNodes={visibleNodes}
+                    llmMode={llmMode}
                   />
                   
                   {isPredicting ? (

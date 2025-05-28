@@ -1,4 +1,6 @@
 
+import contextText from '@/assets/llmContext.md?raw';
+
 interface LLMResponse {
   analysisText: string;
 }
@@ -8,13 +10,22 @@ interface LLMRequest {
   prompt: string;
 }
 
-export const queryLocalLLM = async (prompt: string): Promise<string> => {
+export const queryLocalLLM = async (
+  prompt: string,
+  mode: 'business' | 'community' = 'business'
+): Promise<string> => {
   try {
-    // For now, we'll simulate a local LLM response
-    // In a real implementation, this would connect to your local LLM endpoint
+    // Build context-aware prompt
+    const contextualPrompt = `${contextText}
+
+  [Context: Respond as a ${mode} stakeholder perspective]
+
+  ${prompt}`;
+
+
     const request: LLMRequest = {
       model: "local-llm",
-      prompt
+      prompt: contextualPrompt
     };
 
     // Simulate API call to local LLM (replace with actual endpoint)
@@ -23,7 +34,7 @@ export const queryLocalLLM = async (prompt: string): Promise<string> => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'tinyllama:1.1b', prompt })
+      body: JSON.stringify({ model: 'tinyllama:1.1b', prompt: contextualPrompt })
     });
 
     if (!response.ok) {
