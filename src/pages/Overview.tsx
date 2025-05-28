@@ -17,6 +17,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import QualitativeStoryBox from '@/components/QualitativeStoryBox';
 import LLMContextToggle from '@/components/LLMContextToggle';
+import { useLocation } from '@/context/LocationContext';
+import LocationPicker from '@/components/LocationPicker';
+import LocationBreadcrumbs from '@/components/LocationBreadcrumbs';
+import TargetLocationToggle from '@/components/TargetLocationToggle';
+import { getSunburstData } from '@/services/locationApi';
 
 const Overview: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +31,9 @@ const Overview: React.FC = () => {
   const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [currentChildId, setCurrentChildId] = useState<string | null>(null);
+
+  const { selectedLocation, targetLocation } = useLocation();
+
   const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
@@ -34,6 +42,7 @@ const Overview: React.FC = () => {
     positiveDrivers: [],
     negativeDrivers: []
   });
+
 
   // keep track of whichever slice is currently centred in the Sunburst
   const handleCoreChange = useCallback(
@@ -57,7 +66,7 @@ const Overview: React.FC = () => {
     },
     [indicators, relationships]
   );
-  
+
   // Load sunburst data when location changes
   useEffect(() => {
     const loadSunburstData = async () => {
@@ -116,7 +125,9 @@ const Overview: React.FC = () => {
       const fetchPrediction = async () => {
         setIsPredicting(true);
         try {
+
           const locationId = selectedLocation?.location_id || '00000000-0000-0000-0000-000000000000';
+
           const prediction = await predictTrend(rootIndicator.indicator_id, locationId);
           setPredictionData(prediction);
         } catch (err) {
@@ -191,7 +202,9 @@ const Overview: React.FC = () => {
         </div>
         
         <div className="p-6">
+
           {/* Location Controls */}
+
           <div className="mb-6 space-y-4">
             <div className="flex items-center justify-between">
               <LocationPicker />
@@ -199,7 +212,7 @@ const Overview: React.FC = () => {
             </div>
             <LocationBreadcrumbs />
           </div>
-          
+
           {loading ? (
             <div className="space-y-8">
               <div className="flex justify-center">

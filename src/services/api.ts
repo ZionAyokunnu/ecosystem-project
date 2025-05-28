@@ -74,7 +74,9 @@ export const getTrendsByIndicatorId = async (indicator_id: string): Promise<Hist
 };
 
 // Qualitative Stories API
-export const getQualitativeStories = async (parent_id: string, child_id: string): Promise<QualitativeStory[]> => {
+export const getQualitativeStories = async (parent_id: string, child_id: string) 
+: Promise<QualitativeStory[]> => {
+
   const { data, error } = await supabase
     .from('qualitative_stories')
     .select('*')
@@ -105,7 +107,6 @@ export const createQualitativeStory = async (story: {
   return data as QualitativeStory;
 };
 
-// Prediction API with location support
 export const predictTrend = async (indicator_id: string, location_id: string = '00000000-0000-0000-0000-000000000000'): Promise<PredictionResult> => {
   // Get indicator values for the specific location
   const { data: values, error: valuesError } = await supabase
@@ -116,7 +117,7 @@ export const predictTrend = async (indicator_id: string, location_id: string = '
     .order('year', { ascending: true });
   
   if (valuesError) throw valuesError;
-  
+
   const indicator = await getIndicatorById(indicator_id);
   
   if (!values || values.length === 0) {

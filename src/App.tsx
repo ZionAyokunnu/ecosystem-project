@@ -11,6 +11,7 @@ import Overview from "@/pages/Overview";
 import DetailView from "@/pages/DetailView";
 import ProfilesView from "@/pages/ProfilesView";
 import NotFound from "./pages/NotFound";
+import { LocationProvider } from "@/context/LocationContext";
 
 const queryClient = new QueryClient();
 

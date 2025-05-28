@@ -36,6 +36,7 @@ export interface Relationship {
   child_to_parent_weight: number;
   created_at?: string;
   updated_at?: string;
+  child_to_parent_weight?: number;
 }
 
 export interface HistoricalTrend {
@@ -90,6 +91,21 @@ export interface SunburstLink {
   child_id: string;
   weight: number;
   correlation?: number;
+}
+
+
+export interface LocationPath {
+  location_id: string;
+  name: string;
+  type: string;
+  depth: number;
+}
+
+export interface LocationContext {
+  selectedLocation: Location | null;
+  targetLocation: Location | null;
+  setSelectedLocation: (location: Location | null) => void;
+  setTargetLocation: (location: Location | null) => void;
 }
 
 export interface PredictionResult {
