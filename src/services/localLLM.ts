@@ -31,7 +31,7 @@ export const queryLocalLLM = async (
   const response = await fetch(import.meta.env.VITE_LLM_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt: contextualPrompt }),
   });
 
     if (!response.ok) {

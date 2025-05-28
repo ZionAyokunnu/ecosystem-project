@@ -10,8 +10,8 @@ app.use(cors({
 
 app.use(express.json());
 
-// CORS preflight handler for /api/local-llm
-app.options('/api/local-llm', (req, res) => {
+// CORS preflight handler for /local-llm
+app.options('/local-llm', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -19,7 +19,7 @@ app.options('/api/local-llm', (req, res) => {
   res.sendStatus(200);
 });
 
-app.post('/api/local-llm', async (req, res) => {
+app.post('/local-llm', async (req, res) => {
   const { prompt } = req.body;
 
   // Fetch to OpenAI API for completions
