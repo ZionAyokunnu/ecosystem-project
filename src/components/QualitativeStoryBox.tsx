@@ -16,6 +16,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
   parentId,
   childId
 }) => {
+  console.log('QualitativeStoryBox props → parentId:', parentId, 'childId:', childId);
   const [stories, setStories] = useState<QualitativeStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
