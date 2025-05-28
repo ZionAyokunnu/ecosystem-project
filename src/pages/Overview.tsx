@@ -129,6 +129,7 @@ const Overview: React.FC = () => {
           const locationId = selectedLocation?.location_id || '00000000-0000-0000-0000-000000000000';
 
           const prediction = await predictTrend(rootIndicator.indicator_id, locationId);
+
           setPredictionData(prediction);
         } catch (err) {
           console.error('Error predicting trend:', err);
