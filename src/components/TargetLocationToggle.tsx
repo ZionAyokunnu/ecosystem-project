@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocation } from '@/context/LocationContext';
-import { getRootLocations, getLocationChildren } from '@/services/locationApi';
+import { getRootLocations, getLocationChildren } from '@/services/temp';
 import { Location } from '@/types';
 import { Label } from '@/components/ui/label';
 
