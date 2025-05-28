@@ -28,6 +28,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
 
   useEffect(() => {
     const fetchStories = async () => {
+      console.log(`QualitativeStoryBox: fetchStories starting for parentId=${parentId}, childId=${childId}`);
       const key = getCacheKey(parentId, childId);
       setCacheKey(key);
       
@@ -48,7 +49,9 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
       
       try {
         const fetchedStories = await getQualitativeStories(parentId, childId);
+        console.log('QualitativeStoryBox: fetchedStories:', fetchedStories);
         setStories(fetchedStories);
+        console.log('QualitativeStoryBox: stories state after setStories:', fetchedStories);
         
         // Cache the results
         localStorage.setItem(key, JSON.stringify(fetchedStories));
@@ -67,6 +70,9 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
   }, [parentId, childId]);
 
   const latestStory = stories.length > 0 ? stories[0] : null;
+
+  // Debug: log rendering and current stories state
+  console.log('QualitativeStoryBox: rendering, current stories:', stories);
 
   return (
     <Card className="w-80 bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200">
