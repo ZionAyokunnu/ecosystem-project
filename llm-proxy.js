@@ -57,14 +57,17 @@ app.post('/local-llm', async (req, res) => {
   }
 });
 
-// Route logging
-app._router.stack
-  .filter(r => r.route)
-  .forEach(r => {
-    const method = Object.keys(r.route.methods)[0].toUpperCase();
-    const path = r.route.path;
-    console.log(`[Route] ${method} ${path}`);
-  });
+if (app._router && app._router.stack) {
+  app._router.stack
+    .filter(r => r.route)
+    .forEach(r => {
+      const method = Object.keys(r.route.methods)[0].toUpperCase();
+      const path = r.route.path;
+      console.log(`[Route] ${method} ${path}`);
+    });
+} else {
+  console.warn('⚠️ Could not access app._router.stack — route logging skipped.');
+}
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
