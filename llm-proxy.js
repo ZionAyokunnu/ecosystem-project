@@ -1,7 +1,13 @@
 import express from 'express';
 import fetch from 'node-fetch';
+import cors from 'cors';
 
 const app = express();
+
+app.use(cors({
+  origin: 'https://ecosystem-project-iypg9rmlb-zion-ayokunnus-projects.vercel.app'
+}));
+
 app.use(express.json());
 
 app.post('/api/local-llm', async (req, res) => {
