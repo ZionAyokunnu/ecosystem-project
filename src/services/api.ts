@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Indicator, Relationship, HistoricalTrend, SimulationProfile, SimulationChange, PredictionResult } from '@/types';
+import { Indicator, Relationship, HistoricalTrend, SimulationProfile, SimulationChange, PredictionResult, QualitativeStory } from '@/types';
 
 // Indicators API
 export const getIndicators = async (): Promise<Indicator[]> => {
@@ -75,8 +75,9 @@ export const getTrendsByIndicatorId = async (indicator_id: string): Promise<Hist
 };
 
 // Qualitative Stories API
-export const getQualitativeStories = async (parent_id: string, child_id: string) => {
-  const { data, error } = await supabase
+export const getQualitativeStories = async (parent_id: string, child_id: string) 
+: Promise<QualitativeStory[]> => {
+  const { data, error } = await (supabase as any)
     .from('qualitative_stories')
     .select('*')
     .eq('parent_id', parent_id)
@@ -85,7 +86,7 @@ export const getQualitativeStories = async (parent_id: string, child_id: string)
     .limit(3);
   
   if (error) throw error;
-  return data;
+  return data as QualitativeStory[];
 };
 
 export const createQualitativeStory = async (story: {
@@ -94,15 +95,18 @@ export const createQualitativeStory = async (story: {
   story_text: string;
   author: string;
   location: string;
-}) => {
-  const { data, error } = await supabase
+  photo?: string | null;
+}): Promise<QualitativeStory> => {
+  const { data, error } = await (supabase as any)
     .from('qualitative_stories')
     .insert([story])
-    .select();
+    .select()
+    .single();
   
   if (error) throw error;
-  return data[0];
+  return data as QualitativeStory;
 };
+
 // Prediction API
 export const predictTrend = async (indicator_id: string): Promise<PredictionResult> => {
   // In a real implementation, this would call a machine learning endpoint

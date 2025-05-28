@@ -43,6 +43,17 @@ export interface SimulationChange {
   created_at?: string;
 }
 
+export interface QualitativeStory {
+  story_id: string;
+  parent_id: string;
+  child_id: string;
+  story_text: string;
+  author: string;
+  location: string | null;
+  created_at: string;
+  photo?: string | null;
+}
+
 export interface SunburstNode {
   id: string;
   name: string;

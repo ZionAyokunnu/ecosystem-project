@@ -156,7 +156,8 @@ const ProfilesView: React.FC = () => {
         child_id: storyChildId,
         story_text: storyText.trim(),
         author: storyAuthor.trim(),
-        location: storyLocation.trim()
+        location: storyLocation.trim(),
+        photo: storyPhotoFile ? await storyPhotoFile.text() : null // Convert file to base64 string
       });
       
       toast({

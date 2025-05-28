@@ -5,17 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { getQualitativeStories } from '@/services/api';
-
-interface QualitativeStory {
-  story_id: string;
-  parent_id: string;
-  child_id: string;
-  story_text: string;
-  author: string | null;
-  location: string;
-  photo_url: string | null;
-  created_at: string;
-}
+import { QualitativeStory } from '@/types';
 
 interface QualitativeStoryBoxProps {
   parentId: string;
@@ -111,9 +101,9 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
             <p className="text-sm text-red-600">{error}</p>
           ) : latestStory ? (
             <div className="space-y-2">
-              {latestStory.photo_url && (
+              {latestStory.photo && (
                 <img
-                  src={latestStory.photo_url}
+                  src={latestStory.photo}
                   alt="Story"
                   className="w-full h-32 object-cover rounded-md mb-2"
                 />

@@ -71,6 +71,51 @@ export type Database = {
         }
         Relationships: []
       }
+            qualitative_stories: {
+        Row: {
+          author: string
+          child_id: string
+          created_at: string
+          location: string | null
+          parent_id: string
+          story_id: string
+          story_text: string
+        }
+        Insert: {
+          author: string
+          child_id: string
+          created_at?: string
+          location?: string | null
+          parent_id: string
+          story_id?: string
+          story_text: string
+        }
+        Update: {
+          author?: string
+          child_id?: string
+          created_at?: string
+          location?: string | null
+          parent_id?: string
+          story_id?: string
+          story_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualitative_stories_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "qualitative_stories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+        ]
+      }
       relationships: {
         Row: {
           child_id: string
