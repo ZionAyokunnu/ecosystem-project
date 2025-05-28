@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Indicator, Relationship, HistoricalTrend, SimulationProfile, SimulationChange, PredictionResult, QualitativeStory } from '@/types';
 
@@ -77,7 +76,7 @@ export const getTrendsByIndicatorId = async (indicator_id: string): Promise<Hist
 // Qualitative Stories API
 export const getQualitativeStories = async (parent_id: string, child_id: string) 
 : Promise<QualitativeStory[]> => {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('qualitative_stories')
     .select('*')
     .eq('parent_id', parent_id)
@@ -97,7 +96,7 @@ export const createQualitativeStory = async (story: {
   location: string;
   photo?: string | null;
 }): Promise<QualitativeStory> => {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('qualitative_stories')
     .insert([story])
     .select()
@@ -107,14 +106,20 @@ export const createQualitativeStory = async (story: {
   return data as QualitativeStory;
 };
 
-// Prediction API
-export const predictTrend = async (indicator_id: string): Promise<PredictionResult> => {
-  // In a real implementation, this would call a machine learning endpoint
-  // For now, we'll simulate a prediction with some simple extrapolation
-  const trends = await getTrendsByIndicatorId(indicator_id);
+  // Prediction API with location support
+export const predictTrend = async (indicator_id: string, location_id: string = '00000000-0000-0000-0000-000000000000'): Promise<PredictionResult> => {
+  // Get indicator values for the specific location
+  const { data: values, error: valuesError } = await supabase
+    .from('indicator_values')
+    .select('*')
+    .eq('indicator_id', indicator_id)
+    .eq('location_id', location_id)
+    .order('year', { ascending: true });
+  
+  if (valuesError) throw valuesError;
   const indicator = await getIndicatorById(indicator_id);
   
-  if (trends.length === 0) {
+  if (!values || values.length === 0) {
     return {
       indicator_id,
       years: [new Date().getFullYear(), new Date().getFullYear() + 1, new Date().getFullYear() + 2],
@@ -124,15 +129,15 @@ export const predictTrend = async (indicator_id: string): Promise<PredictionResu
   }
   
   // Simple linear extrapolation for demonstration
-  const sortedTrends = [...trends].sort((a, b) => a.year - b.year);
-  const lastYear = sortedTrends[sortedTrends.length - 1].year;
-  const lastValue = sortedTrends[sortedTrends.length - 1].value;
+  const sortedValues = [...values].sort((a, b) => a.year - b.year);
+  const lastYear = sortedValues[sortedValues.length - 1].year;
+  const lastValue = Number(sortedValues[sortedValues.length - 1].value);
   
   // Calculate average yearly change
   let avgYearlyChange = 0;
-  if (sortedTrends.length > 1) {
-    const totalChange = lastValue - sortedTrends[0].value;
-    const yearsSpan = lastYear - sortedTrends[0].year;
+  if (sortedValues.length > 1) {
+    const totalChange = lastValue - Number(sortedValues[0].value);
+    const yearsSpan = lastYear - sortedValues[0].year;
     avgYearlyChange = yearsSpan > 0 ? totalChange / yearsSpan : 0;
   }
   
@@ -155,10 +160,90 @@ export const predictTrend = async (indicator_id: string): Promise<PredictionResu
   
   return {
     indicator_id,
-    years: [...sortedTrends.map(t => t.year), ...futureYears],
-    values: [...sortedTrends.map(t => t.value), ...futureValues],
+    years: [...sortedValues.map(v => v.year), ...futureYears],
+    values: [...sortedValues.map(v => Number(v.value)), ...futureValues],
     summary
   };
+};
+
+// Simulation with bi-directional propagation
+export const runSimulation = async (
+  indicatorId: string,
+  newValue: number,
+  locationId: string = '00000000-0000-0000-0000-000000000000'
+): Promise<{ indicator_id: string; previous_value: number; new_value: number }[]> => {
+  // Get current indicator values
+  const { data: currentValues, error: valuesError } = await supabase
+    .from('indicator_values')
+    .select('*')
+    .eq('location_id', locationId)
+    .eq('year', new Date().getFullYear());
+  
+  if (valuesError) throw valuesError;
+  
+  // Get relationships for propagation
+  const relationships = await getRelationships();
+  
+  // Create value map for easy lookup
+  const valueMap = new Map<string, number>();
+  currentValues?.forEach(v => {
+    valueMap.set(v.indicator_id, Number(v.value));
+  });
+  
+  // Initialize simulation results
+  const results: { indicator_id: string; previous_value: number; new_value: number }[] = [];
+  const deltas = new Map<string, number>();
+  
+  // Set initial delta
+  const originalValue = valueMap.get(indicatorId) || 0;
+  deltas.set(indicatorId, newValue - originalValue);
+  
+  // Propagate changes (simplified bidirectional)
+  const processedIds = new Set<string>();
+  const toProcess = [indicatorId];
+  
+  while (toProcess.length > 0) {
+    const currentId = toProcess.shift()!;
+    if (processedIds.has(currentId)) continue;
+    processedIds.add(currentId);
+    
+    const currentDelta = deltas.get(currentId) || 0;
+    if (Math.abs(currentDelta) < 0.01) continue; // Skip negligible changes
+    
+    // Propagate to children
+    const childRelationships = relationships.filter(r => r.parent_id === currentId);
+    for (const rel of childRelationships) {
+      const childDelta = currentDelta * Number(rel.influence_weight);
+      const existingDelta = deltas.get(rel.child_id) || 0;
+      deltas.set(rel.child_id, existingDelta + childDelta);
+      toProcess.push(rel.child_id);
+    }
+    
+    // Propagate to parents
+    const parentRelationships = relationships.filter(r => r.child_id === currentId);
+    for (const rel of parentRelationships) {
+      const parentDelta = currentDelta * Number(rel.child_to_parent_weight || 0.1);
+      const existingDelta = deltas.get(rel.parent_id) || 0;
+      deltas.set(rel.parent_id, existingDelta + parentDelta);
+      toProcess.push(rel.parent_id);
+    }
+  }
+  
+  // Generate results
+  for (const [id, delta] of deltas.entries()) {
+    const previousValue = valueMap.get(id) || 0;
+    const newVal = Math.max(0, Math.min(100, previousValue + delta));
+    
+    if (Math.abs(delta) >= 0.01) { // Only include significant changes
+      results.push({
+        indicator_id: id,
+        previous_value: previousValue,
+        new_value: newVal
+      });
+    }
+  }
+  
+  return results;
 };
 
 // Simulations API

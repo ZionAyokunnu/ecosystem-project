@@ -41,6 +41,48 @@ export type Database = {
           },
         ]
       }
+      indicator_values: {
+        Row: {
+          created_at: string
+          indicator_id: string
+          location_id: string
+          updated_at: string
+          value: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          indicator_id: string
+          location_id: string
+          updated_at?: string
+          value: number
+          year: number
+        }
+        Update: {
+          created_at?: string
+          indicator_id?: string
+          location_id?: string
+          updated_at?: string
+          value?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_values_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "indicator_values_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
       indicators: {
         Row: {
           category: string
@@ -71,7 +113,42 @@ export type Database = {
         }
         Relationships: []
       }
-            qualitative_stories: {
+            locations: {
+        Row: {
+          created_at: string
+          location_id: string
+          name: string
+          parent_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          location_id?: string
+          name: string
+          parent_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          location_id?: string
+          name?: string
+          parent_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      qualitative_stories: {
         Row: {
           author: string
           child_id: string
@@ -80,6 +157,7 @@ export type Database = {
           parent_id: string
           story_id: string
           story_text: string
+          photo: string | null
         }
         Insert: {
           author: string
@@ -89,6 +167,7 @@ export type Database = {
           parent_id: string
           story_id?: string
           story_text: string
+          photo: string | null
         }
         Update: {
           author?: string
@@ -98,6 +177,7 @@ export type Database = {
           parent_id?: string
           story_id?: string
           story_text?: string
+          photo: string | null
         }
         Relationships: [
           {
@@ -125,6 +205,7 @@ export type Database = {
           parent_id: string
           relationship_id: string
           updated_at: string | null
+          child_to_parent_weight: number | null
         }
         Insert: {
           child_id: string
@@ -134,6 +215,7 @@ export type Database = {
           parent_id: string
           relationship_id?: string
           updated_at?: string | null
+          child_to_parent_weight?: number | null
         }
         Update: {
           child_id?: string
@@ -143,6 +225,7 @@ export type Database = {
           parent_id?: string
           relationship_id?: string
           updated_at?: string | null
+          child_to_parent_weight?: number | null
         }
         Relationships: [
           {
@@ -232,7 +315,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_location_children: {
+        Args: { parent_location_id?: string }
+        Returns: {
+          location_id: string
+          name: string
+          type: string
+          parent_id: string
+        }[]
+      }
+      get_location_path: {
+        Args: { target_location_id: string }
+        Returns: {
+          location_id: string
+          name: string
+          type: string
+          depth: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

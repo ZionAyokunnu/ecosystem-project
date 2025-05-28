@@ -13,6 +13,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import QualitativeStoryBox from '@/components/QualitativeStoryBox';
 import LLMContextToggle from '@/components/LLMContextToggle';
+import { useLocation } from '@/context/LocationContext';
+import LocationPicker from '@/components/LocationPicker';
+import LocationBreadcrumbs from '@/components/LocationBreadcrumbs';
+import TargetLocationToggle from '@/components/TargetLocationToggle';
+import { getSunburstData } from '@/services/locationApi';
 
 const Overview: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +26,15 @@ const Overview: React.FC = () => {
   const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [currentChildId, setCurrentChildId] = useState<string | null>(null);
+  const { selectedLocation, targetLocation } = useLocation();
+  const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
+  const [isPredicting, setIsPredicting] = useState<boolean>(false);
+  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
+  const [sunburstData, setSunburstData] = useState<{ nodes: SunburstNode[], links: any[] }>({ nodes: [], links: [] });
+  const [topDrivers, setTopDrivers] = useState<{positiveDrivers: Indicator[], negativeDrivers: Indicator[]}>({
+    positiveDrivers: [],
+    negativeDrivers: []
+  });
 
 
   // keep track of whichever slice is currently centred in the Sunburst
@@ -45,13 +59,46 @@ const Overview: React.FC = () => {
     },
     [indicators, relationships]
   );
-  const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
-  const [isPredicting, setIsPredicting] = useState<boolean>(false);
-  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
-  const [topDrivers, setTopDrivers] = useState<{positiveDrivers: Indicator[], negativeDrivers: Indicator[]}>({
-    positiveDrivers: [],
-    negativeDrivers: []
-  });
+  // Load sunburst data when location changes
+  useEffect(() => {
+    const loadSunburstData = async () => {
+      if (!selectedLocation && indicators.length > 0 && relationships.length > 0) {
+        // Use global data
+        const transformed = transformToSunburstData(indicators, relationships);
+        setSunburstData(transformed);
+        return;
+      }
+      
+      if (selectedLocation) {
+        try {
+          const data = await getSunburstData(
+            selectedLocation.location_id,
+            targetLocation?.location_id
+          );
+          
+          // Transform the location-specific data to sunburst format
+          const valueMap = new Map(data.values.map(v => [v.indicator_id, Number(v.value)]));
+          const targetValueMap = new Map(data.targetValues.map(v => [v.indicator_id, Number(v.value)]));
+          
+          // Update indicators with location-specific values
+          const locationIndicators = data.indicators.map(ind => ({
+            ...ind,
+            current_value: valueMap.get(ind.indicator_id) || ind.current_value
+          }));
+          
+          const transformed = transformToSunburstData(locationIndicators, data.relationships);
+          setSunburstData(transformed);
+        } catch (error) {
+          console.error('Error loading location data:', error);
+          // Fallback to global data
+          const transformed = transformToSunburstData(indicators, relationships);
+          setSunburstData(transformed);
+        }
+      }
+    };
+    
+    loadSunburstData();
+  }, [selectedLocation, targetLocation, indicators, relationships]);
   
   // Find or set the root indicator (Wellbeing)
   useEffect(() => {
@@ -70,7 +117,7 @@ const Overview: React.FC = () => {
       const fetchPrediction = async () => {
         setIsPredicting(true);
         try {
-          const prediction = await predictTrend(rootIndicator.indicator_id);
+          const prediction = await predictTrend(rootIndicator.indicator_id, locationId);
           setPredictionData(prediction);
         } catch (err) {
           console.error('Error predicting trend:', err);
@@ -81,7 +128,7 @@ const Overview: React.FC = () => {
       
       fetchPrediction();
     }
-  }, [rootIndicator]);
+  }, [rootIndicator, selectedLocation]);
   
   // Get top drivers
   useEffect(() => {
@@ -98,18 +145,10 @@ const Overview: React.FC = () => {
   
   // Set visible nodes from sunburst data
   useEffect(() => {
-    if (indicators.length > 0 && relationships.length > 0) {
-      const sunburstData = transformToSunburstData(indicators, relationships);
-      const nodes: SunburstNode[] = sunburstData.nodes.map(node => ({
-        id: node.id,
-        name: node.name,
-        value: node.value,
-        color: node.color,
-        category: node.category
-      }));
-      setVisibleNodes(nodes);
+    if (sunburstData.nodes.length > 0) {
+      setVisibleNodes(sunburstData.nodes);
     }
-  }, [indicators, relationships]);
+  }, [sunburstData]);
   
   const handleIndicatorSelect = (indicatorId: string) => {
     navigate(`/detail/${indicatorId}`);
@@ -120,14 +159,6 @@ const Overview: React.FC = () => {
       navigate(`/detail/${rootIndicator.indicator_id}`);
     }
   };
-  
-  // Prepare sunburst data
-  const sunburstData = React.useMemo(() => {
-    if (indicators.length > 0 && relationships.length > 0) {
-      return transformToSunburstData(indicators, relationships);
-    }
-    return { nodes: [], links: [] };
-  }, [indicators, relationships]);
   
   if (error) {
     return (
@@ -160,6 +191,13 @@ const Overview: React.FC = () => {
         </div>
         
         <div className="p-6">
+          <div className="mb-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <LocationPicker />
+              <TargetLocationToggle />
+            </div>
+            <LocationBreadcrumbs />
+          </div>
           {loading ? (
             <div className="space-y-8">
               <div className="flex justify-center">

@@ -8,6 +8,24 @@ export interface Indicator {
   updated_at?: string;
 }
 
+export interface Location {
+  location_id: string;
+  name: string;
+  type: 'country' | 'region' | 'city' | 'ward';
+  parent_id: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface IndicatorValue {
+  indicator_id: string;
+  location_id: string;
+  year: number;
+  value: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Relationship {
   relationship_id: string;
   parent_id: string;
@@ -16,6 +34,7 @@ export interface Relationship {
   influence_score: number;
   created_at?: string;
   updated_at?: string;
+  child_to_parent_weight?: number;
 }
 
 export interface HistoricalTrend {
@@ -65,11 +84,26 @@ export interface SunburstNode {
 
 export interface SunburstLink {
   influence_score: number;
-  influence_weight: any;
+  influence_weight: number;
   parent_id: string;
   child_id: string;
   weight: number;
   correlation?: number;
+}
+
+
+export interface LocationPath {
+  location_id: string;
+  name: string;
+  type: string;
+  depth: number;
+}
+
+export interface LocationContext {
+  selectedLocation: Location | null;
+  targetLocation: Location | null;
+  setSelectedLocation: (location: Location | null) => void;
+  setTargetLocation: (location: Location | null) => void;
 }
 
 export interface PredictionResult {
