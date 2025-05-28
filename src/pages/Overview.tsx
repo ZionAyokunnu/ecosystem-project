@@ -117,7 +117,7 @@ const Overview: React.FC = () => {
       const fetchPrediction = async () => {
         setIsPredicting(true);
         try {
-          const prediction = await predictTrend(rootIndicator.indicator_id, locationId);
+          const prediction = await predictTrend(rootIndicator.indicator_id, selectedLocation?.location_id);
           setPredictionData(prediction);
         } catch (err) {
           console.error('Error predicting trend:', err);

@@ -94,7 +94,7 @@ export const createQualitativeStory = async (story: {
   story_text: string;
   author: string;
   location: string;
-  photo?: string | null;
+  photo: string | null;
 }): Promise<QualitativeStory> => {
   const { data, error } = await supabase
     .from('qualitative_stories')
