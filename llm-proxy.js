@@ -5,7 +5,7 @@ import cors from 'cors';
 const app = express();
 
 app.use(cors({
-  origin: 'https://ecosystem-project-iypg9rmlb-zion-ayokunnus-projects.vercel.app'
+  origin: 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app'
 }));
 
 app.use(express.json());
