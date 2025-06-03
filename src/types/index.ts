@@ -126,3 +126,13 @@ export interface UserSettings {
   showPercentileDrivers: boolean;
   percentileThreshold: number;
 }
+
+export interface CommunityStory {
+  id: string;
+  indicator_id: string;
+  location_id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  votes: number;
+}

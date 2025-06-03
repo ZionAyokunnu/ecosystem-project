@@ -20,6 +20,9 @@ import { getIndicatorById, predictTrend, createSimulation } from '@/services/api
 import { Indicator, SimulationChange, PredictionResult, SunburstNode } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import SunburstCenterCircle from '@/components/SunburstCenterCircle';
+import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
+import SimulationModal from '@/components/SimulationModal';
 
 
 const DetailView: React.FC = () => {
@@ -79,6 +82,12 @@ const visibleIndicators = useMemo(() => {
     //  🚨 drop any that somehow didn’t resolve (shouldn’t happen)
     .filter((ind): ind is Indicator => Boolean(ind))
 }, [visibleNodes, indicators])
+
+const [isFixedMode, setIsFixedMode] = useState<boolean>(false);
+const [simulationModal, setSimulationModal] = useState<{ isOpen: boolean; targetId: string | null }>({
+    isOpen: false,
+    targetId: null
+  });
 
 useEffect(() => {
   console.log(
@@ -213,6 +222,15 @@ useEffect(() => {
     navigate(`/detail/${selectedId}`);
   };
   
+    const handleSunburstNodeClick = (nodeId: string) => {
+    if (isFixedMode) {
+      // In fixed mode, show simulation instead of drilling down
+      setSimulationModal({ isOpen: true, targetId: nodeId });
+    } else {
+      // Normal drill-down behavior
+      navigate(`/detail/${nodeId}`);
+    }
+  };
   const handleBreadcrumbClick = (selectedId: string) => {
     navigate(`/detail/${selectedId}`);
   };
@@ -244,6 +262,16 @@ useEffect(() => {
     }
   };
   
+  // const handleSunburstNodeClick = (nodeId: string) => {
+  //   if (isFixedMode) {
+  //     // In fixed mode, show simulation instead of drilling downAdd commentMore actions
+  //     // For now, navigate to research page
+  //     navigate(`/research/${nodeId}`);
+  //   } else {
+  //     // Normal drill-down behavior
+  //     navigate(`/detail/${nodeId}`);
+  //   }
+  // };
   const handleSaveSimulation = async (name: string, description: string) => {
     if (simulationChanges.length === 0) {
       toast({
@@ -330,7 +358,6 @@ useEffect(() => {
                 items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
                 onNavigate={id => navigate(`/detail/${id}`)}
               />
-              
               <Tabs defaultValue="analysis" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="analysis">Analysis</TabsTrigger>
@@ -339,7 +366,7 @@ useEffect(() => {
                 
                 <TabsContent value="analysis" className="pt-4">
                   <div className="flex justify-center mb-8">
-                    <div className="w-full max-w-3xl">
+                    <div className="w-full max-w-3xl relative">
                       <SunburstChart
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
@@ -348,6 +375,7 @@ useEffect(() => {
                         onVisibleNodesChange={setVisibleNodes}
                         onCoreChange={handleCoreChange}
                       />
+                      
                     </div>
                   </div>
                   
@@ -356,6 +384,13 @@ useEffect(() => {
                       <Button onClick={() => handleIndicatorSelect(coreIndicator.indicator_id)} size="lg">
                         Dive Deeper
                       </Button>
+                      <Button 
+                      variant="outline" 
+                      size="lg"
+                      onClick={() => navigate('/treemap')}
+                    >
+                      View Tree Map
+                    </Button>
                     </div>
                   )}
                   
@@ -382,7 +417,13 @@ useEffect(() => {
                     )
                   )}
                 </TabsContent>
-                
+                 {/* Sunburst Fix Mode Toggle */}
+                <div className="flex justify-center">
+                  <SunburstFixModeToggle 
+                    isFixed={isFixedMode}
+                    onToggle={setIsFixedMode}
+                  />
+                </div>
                 <TabsContent value="simulation" className="pt-4">
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl">
@@ -419,6 +460,12 @@ useEffect(() => {
               >
                 Return to Overview
               </Button>
+             {/* Simulation Modal */}
+            <SimulationModal
+              isOpen={simulationModal.isOpen}
+              onClose={() => setSimulationModal({ isOpen: false, targetId: null })}
+              targetIndicatorId={simulationModal.targetId || ''}
+            />
             </div>
           )}
         </div>

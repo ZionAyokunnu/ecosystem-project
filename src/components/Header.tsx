@@ -25,6 +25,12 @@ const Header: React.FC = () => {
             <Link to="/">
               <Button variant={isActive('/') ? "default" : "ghost"} className="flex items-center space-x-1">
                 <Home className="h-4 w-4" />
+                <span>Home</span>
+              </Button>
+            </Link>
+             <Link to="/Overview">
+              <Button variant={isActive('/Overview') ? "default" : "ghost"} className="flex items-center space-x-1">
+                <Home className="h-4 w-4" />
                 <span>Overview</span>
               </Button>
             </Link>
@@ -60,6 +66,12 @@ const Header: React.FC = () => {
           <div className="flex justify-around">
             <Link to="/" className={`flex flex-col items-center px-3 py-2 rounded-md text-sm font-medium ${
               isActive('/') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
+            }`}>
+              <Home className="h-5 w-5" />
+              <span>Home</span>
+            </Link>
+            <Link to="/Overview" className={`flex flex-col items-center px-3 py-2 rounded-md text-sm font-medium ${
+              isActive('/Overview') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
             }`}>
               <Home className="h-5 w-5" />
               <span>Overview</span>

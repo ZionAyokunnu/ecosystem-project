@@ -18,6 +18,14 @@ import LocationPicker from '@/components/LocationPicker';
 import LocationBreadcrumbs from '@/components/LocationBreadcrumbs';
 import TargetLocationToggle from '@/components/TargetLocationToggle';
 import { getSunburstData } from '@/services/locationApi';
+import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
+import IndicatorSelector from '@/components/IndicatorSelector';
+import SmartSearchBox from '@/components/SmartSearchBox';
+import SunburstCenterCircle from '@/components/SunburstCenterCircle';
+import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
+import CommunityStories from '@/components/CommunityStories';
+import SimulationModal from '@/components/SimulationModal';
+
 
 const Overview: React.FC = () => {
   const navigate = useNavigate();
@@ -117,7 +125,10 @@ const Overview: React.FC = () => {
       const fetchPrediction = async () => {
         setIsPredicting(true);
         try {
-          const prediction = await predictTrend(rootIndicator.indicator_id, locationId);
+          const prediction = await predictTrend(
+            rootIndicator.indicator_id,
+            selectedLocation?.location_id
+          );
           setPredictionData(prediction);
         } catch (err) {
           console.error('Error predicting trend:', err);
@@ -154,6 +165,8 @@ const Overview: React.FC = () => {
     navigate(`/detail/${indicatorId}`);
   };
   
+  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(true);
+  
   const handleDiveClick = () => {
     if (rootIndicator) {
       navigate(`/detail/${rootIndicator.indicator_id}`);
@@ -188,87 +201,135 @@ const Overview: React.FC = () => {
             </div>
             <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
           </div>
+            {/* Smart Search Box */}
+          <div className="mt-6">
+            <SmartSearchBox />
+          </div>
         </div>
         
         <div className="p-6">
           <div className="mb-6 space-y-4">
             <div className="flex items-center justify-between">
-              <LocationPicker />
+              {/* <LocationPicker /> */}
+              <EnhancedLocationPicker />
               <TargetLocationToggle />
             </div>
             <LocationBreadcrumbs />
           </div>
-          {loading ? (
-            <div className="space-y-8">
-              <div className="flex justify-center">
-                <Skeleton className="h-[600px] w-[600px] rounded-full" />
-              </div>
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-64 w-full rounded-md" />
-              <Skeleton className="h-64 w-full rounded-md" />
+          <div className="flex left-0 mb-4">
+            <Button variant="outline" onClick={() => setIsPanelOpen(prev => !prev)}>
+              {isPanelOpen ? 'Hide Panel' : 'Show Panel'}
+            </Button>
+          </div>
+        {loading ? (
+          <div className="space-y-8">
+            <div className="flex justify-center">
+              <Skeleton className="h-[600px] w-[600px] rounded-full" />
             </div>
-          ) : (
-            <>
-              <div className="relative flex justify-center mb-8">
-                <div className="w-full max-w-3xl">
-                  <SunburstChart
-                    nodes={sunburstData.nodes}
-                    links={sunburstData.links}
-                    onSelect={handleIndicatorSelect}
-                    onVisibleNodesChange={setVisibleNodes}
-                    onCoreChange={handleCoreChange}  
+            <Skeleton className="h-10 w-full rounded-md" />
+            <Skeleton className="h-64 w-full rounded-md" />
+            <Skeleton className="h-64 w-full rounded-md" />
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {isPanelOpen && (
+                <div className="lg:col-span-1 space-y-4">
+                  <IndicatorSelector
+                    onIndicatorSelect={handleIndicatorSelect}
+                    currentIndicatorId={rootIndicator?.indicator_id}
+                  />
+                  <CommunityStories
+                    indicatorId={rootIndicator?.indicator_id}
+                    locationId={selectedLocation?.location_id}
+                    maxStories={3}
                   />
                 </div>
+              )}
 
-                {/* Qualitative Story Box positioned in bottom-right corner */}
-                {currentParentId && currentChildId && (
-                  <div className="absolute bottom-4 right-4">
-                    <QualitativeStoryBox 
-                      parentId={currentParentId}
-                      childId={currentChildId}
+              <div
+                className={
+                  isPanelOpen
+                    ? "lg:col-span-3 space-y-6"
+                    : "lg:col-span-4 space-y-6"
+                }
+              >
+                <div className="relative flex justify-center">
+                  <div className="w-full max-w-3xl">
+                    <SunburstChart
+                      nodes={sunburstData.nodes}
+                      links={sunburstData.links}
+                      onSelect={handleIndicatorSelect}
+                      onVisibleNodesChange={setVisibleNodes}
+                      onCoreChange={handleCoreChange}
                     />
                   </div>
-                )}
-              </div>
-              
-              {rootIndicator && (
-                <>
-                  <Breadcrumbs
-                    items={[{ id: rootIndicator.indicator_id, name: rootIndicator.name }]}
-                    onNavigate={handleIndicatorSelect}
-                  />
-                  
-                  <div className="flex justify-center mb-6">
-                    <Button onClick={handleDiveClick} size="lg">
-                      Dive Into {rootIndicator.name}
-                    </Button>
-                  </div>
-                  
-                  <DescriptionPanel
-                    coreIndicator={rootIndicator}
-                    indicators={indicators}
-                    relationships={relationships}
-                    visibleNodes={visibleNodes}
-                    llmMode={llmMode}
-                  />
-                  
-                  {isPredicting ? (
-                    <div className="bg-white shadow rounded-lg p-6">
-                      <h2 className="text-lg font-semibold text-gray-800 mb-4">Historical & Predicted Trends</h2>
-                      <div className="h-64 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                          <p className="mt-4 text-gray-500">Generating prediction...</p>
+                  {currentParentId && currentChildId && (
+                    <div className="absolute bottom-4 right-4">
+                      <QualitativeStoryBox
+                        parentId={currentParentId}
+                        childId={currentChildId}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {rootIndicator && (
+                  <>
+                    <Breadcrumbs
+                      items={[{ id: rootIndicator.indicator_id, name: rootIndicator.name }]}
+                      onNavigate={handleIndicatorSelect}
+                    />
+
+                    <div className="flex justify-center gap-4 mb-6">
+                      <Button onClick={handleDiveClick} size="lg">
+                        Dive Into {rootIndicator.name}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate(`/research/${rootIndicator.indicator_id}`)}
+                        size="lg"
+                      >
+                        Research {rootIndicator.name}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={() => navigate('/treemap')}
+                      >
+                        View Tree Map
+                      </Button>
+                    </div>
+
+                    <DescriptionPanel
+                      coreIndicator={rootIndicator}
+                      indicators={indicators}
+                      relationships={relationships}
+                      visibleNodes={visibleNodes}
+                      llmMode={llmMode}
+                    />
+
+                    {isPredicting ? (
+                      <div className="bg-white shadow rounded-lg p-6">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                          Historical & Predicted Trends
+                        </h2>
+                        <div className="h-64 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto" />
+                            <p className="mt-4 text-gray-500">Generating prediction...</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : predictionData ? (
-                    <TrendGraph predictionData={predictionData} />
-                  ) : null}
-                </>
-              )}
-            </>
-          )}
+                    ) : (
+                      predictionData && <TrendGraph predictionData={predictionData} />
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
         </div>
       </div>
     </div>
