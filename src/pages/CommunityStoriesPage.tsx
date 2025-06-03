@@ -1,25 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Filter, Plus } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Filter, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useEcosystem } from '@/context/EcosystemContext';
 import { useLocation } from '@/context/LocationContext';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { getCommunityStories, createCommunityStory, likeStory, isStoryLiked, type CommunityStory } from '@/services/communityStoriesApi';
 
-interface CommunityStory {
-  id: string;
-  indicator_id: string;
-  location_id: string;
-  title: string;
-  body: string;
-  author: string;
-  created_at: string;
-  votes: number;
-  category: string;
-}
+
 
 const CommunityStoriesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,88 +22,127 @@ const CommunityStoriesPage: React.FC = () => {
   const [filteredStories, setFilteredStories] = useState<CommunityStory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    body: '',
+    indicator_id: '',
+    category: '',
+    photo: ''
+  });
+
+  // Get unique categories from indicators
+  const categories = ['all', ...Array.from(new Set(indicators.map(ind => ind.category))).sort()];
 
   useEffect(() => {
-    // Mock stories data - replace with Supabase query
-    const mockStories: CommunityStory[] = [
-      {
-        id: '1',
-        indicator_id: '1a714141-915c-49f3-981b-9f02cc435be0',
-        location_id: 'ward-001',
-        title: 'Community Garden Transforms Our Neighborhood',
-        body: 'The new community garden has brought neighbors together and improved our local food security. Children are learning about nutrition and families are building stronger connections. We have seen a 40% increase in community engagement since the garden opened.',
-        author: 'Sarah M.',
-        created_at: '2024-01-15',
-        votes: 23,
-        category: 'Health'
-      },
-      {
-        id: '2',
-        indicator_id: '2b825252-026d-5a4f-a92c-af13dd546bf1',
-        location_id: 'ward-002',
-        title: 'Local Business Support Program Success',
-        body: 'Our ward launched a local business support program that has helped 15 small businesses thrive. Employment rates have increased and community pride is at an all-time high. The program includes mentorship, funding assistance, and networking events.',
-        author: 'Michael R.',
-        created_at: '2024-01-10',
-        votes: 18,
-        category: 'Economy'
-      },
-      {
-        id: '3',
-        indicator_id: '3c936363-137e-6b5f-ba3d-bf24ee657cf2',
-        location_id: 'ward-003',
-        title: 'Youth Sports Program Makes a Difference',
-        body: 'The new youth sports program has engaged over 100 young people. We\'ve seen improvements in school attendance and reduced antisocial behavior. Parents report their children are more confident and have developed leadership skills.',
-        author: 'Jennifer L.',
-        created_at: '2024-01-08',
-        votes: 31,
-        category: 'Health'
-      },
-      {
-        id: '4',
-        indicator_id: '4d047474-248f-7c6f-cb4e-cf35ff768df3',
-        location_id: 'ward-004',
-        title: 'Digital Literacy Program Bridges the Gap',
-        body: 'Our community center launched a digital literacy program for seniors. Over 50 participants have learned to use smartphones and tablets. This has improved their ability to connect with family and access essential services online.',
-        author: 'David K.',
-        created_at: '2024-01-05',
-        votes: 15,
-        category: 'Education'
-      },
-      {
-        id: '5',
-        indicator_id: '5e158585-359f-8d7f-dc5f-df46ff879ef4',
-        location_id: 'ward-005',
-        title: 'Neighborhood Watch Program Enhances Safety',
-        body: 'The neighborhood watch program has created a stronger sense of security in our area. Crime rates have decreased by 25% and neighbors are more connected. Regular meetings have fostered a true sense of community.',
-        author: 'Emma T.',
-        created_at: '2024-01-03',
-        votes: 27,
-        category: 'Safety'
-      }
-    ];
+    
+    fetchStories();
+      }, [selectedLocation]);
 
-    setStories(mockStories);
-    setFilteredStories(mockStories);
-    setLoading(false);
-  }, []);
+    useEffect(() => {
+    // Check which stories are already liked
+    const liked = new Set<string>();
+    stories.forEach(story => {
+      if (isStoryLiked(story.story_id)) {
+        liked.add(story.story_id);
+      }
+    });
+    setLikedStories(liked);
+  }, [stories]);
+
+
 
   useEffect(() => {
     if (selectedCategory === 'all') {
       setFilteredStories(stories);
     } else {
-      setFilteredStories(stories.filter(story => story.category === selectedCategory));
+      setFilteredStories(stories.filter(story => {
+        const indicator = indicators.find(ind => ind.indicator_id === story.parent_id);
+        return indicator?.category === selectedCategory;
+      }));
     }
-  }, [selectedCategory, stories]);
+      }, [selectedCategory, stories, indicators]);
 
-  const categories = ['all', 'Health', 'Economy', 'Education', 'Safety', 'Environment'];
+      const fetchStories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const location = selectedLocation?.name || undefined;
+      const fetchedStories = await getCommunityStories({ location });
+      setStories(fetchedStories);
+    } catch (err) {
+      console.error('Error fetching community stories:', err);
+      setError('Failed to load community stories');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleVote = (storyId: string, increment: number) => {
-    setStories(prev => prev.map(story => 
-      story.id === storyId 
-        ? { ...story, votes: story.votes + increment }
-        : story
-    ));
+  const handleVote = async (storyId: string) => {
+    if (likedStories.has(storyId)) {
+      return; // Already liked
+    }
+
+    try {
+      await likeStory(storyId);
+      setLikedStories(prev => new Set([...prev, storyId]));
+      
+      // Update local vote count
+      setStories(prev => prev.map(story => 
+        story.story_id === storyId 
+          ? { ...story, votes: (story.votes || 0) + 1 }
+          : story
+      ));
+    } catch (err) {
+      console.error('Error liking story:', err);
+    }
+  };
+
+  const toggleExpand = (storyId: string) => {
+    setExpandedStory(expandedStory === storyId ? null : storyId);
+  };
+
+  const handleSubmitStory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.body || !formData.indicator_id || !formData.category) {
+      return;
+    }
+
+    try {
+      const newStory = await createCommunityStory({
+        parent_id: formData.indicator_id,
+        story_text: `${formData.title}\n\n${formData.body}`,
+        author: 'Anonymous', // TODO: Get from auth when implemented
+        location: selectedLocation?.name || null,
+        photo: formData.photo || null
+      });
+
+      // Add the new story to the top of the list
+      setStories(prev => [newStory, ...prev]);
+      
+      // Reset form
+      setFormData({ title: '', body: '', indicator_id: '', category: '', photo: '' });
+      setShowForm(false);
+    } catch (err) {
+      console.error('Error creating story:', err);
+    }
+  };
+
+  const getIndicatorName = (indicatorId: string) => {
+    const indicator = indicators.find(ind => ind.indicator_id === indicatorId);
+    return indicator?.name || 'Unknown';
+  };
+
+  const getIndicatorCategory = (indicatorId: string) => {
+    const indicator = indicators.find(ind => ind.indicator_id === indicatorId);
+    return indicator?.category || 'General';
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -125,6 +157,8 @@ const CommunityStoriesPage: React.FC = () => {
     return `${Math.ceil(diffDays / 30)} months ago`;
   };
 
+  const isFormValid = formData.title && formData.body && formData.indicator_id && formData.category;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-6">
@@ -138,10 +172,92 @@ const CommunityStoriesPage: React.FC = () => {
             Real stories from community members about local initiatives and changes
           </p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Share Your Story
-        </Button>
+<div className="relative">Add commentMore actions
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Share Your Story
+          </Button>
+          
+          {showForm && (
+            <Card className="absolute right-0 top-12 w-96 z-10 shadow-lg">
+              <CardHeader>
+                <CardTitle>Share Your Story</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitStory} className="space-y-4">
+                  <Input
+                    placeholder="Story title"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                  />
+                  
+                  <Textarea
+                    placeholder="Tell your story..."
+                    value={formData.body}
+                    onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
+                    rows={4}
+                    required
+                  />
+                  
+                  <Select
+                    value={formData.indicator_id}
+                    onValueChange={(value) => {
+                      const indicator = indicators.find(ind => ind.indicator_id === value);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        indicator_id: value,
+                        category: indicator?.category || ''
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select indicator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {indicators.sort((a, b) => a.name.localeCompare(b.name)).map(indicator => (
+                        <SelectItem key={indicator.indicator_id} value={indicator.indicator_id}>
+                          {indicator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.filter(cat => cat !== 'all').map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Input
+                    placeholder="Photo URL (optional)"
+                    value={formData.photo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, photo: e.target.value }))}
+                  />
+                  
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={!isFormValid} className="flex-1">
+                      Submit
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-4 mb-6">
@@ -180,43 +296,95 @@ const CommunityStoriesPage: React.FC = () => {
             </Card>
           ))}
         </div>
+        ) : error ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="text-red-500 mb-4">{error}</div>
+            <Button onClick={fetchStories}>Try Again</Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
-          {filteredStories.map(story => (
-            <Card key={story.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-xl font-semibold text-gray-900">{story.title}</h2>
-                      <Badge variant="secondary">{story.category}</Badge>
+          {filteredStories.map(story => {
+            const indicatorName = getIndicatorName(story.parent_id);
+            const category = getIndicatorCategory(story.parent_id);
+            const isLiked = likedStories.has(story.story_id);
+            const isExpanded = expandedStory === story.story_id;
+            
+            // Extract title from story_text (assuming format: "Title\n\nBody")
+            const parts = story.story_text.split('\n\n');
+            const title = parts[0] || story.story_text.substring(0, 100) + '...';
+            const body = parts.slice(1).join('\n\n') || story.story_text;
+            
+            return (
+              <Card key={story.story_id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                        <Badge variant="secondary">{category}</Badge>
+                      </div>
+                      <p className="text-gray-600 leading-relaxed">{body}</p>
+                      <div className="mt-2 text-sm text-gray-500">
+                        Related to: {indicatorName}
+                      </div>
+
+
+
+
+
                     </div>
-                    <p className="text-gray-600 leading-relaxed">{story.body}</p>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleVote(story.story_id)}
+                      disabled={isLiked}
+                      className={`ml-4 flex flex-col items-center gap-1 h-auto py-2 px-3 ${
+                        isLiked ? 'text-red-500' : ''
+                      }`}
+                    >
+                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                      <span className="text-sm font-medium">{story.votes || 0}</span>
+                    </Button>
+
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleVote(story.id, 1)}
-                    className="ml-4 flex flex-col items-center gap-1 h-auto py-2 px-3"
-                  >
-                    <Heart className="w-5 h-5 text-red-500" />
-                    <span className="text-sm font-medium">{story.votes}</span>
-                  </Button>
-                </div>
+
+                    <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">Add commentMore actions
+                    <div className="flex items-center gap-4">
+                      <span>By {story.author}</span>
+                      <span>{getTimeAgo(story.created_at)}</span>
+                      {story.location && <span>in {story.location}</span>}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleExpand(story.story_id)}
+                      className="flex items-center gap-1"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Discuss
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </Button>
+
+                  </div>
                 
-                <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">
-                  <div className="flex items-center gap-4">
-                    <span>By {story.author}</span>
-                    <span>{getTimeAgo(story.created_at)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Discuss</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                   {isExpanded && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                      <div className="text-sm font-medium text-gray-700 mb-2">
+                        Related discussions about {indicatorName}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Discussion panel with related stories, charts, and recommendations coming soon...
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+
           
           {filteredStories.length === 0 && (
             <Card>

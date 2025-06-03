@@ -5,30 +5,51 @@ import { ArrowRight, BarChart3, Users, Target, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SmartSearchBox from '@/components/SmartSearchBox';
+import { useEcosystem } from '@/context/EcosystemContext';
 
 const Homepage: React.FC = () => {
   const navigate = useNavigate();
+  const { indicators } = useEcosystem();
 
   const features = [
     {
       icon: BarChart3,
       title: 'Interactive Sunburst Chart',
-      description: 'Explore relationships between different wellbeing indicators through our dynamic visualization.'
+      description: 'Explore relationships between different wellbeing indicators through our dynamic visualization.',
+      route: '/overview'
     },
+
     {
       icon: Users,
       title: 'Community Stories',
-      description: 'Read real stories from community members about local initiatives and changes.'
+      description: 'Read real stories from community members about local initiatives and changes.',
+      route: '/stories'
     },
     {
       icon: Target,
       title: 'Simulation Mode',
-      description: 'Predict how changes in one indicator might affect others in your community.'
+      description: 'Predict how changes in one indicator might affect others in your community.',
+      route: () => {
+        const wellbeingIndicator = indicators.find(ind => 
+          ind.name.toLowerCase().includes('wellbeing')
+        );
+        return wellbeingIndicator 
+          ? `/detail/${wellbeingIndicator.indicator_id}?simulate=true`
+          : '/overview';
+      }
     },
     {
       icon: TrendingUp,
       title: 'Historical Trends',
-      description: 'Track progress over time and understand patterns in community wellbeing.'
+      description: 'Track progress over time and understand patterns in community wellbeing.',
+      route: () => {
+        const wellbeingIndicator = indicators.find(ind => 
+          ind.name.toLowerCase().includes('wellbeing')
+        );
+        return wellbeingIndicator 
+          ? `/research/${wellbeingIndicator.indicator_id}`
+          : '/overview';
+      }
     }
   ];
 
@@ -36,6 +57,23 @@ const Homepage: React.FC = () => {
     'Health & Wellness', 'Altruism', 'Purpose', 'Acommplishment',
     'Safety & Security', 'Information', 'Love & Interest', 'Dignity',
   ];
+
+  const handleFeatureClick = (feature: typeof features[0]) => {
+    const route = typeof feature.route === 'function' ? feature.route() : feature.route;
+    navigate(route);
+  };
+
+  const handleDomainClick = (domainName: string) => {
+    const matchingIndicator = indicators.find(ind => 
+      ind.name.toLowerCase() === domainName.toLowerCase() ||
+      ind.category.toLowerCase() === domainName.toLowerCase() ||
+      ind.name.toLowerCase().includes(domainName.toLowerCase().split(' ')[0])
+    );
+    
+    if (matchingIndicator) {
+      navigate(`/research/${matchingIndicator.indicator_id}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -80,11 +118,34 @@ const Homepage: React.FC = () => {
               </p>
               
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                {domains.map((domain, index) => (
-                  <div key={index} className="p-3 bg-blue-50 rounded-lg">
-                    <span className="text-sm font-medium text-blue-900">{domain}</span>
-                  </div>
-                ))}
+
+               {domains.map((domain, index) => {
+                  const hasMatchingIndicator = indicators.some(ind => 
+                    ind.name.toLowerCase() === domain.toLowerCase() ||
+                    ind.category.toLowerCase() === domain.toLowerCase() ||
+                    ind.name.toLowerCase().includes(domain.toLowerCase().split(' ')[0])
+                  );
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleDomainClick(domain)}
+                      disabled={!hasMatchingIndicator}
+                      className={`p-3 rounded-lg transition-colors ${
+                        hasMatchingIndicator
+                          ? 'bg-blue-50 hover:bg-blue-100 cursor-pointer border border-blue-200'
+                          : 'bg-gray-50 cursor-not-allowed border border-gray-200'
+                      }`}
+                    >
+                      <span className={`text-sm font-medium ${
+                        hasMatchingIndicator ? 'text-blue-900' : 'text-gray-400'
+                      }`}>
+                        {domain}
+                      </span>
+                    </button>
+                  );
+                })}
+
               </div>
               
               <p className="text-gray-600">
@@ -103,7 +164,11 @@ const Homepage: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+             <Card 
+                key={index} 
+                className="hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105"
+                onClick={() => handleFeatureClick(feature)}
+              >
                 <CardHeader>
                   <feature.icon className="w-8 h-8 text-blue-600 mb-2" />
                   <CardTitle className="text-lg">{feature.title}</CardTitle>

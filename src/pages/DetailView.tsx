@@ -420,6 +420,7 @@ useEffect(() => {
                  {/* Sunburst Fix Mode Toggle */}
                 <div className="flex justify-center">
                   <SunburstFixModeToggle 
+                    fixMode={isFixedMode}
                     isFixed={isFixedMode}
                     onToggle={setIsFixedMode}
                   />
