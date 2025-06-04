@@ -14,13 +14,20 @@ const TreeMapPage: React.FC = () => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   useEffect(() => {
+  console.log("TreeMapPage: useEffect triggered", {
+    loading,
+    indicatorsCount: indicators.length,
+    relationshipsCount: relationships.length
+  });
     if (!svgRef.current || loading || indicators.length === 0) return;
 
     // Clear previous chart
+    console.log("TreeMapPage: clearing previous SVG content");
     d3.select(svgRef.current).selectAll("*").remove();
 
     const width = 1200;
     const height = 800;
+    console.log(`TreeMapPage: creating new SVG with width=${width}, height=${height}`);
 
     const svg = d3.select(svgRef.current)
       .attr("viewBox", `0 0 ${width} ${height}`)
@@ -28,6 +35,7 @@ const TreeMapPage: React.FC = () => {
       .attr("height", "100%");
 
     const container = svg.append("g");
+    console.log("TreeMapPage: appended <g> container to SVG");
 
     // Build hierarchy data
     const nodeMap = new Map();
@@ -40,23 +48,39 @@ const TreeMapPage: React.FC = () => {
         children: []
       });
     });
+    console.log("TreeMapPage: nodeMap keys after inserting indicators:", Array.from(nodeMap.keys()));
 
     // Build parent-child relationships
+    console.log("TreeMapPage: relationships array:", relationships);
     relationships.forEach(rel => {
       const parent = nodeMap.get(rel.parent_id);
       const child = nodeMap.get(rel.child_id);
       if (parent && child && parent !== child) {
         parent.children.push(child);
+        console.log(`TreeMapPage: linked parent ${rel.parent_id} → child ${rel.child_id}`);
+      } else {
+          console.warn(
+              `TreeMapPage: skipped relationship because parent/child not found or identical`,
+            rel
+          );
       }
     });
 
     // Find root nodes (nodes with no parents)
-    const childIds = new Set(relationships.map(r => r.child_id));
+    // Exclude self-links when determining root candidates
+    const childIds = new Set(
+      relationships
+        .filter(rel => rel.parent_id !== rel.child_id)
+        .map(rel => rel.child_id)
+    );
     const rootNodes = Array.from(nodeMap.values()).filter(node => 
       !childIds.has(node.id)
     );
 
-    if (rootNodes.length === 0) return;
+    if (rootNodes.length === 0) {
+      console.error("TreeMapPage: No root nodes found → cannot build hierachy");
+      return;
+    }
 
     const root = d3.hierarchy({
       id: 'root',
@@ -65,6 +89,7 @@ const TreeMapPage: React.FC = () => {
     })
     .sum(d => d.value || 1)
     .sort((a, b) => (b.value || 0) - (a.value || 0));
+    console.log("TreeMapPage: D3 hierarchy root:", root);
 
     const treemapLayout = d3.treemap()
       .size([width, height])
@@ -72,11 +97,15 @@ const TreeMapPage: React.FC = () => {
       .round(true);
 
     treemapLayout(root);
+    console.log("TreeMapPage: after treemap layout, root.leaves():", root.leaves().map(d => ({
+      id: (d.data as any).id,
+      x0: d.x0, x1: d.x1, y0: d.y0, y1: d.y1, value: d.value
+    })));
 
     const color = d3.scaleOrdinal()
       .domain(indicators.map(d => d.category))
       .range(d3.schemeSet3);
-
+    console.log("TreeMapPage: color scale domain and range set");
     const tooltip = d3.select("body")
       .append("div")
       .style("position", "absolute")
@@ -87,11 +116,16 @@ const TreeMapPage: React.FC = () => {
       .style("border-radius", "4px")
       .style("padding", "8px")
       .style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)");
+    console.log("TreeMapPage: tooltip <div> appended to body");
+  
+  const leaves = root.leaves();
+  console.log(`TreeMapPage: about to render ${leaves.length} leaf nodes`);
 
     const cell = container.selectAll("g")
       .data(root.leaves())
       .enter().append("g")
       .attr("transform", d => `translate(${d.x0},${d.y0})`);
+    console.log("TreeMapPage: appended <g> for each leaf");
 
     cell.append("rect")
       .attr("width", d => d.x1 - d.x0)
@@ -140,6 +174,7 @@ const TreeMapPage: React.FC = () => {
           ? d.data.name.slice(0, maxChars) + '...'
           : d.data.name;
       });
+    console.log("TreeMapPage: appended first <text> (name) for leaves");
 
     cell.append("text")
       .attr("x", 4)
@@ -148,8 +183,9 @@ const TreeMapPage: React.FC = () => {
       .attr("fill", "gray")
       .style("pointer-events", "none")
       .text(d => d.data.value.toFixed(1));
-
+    console.log("TreeMapPage: appended second <text> (value) for leaves");
     return () => {
+      console.log("TreeMapPage: cleaning up tooltip on unmount");
       tooltip.remove();
     };
   }, [indicators, relationships, loading, navigate]);
