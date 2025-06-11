@@ -14,7 +14,10 @@ export const getLocationChildren = async (parentId?: string): Promise<Location[]
     throw error;
   }
 
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    type: item.type as 'country' | 'region' | 'city' | 'ward'
+  }));
 };
 
 export const getLocationPath = async (locationId: string): Promise<LocationPath[]> => {
@@ -40,5 +43,8 @@ export const getAllLocations = async (): Promise<Location[]> => {
     throw error;
   }
 
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    type: item.type as 'country' | 'region' | 'city' | 'ward'
+  }));
 };

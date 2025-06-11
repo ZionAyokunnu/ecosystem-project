@@ -1,158 +1,281 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SurveyQuestion } from '@/types';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
+import { useUser } from '@/context/UserContext';
+import { Indicator } from '@/types';
 
-interface SurveyRendererProps {
-  question: SurveyQuestion;
-  onResponse: (questionId: string, response: any) => void;
-  currentResponse?: any;
+interface SurveyQuestion {
+  question_id: string;
+  parent_indicator_id: string;
+  child_indicator_id: string;
+  prompt: string;
+  input_type: string;
+  parent_indicator: { name: string };
+  child_indicator: { name: string };
 }
 
-const SurveyRenderer: React.FC<SurveyRendererProps> = ({ 
-  question, 
-  onResponse,
-  currentResponse 
-}) => {
-  const [response, setResponse] = useState(currentResponse || {});
+interface SurveyRendererProps {
+  onComplete: (responses: any[]) => void;
+  domain?: string;
+}
 
-  const handleResponseChange = (key: string, value: any) => {
-    const newResponse = { ...response, [key]: value };
-    setResponse(newResponse);
-    onResponse(question.question_id, newResponse);
-  };
+const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domain = 'Health' }) => {
+  const { userProfile } = useUser();
+  const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [responses, setResponses] = useState<any[]>([]);
+  const [currentResponse, setCurrentResponse] = useState({
+    direction: '',
+    strength: [5],
+    notes: ''
+  });
+  const [loading, setLoading] = useState(true);
 
-  const renderInput = () => {
-    switch (question.input_type) {
-      case 'slider':
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label>Strength (0-10)</Label>
-              <Slider
-                value={[response.strength || 5]}
-                onValueChange={(value) => handleResponseChange('strength', value[0])}
-                max={10}
-                min={0}
-                step={1}
-                className="w-full mt-2"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>No influence</span>
-                <span>Strong influence</span>
-              </div>
-            </div>
-            
-            <div>
-              <Label>Direction</Label>
-              <Select 
-                value={response.direction || ''}
-                onValueChange={(value) => handleResponseChange('direction', value)}
-              >
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select relationship direction" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A→B">A influences B</SelectItem>
-                  <SelectItem value="B→A">B influences A</SelectItem>
-                  <SelectItem value="Mutual">Mutual influence</SelectItem>
-                  <SelectItem value="Unclear">Unclear/No relationship</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
+  useEffect(() => {
+    fetchSurveyQuestions();
+  }, [domain]);
 
-      case 'select':
-        return (
-          <Select 
-            value={response.value || ''}
-            onValueChange={(value) => handleResponseChange('value', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select an option" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-            </SelectContent>
-          </Select>
-        );
+  const fetchSurveyQuestions = async () => {
+    try {
+      setLoading(true);
+      
+      // First get the survey for this domain
+      const { data: surveys } = await supabase
+        .from('surveys')
+        .select('survey_id')
+        .eq('domain', domain)
+        .eq('status', 'active')
+        .limit(1);
 
-      case 'file':
-        return (
-          <div className="space-y-4">
-            <Input
-              type="file"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleResponseChange('file', file);
-                }
-              }}
-              accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.jpg,.png"
-            />
-            <p className="text-xs text-gray-500">
-              Supported formats: PDF, DOC, TXT, MP3, MP4, JPG, PNG
-            </p>
-          </div>
-        );
+      if (!surveys || surveys.length === 0) {
+        // Create a default survey with sample questions
+        await createDefaultSurvey();
+        return;
+      }
 
-      default:
-        return (
-          <Input
-            value={response.value || ''}
-            onChange={(e) => handleResponseChange('value', e.target.value)}
-            placeholder="Enter your response"
-          />
-        );
+      const surveyId = surveys[0].survey_id;
+
+      // Get questions with indicator names
+      const { data: questionsData, error } = await supabase
+        .from('survey_questions')
+        .select(`
+          *,
+          parent_indicator:indicators!parent_indicator_id(name),
+          child_indicator:indicators!child_indicator_id(name)
+        `)
+        .eq('survey_id', surveyId)
+        .limit(5); // Limit to 5 questions for onboarding
+
+      if (error) throw error;
+
+      setQuestions(questionsData || []);
+    } catch (error) {
+      console.error('Error fetching survey questions:', error);
+      // Create fallback questions
+      createDefaultSurvey();
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{question.prompt}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {renderInput()}
-        
-        {question.allow_additional_indicator && (
-          <div>
-            <Label>Suggest Additional Indicators (optional)</Label>
-            <Input
-              value={response.additionalIndicators || ''}
-              onChange={(e) => handleResponseChange('additionalIndicators', e.target.value)}
-              placeholder="Suggest other relevant indicators..."
-              className="mt-2"
-            />
-          </div>
-        )}
+  const createDefaultSurvey = async () => {
+    // Create sample questions for demonstration
+    const sampleQuestions = [
+      {
+        question_id: '1',
+        parent_indicator_id: 'sample1',
+        child_indicator_id: 'sample2',
+        prompt: 'How do you think community safety affects children\'s education?',
+        input_type: 'slider',
+        parent_indicator: { name: 'Community Safety' },
+        child_indicator: { name: 'Children\'s Education' }
+      },
+      {
+        question_id: '2',
+        parent_indicator_id: 'sample3',
+        child_indicator_id: 'sample4',
+        prompt: 'What relationship do you see between local employment and mental health?',
+        input_type: 'slider',
+        parent_indicator: { name: 'Local Employment' },
+        child_indicator: { name: 'Mental Health' }
+      }
+    ];
 
-        {question.allow_file_upload && question.input_type !== 'file' && (
+    setQuestions(sampleQuestions as SurveyQuestion[]);
+    setLoading(false);
+  };
+
+  const handleResponseSubmit = async () => {
+    const question = questions[currentQuestionIndex];
+    const userId = userProfile?.name || 'demo-user';
+    
+    const response = {
+      user_id: userId,
+      parent_id: question.parent_indicator_id,
+      child_id: question.child_indicator_id,
+      domain: domain,
+      strength_score: currentResponse.strength[0],
+      direction: currentResponse.direction,
+      notes_file_url: currentResponse.notes || null,
+      additional_indicator_ids: []
+    };
+
+    // Save to database
+    try {
+      const { error } = await supabase
+        .from('relationship_user_responses')
+        .insert([response]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving response:', error);
+    }
+
+    // Add to local responses
+    const newResponses = [...responses, response];
+    setResponses(newResponses);
+
+    // Reset current response
+    setCurrentResponse({
+      direction: '',
+      strength: [5],
+      notes: ''
+    });
+
+    // Move to next question or complete
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      onComplete(newResponses);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-gray-600">No survey questions available for this domain.</p>
+          <Button onClick={() => onComplete([])} className="mt-4">
+            Skip Survey
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Progress value={progress} className="w-full" />
+        <p className="text-sm text-gray-600 mt-2 text-center">
+          Question {currentQuestionIndex + 1} of {questions.length}
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            {currentQuestion.parent_indicator.name} → {currentQuestion.child_indicator.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-gray-700">{currentQuestion.prompt}</p>
+
+          {/* Direction Selection */}
           <div>
-            <Label>Additional Notes (optional file upload)</Label>
-            <Input
-              type="file"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleResponseChange('notesFile', file);
-                }
-              }}
-              className="mt-2"
-              accept=".pdf,.doc,.docx,.txt"
-            />
+            <Label className="text-base font-medium">
+              What direction do you see this relationship?
+            </Label>
+            <RadioGroup
+              value={currentResponse.direction}
+              onValueChange={(value) => 
+                setCurrentResponse({...currentResponse, direction: value})
+              }
+              className="mt-3"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="A→B" id="a-to-b" />
+                <Label htmlFor="a-to-b">
+                  {currentQuestion.parent_indicator.name} influences {currentQuestion.child_indicator.name}
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="B→A" id="b-to-a" />
+                <Label htmlFor="b-to-a">
+                  {currentQuestion.child_indicator.name} influences {currentQuestion.parent_indicator.name}
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Mutual" id="mutual" />
+                <Label htmlFor="mutual">They influence each other equally</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Unclear" id="unclear" />
+                <Label htmlFor="unclear">The relationship is unclear to me</Label>
+              </div>
+            </RadioGroup>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Strength Selection */}
+          <div>
+            <Label className="text-base font-medium">
+              How strong is this relationship? ({currentResponse.strength[0]}/10)
+            </Label>
+            <div className="mt-3">
+              <Slider
+                value={currentResponse.strength}
+                onValueChange={(value) => 
+                  setCurrentResponse({...currentResponse, strength: value})
+                }
+                max={10}
+                min={0}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <span>No relationship</span>
+                <span>Very strong</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+              disabled={currentQuestionIndex === 0}
+            >
+              Previous
+            </Button>
+
+            <Button
+              onClick={handleResponseSubmit}
+              disabled={!currentResponse.direction}
+            >
+              {currentQuestionIndex === questions.length - 1 ? 'Complete Survey' : 'Next Question'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

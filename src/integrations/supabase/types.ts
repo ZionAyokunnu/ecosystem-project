@@ -196,6 +196,60 @@ export type Database = {
           },
         ]
       }
+      relationship_user_responses: {
+        Row: {
+          additional_indicator_ids: string[] | null
+          child_id: string
+          created_at: string | null
+          direction: string
+          domain: string
+          notes_file_url: string | null
+          parent_id: string
+          response_id: string
+          strength_score: number
+          user_id: string
+        }
+        Insert: {
+          additional_indicator_ids?: string[] | null
+          child_id: string
+          created_at?: string | null
+          direction: string
+          domain: string
+          notes_file_url?: string | null
+          parent_id: string
+          response_id?: string
+          strength_score: number
+          user_id: string
+        }
+        Update: {
+          additional_indicator_ids?: string[] | null
+          child_id?: string
+          created_at?: string | null
+          direction?: string
+          domain?: string
+          notes_file_url?: string | null
+          parent_id?: string
+          response_id?: string
+          strength_score?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_user_responses_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "relationship_user_responses_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+        ]
+      }
       relationships: {
         Row: {
           child_id: string
@@ -307,6 +361,184 @@ export type Database = {
           name?: string
           simulation_id?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      survey_questions: {
+        Row: {
+          allow_additional_indicator: boolean | null
+          allow_file_upload: boolean | null
+          branching_condition: string | null
+          child_indicator_id: string
+          created_at: string | null
+          input_type: string | null
+          is_required: boolean | null
+          parent_indicator_id: string
+          prompt: string
+          question_id: string
+          survey_id: string
+        }
+        Insert: {
+          allow_additional_indicator?: boolean | null
+          allow_file_upload?: boolean | null
+          branching_condition?: string | null
+          child_indicator_id: string
+          created_at?: string | null
+          input_type?: string | null
+          is_required?: boolean | null
+          parent_indicator_id: string
+          prompt: string
+          question_id?: string
+          survey_id: string
+        }
+        Update: {
+          allow_additional_indicator?: boolean | null
+          allow_file_upload?: boolean | null
+          branching_condition?: string | null
+          child_indicator_id?: string
+          created_at?: string | null
+          input_type?: string | null
+          is_required?: boolean | null
+          parent_indicator_id?: string
+          prompt?: string
+          question_id?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_questions_child_indicator_id_fkey"
+            columns: ["child_indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "survey_questions_parent_indicator_id_fkey"
+            columns: ["parent_indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["survey_id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          applicable_roles: string[] | null
+          created_at: string | null
+          created_by: string | null
+          domain: string
+          is_compulsory: boolean | null
+          status: string | null
+          survey_id: string
+          title: string
+        }
+        Insert: {
+          applicable_roles?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          domain: string
+          is_compulsory?: boolean | null
+          status?: string | null
+          survey_id?: string
+          title: string
+        }
+        Update: {
+          applicable_roles?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          domain?: string
+          is_compulsory?: boolean | null
+          status?: string | null
+          survey_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string | null
+          badge_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          badge_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string | null
+          badge_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_points_log: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          points_awarded: number
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          points_awarded?: number
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          points_awarded?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_vouchers: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_redeemed: boolean | null
+          partner_name: string
+          user_id: string
+          value: string
+          voucher_code: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_redeemed?: boolean | null
+          partner_name: string
+          user_id: string
+          value: string
+          voucher_code: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_redeemed?: boolean | null
+          partner_name?: string
+          user_id?: string
+          value?: string
+          voucher_code?: string
         }
         Relationships: []
       }

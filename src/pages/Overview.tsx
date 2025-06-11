@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import SunburstChart from '@/components/SunburstChart';
 import DescriptionPanel from '@/components/DescriptionPanel';
@@ -35,11 +36,11 @@ const Overview = () => {
 
         {/* Controls */}
         <div className="flex flex-wrap gap-4 mb-8 justify-center">
-          <SettingsDialog />
-          <SmartSearchBox onSelect={(indicator) => setSelectedIndicator(indicator)} />
+          <SettingsDialog trigger={<button>Settings</button>} />
+          <SmartSearchBox onSelect={setSelectedIndicator} />
           <TargetLocationToggle />
           <SunburstFixModeToggle 
-            isFixed={isFixedMode} 
+            fixMode={isFixedMode} 
             onToggle={setIsFixedMode} 
           />
         </div>
@@ -48,9 +49,10 @@ const Overview = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Panel */}
           <div className="lg:col-span-1 space-y-6">
-            <Breadcrumbs />
+            <Breadcrumbs items={[]} onNavigate={() => {}} />
             <DescriptionPanel 
-              indicator={selectedIndicator}
+              indicators={indicators}
+              selectedIndicator={selectedIndicator}
               onDescriptionUpdate={() => {}}
             />
             <div className="bg-white rounded-lg shadow-lg p-6">
@@ -64,6 +66,8 @@ const Overview = () => {
             <div className="bg-white rounded-lg shadow-lg p-6">
               <div className="relative">
                 <SunburstChart 
+                  nodes={[]}
+                  links={[]}
                   onSelect={(nodeId) => {
                     if (isFixedMode) {
                       setSimulationModal({ 
@@ -86,12 +90,20 @@ const Overview = () => {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-800">Trend Analysis</h3>
-              <TrendGraph />
+              <TrendGraph predictionData={[]} />
             </div>
             
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-800">Simulation</h3>
-              <Simulator />
+              <Simulator 
+                indicators={indicators}
+                coreIndicator={selectedIndicator}
+                onSimulate={() => {}}
+                changes={[]}
+                isLoading={false}
+                simulationResult={null}
+                onClearSimulation={() => {}}
+              />
             </div>
 
             <div className="bg-white rounded-lg shadow-lg p-6">

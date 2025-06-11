@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,8 @@ import TreeMapPage from "@/pages/TreeMapPage";
 import Profile from "@/pages/Profile";
 import OnboardingSurvey from "@/pages/OnboardingSurvey";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Wallet from "@/pages/Wallet";
+import ResearcherInsights from "@/pages/ResearcherInsights";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,16 @@ const App = () => (
                   <Route path="profiles" element={
                     <ProtectedRoute>
                       <ProfilesView />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="wallet" element={
+                    <ProtectedRoute>
+                      <Wallet />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="researcher/insights" element={
+                    <ProtectedRoute>
+                      <ResearcherInsights />
                     </ProtectedRoute>
                   } />
                 </Route>
