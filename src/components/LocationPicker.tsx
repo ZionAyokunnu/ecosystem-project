@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocation } from '@/context/LocationContext';
-import { getLocationChildren } from '@/services/locationApi';
+import { getLocationChildren } from '@/services/locationApi'
 import { Location } from '@/types';
 import { ChevronRight } from 'lucide-react';
 
