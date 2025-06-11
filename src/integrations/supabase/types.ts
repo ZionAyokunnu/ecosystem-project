@@ -113,7 +113,7 @@ export type Database = {
         }
         Relationships: []
       }
-            locations: {
+      locations: {
         Row: {
           created_at: string
           location_id: string
@@ -155,9 +155,9 @@ export type Database = {
           created_at: string
           location: string | null
           parent_id: string
+          photo: string | null
           story_id: string
           story_text: string
-          photo: string | null
         }
         Insert: {
           author: string
@@ -165,9 +165,9 @@ export type Database = {
           created_at?: string
           location?: string | null
           parent_id: string
+          photo?: string | null
           story_id?: string
           story_text: string
-          photo: string | null
         }
         Update: {
           author?: string
@@ -175,9 +175,9 @@ export type Database = {
           created_at?: string
           location?: string | null
           parent_id?: string
+          photo?: string | null
           story_id?: string
           story_text?: string
-          photo: string | null
         }
         Relationships: [
           {
@@ -199,33 +199,33 @@ export type Database = {
       relationships: {
         Row: {
           child_id: string
-          influence_score: number
+          child_to_parent_weight: number | null
           created_at: string | null
+          influence_score: number
           influence_weight: number
           parent_id: string
           relationship_id: string
           updated_at: string | null
-          child_to_parent_weight: number | null
         }
         Insert: {
           child_id: string
-          influence_score?: number
+          child_to_parent_weight?: number | null
           created_at?: string | null
+          influence_score?: number
           influence_weight: number
           parent_id: string
           relationship_id?: string
           updated_at?: string | null
-          child_to_parent_weight?: number | null
         }
         Update: {
           child_id?: string
-          influence_score?: number
+          child_to_parent_weight?: number | null
           created_at?: string | null
+          influence_score?: number
           influence_weight?: number
           parent_id?: string
           relationship_id?: string
           updated_at?: string | null
-          child_to_parent_weight?: number | null
         }
         Relationships: [
           {

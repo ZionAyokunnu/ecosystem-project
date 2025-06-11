@@ -26,7 +26,6 @@ import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
 import CommunityStories from '@/components/CommunityStories';
 import SimulationModal from '@/components/SimulationModal';
 
-
 const Overview: React.FC = () => {
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings } = useEcosystem();
@@ -43,16 +42,17 @@ const Overview: React.FC = () => {
     positiveDrivers: [],
     negativeDrivers: []
   });
+  const [isFixedMode, setIsFixedMode] = useState(false);
+  const [simulationModal, setSimulationModal] = useState<{isOpen: boolean, indicatorId?: string}>({isOpen: false});
 
-
-  // keep track of whichever slice is currently centred in the Sunburst
+  // Handle Sunburst core changes
   const handleCoreChange = useCallback(
     (newId: string | null) => {
-      if (!newId) return;                         // ignore synthetic root
+      if (!newId) return;
       const found = indicators.find(i => i.indicator_id === newId);
       if (found) {
-        setRootIndicator(found) // drives DescriptionPanel + TrendGraph
-      
+        setRootIndicator(found);
+        
         // Find parent-child relationship for qualitative stories
         const parentRelationship = relationships.find(r => r.child_id === newId);
         if (parentRelationship) {
@@ -67,6 +67,18 @@ const Overview: React.FC = () => {
     },
     [indicators, relationships]
   );
+
+  // Handle Sunburst selection
+  const handleSunburstSelect = (indicatorId: string) => {
+    if (isFixedMode) {
+      // Open simulation modal instead of navigating
+      setSimulationModal({isOpen: true, indicatorId});
+    } else {
+      // Normal navigation
+      navigate(`/detail/${indicatorId}`);
+    }
+  };
+
   // Load sunburst data when location changes
   useEffect(() => {
     const loadSunburstData = async () => {
@@ -86,7 +98,6 @@ const Overview: React.FC = () => {
           
           // Transform the location-specific data to sunburst format
           const valueMap = new Map(data.values.map(v => [v.indicator_id, Number(v.value)]));
-          const targetValueMap = new Map(data.targetValues.map(v => [v.indicator_id, Number(v.value)]));
           
           // Update indicators with location-specific values
           const locationIndicators = data.indicators.map(ind => ({
@@ -199,9 +210,15 @@ const Overview: React.FC = () => {
               <h1 className="text-3xl font-bold">Ecosystem</h1>
               <p className="mt-2">Exploring socio-economic indicators and their relationships</p>
             </div>
-            <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
+            <div className="flex items-center gap-4">
+              <SunburstFixModeToggle 
+                isFixedMode={isFixedMode}
+                onToggle={setIsFixedMode}
+              />
+              <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
+            </div>
           </div>
-            {/* Smart Search Box */}
+          {/* Smart Search Box */}
           <div className="mt-6">
             <SmartSearchBox />
           </div>
@@ -210,7 +227,6 @@ const Overview: React.FC = () => {
         <div className="p-6">
           <div className="mb-6 space-y-4">
             <div className="flex items-center justify-between">
-              {/* <LocationPicker /> */}
               <EnhancedLocationPicker />
               <TargetLocationToggle />
             </div>
@@ -259,7 +275,7 @@ const Overview: React.FC = () => {
                     <SunburstChart
                       nodes={sunburstData.nodes}
                       links={sunburstData.links}
-                      onSelect={handleIndicatorSelect}
+                      onSelect={handleSunburstSelect}
                       onVisibleNodesChange={setVisibleNodes}
                       onCoreChange={handleCoreChange}
                     />
@@ -332,6 +348,12 @@ const Overview: React.FC = () => {
         )}
         </div>
       </div>
+
+      {/* Simulation Modal */}
+      <SimulationModal
+        isOpen={simulationModal.isOpen}
+        onClose={() => setSimulationModal({isOpen: false})}
+      />
     </div>
   );
 };

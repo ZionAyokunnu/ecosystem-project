@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { EcosystemProvider } from "@/context/EcosystemContext";
+import { UserProvider } from "@/context/UserContext";
 import MainLayout from "@/components/MainLayout";
 import Overview from "@/pages/Overview";
 import DetailView from "@/pages/DetailView";
@@ -15,41 +16,80 @@ import ResearchPage from "@/pages/ResearchPage";
 import Homepage from "@/pages/Homepage";
 import CommunityStoriesPage from "@/pages/CommunityStoriesPage";
 import TreeMapPage from "@/pages/TreeMapPage";
+import Profile from "@/pages/Profile";
+import OnboardingSurvey from "@/pages/OnboardingSurvey";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <EcosystemProvider>
-        <LocationProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<MainLayout />}>
-                <Route path="Overview" element={<Overview />} />
-                <Route index element={<Homepage />} />
-                <Route path="detail/:indicatorId" element={<DetailView />} />
-                <Route path="profiles" element={<ProfilesView />} />
-              </Route>
-              <Route path="/detail/:indicatorId" element={<MainLayout />}>
-                <Route index element={<DetailView />} />
-              </Route>
-              <Route path="/research/:indicatorId" element={<MainLayout />}>
-                <Route index element={<ResearchPage />} />
-              </Route>
-              <Route path="/stories" element={<MainLayout />}>
-                <Route index element={<CommunityStoriesPage />} />
-              </Route>
-              <Route path="/treemap" element={<MainLayout />}>
-                <Route index element={<TreeMapPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </LocationProvider>
-      </EcosystemProvider>
+      <UserProvider>
+        <EcosystemProvider>
+          <LocationProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<MainLayout />}>
+                  <Route path="Overview" element={
+                    <ProtectedRoute>
+                      <Overview />
+                    </ProtectedRoute>
+                  } />
+                  <Route index element={<Homepage />} />
+                  <Route path="detail/:indicatorId" element={
+                    <ProtectedRoute>
+                      <DetailView />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="profiles" element={
+                    <ProtectedRoute>
+                      <ProfilesView />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+                <Route path="/detail/:indicatorId" element={<MainLayout />}>
+                  <Route index element={
+                    <ProtectedRoute>
+                      <DetailView />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+                <Route path="/research/:indicatorId" element={<MainLayout />}>
+                  <Route index element={
+                    <ProtectedRoute>
+                      <ResearchPage />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+                <Route path="/stories" element={<MainLayout />}>
+                  <Route index element={
+                    <ProtectedRoute>
+                      <CommunityStoriesPage />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+                <Route path="/treemap" element={<MainLayout />}>
+                  <Route index element={
+                    <ProtectedRoute>
+                      <TreeMapPage />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+                <Route path="/profile" element={<MainLayout />}>
+                  <Route index element={<Profile />} />
+                </Route>
+                <Route path="/onboarding" element={<MainLayout />}>
+                  <Route index element={<OnboardingSurvey />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </LocationProvider>
+        </EcosystemProvider>
+      </UserProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
