@@ -181,3 +181,8 @@ export interface RelationshipUserResponse {
   additional_indicator_ids?: string[];
   created_at: string;
 }
+
+export interface SimulationModalState {
+  isOpen: boolean;
+  targetIndicatorId?: string;
+}

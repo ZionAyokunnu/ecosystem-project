@@ -1,359 +1,114 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useEcosystem } from '@/context/EcosystemContext';
+import React, { useState } from 'react';
 import SunburstChart from '@/components/SunburstChart';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import DescriptionPanel from '@/components/DescriptionPanel';
 import TrendGraph from '@/components/TrendGraph';
-import { transformToSunburstData, getTopDrivers } from '@/utils/indicatorUtils';
-import { predictTrend } from '@/services/api';
-import { Indicator, PredictionResult, SunburstNode } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import QualitativeStoryBox from '@/components/QualitativeStoryBox';
-import LLMContextToggle from '@/components/LLMContextToggle';
-import { useLocation } from '@/context/LocationContext';
-import LocationPicker from '@/components/LocationPicker';
-import LocationBreadcrumbs from '@/components/LocationBreadcrumbs';
-import TargetLocationToggle from '@/components/TargetLocationToggle';
-import { getSunburstData } from '@/services/locationApi';
-import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
-import IndicatorSelector from '@/components/IndicatorSelector';
-import SmartSearchBox from '@/components/SmartSearchBox';
-import SunburstCenterCircle from '@/components/SunburstCenterCircle';
-import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
+import Simulator from '@/components/Simulator';
 import CommunityStories from '@/components/CommunityStories';
+import SmartSearchBox from '@/components/SmartSearchBox';
+import TargetLocationToggle from '@/components/TargetLocationToggle';
+import SettingsDialog from '@/components/SettingsDialog';
+import InfluenceMetricsComputer from '@/components/InfluenceMetricsComputer';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import { useEcosystem } from '@/context/EcosystemContext';
+import { Indicator, SimulationModalState } from '@/types';
 import SimulationModal from '@/components/SimulationModal';
+import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
 
-const Overview: React.FC = () => {
-  const navigate = useNavigate();
-  const { indicators, relationships, loading, error, userSettings } = useEcosystem();
-  const [rootIndicator, setRootIndicator] = useState<Indicator | null>(null);
-  const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
-  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
-  const [currentChildId, setCurrentChildId] = useState<string | null>(null);
-  const { selectedLocation, targetLocation } = useLocation();
-  const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
-  const [isPredicting, setIsPredicting] = useState<boolean>(false);
-  const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
-  const [sunburstData, setSunburstData] = useState<{ nodes: SunburstNode[], links: any[] }>({ nodes: [], links: [] });
-  const [topDrivers, setTopDrivers] = useState<{positiveDrivers: Indicator[], negativeDrivers: Indicator[]}>({
-    positiveDrivers: [],
-    negativeDrivers: []
-  });
+const Overview = () => {
+  const { indicators } = useEcosystem();
+  const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
+  const [simulationModal, setSimulationModal] = useState<SimulationModalState>({ isOpen: false, targetIndicatorId: undefined });
   const [isFixedMode, setIsFixedMode] = useState(false);
-  const [simulationModal, setSimulationModal] = useState<{isOpen: boolean, indicatorId?: string}>({isOpen: false});
 
-  // Handle Sunburst core changes
-  const handleCoreChange = useCallback(
-    (newId: string | null) => {
-      if (!newId) return;
-      const found = indicators.find(i => i.indicator_id === newId);
-      if (found) {
-        setRootIndicator(found);
-        
-        // Find parent-child relationship for qualitative stories
-        const parentRelationship = relationships.find(r => r.child_id === newId);
-        if (parentRelationship) {
-          setCurrentParentId(parentRelationship.parent_id);
-          setCurrentChildId(newId);
-        } else {
-          // If it's a root indicator, use it as both parent and child
-          setCurrentParentId(newId);
-          setCurrentChildId(newId);
-        }                 
-      }
-    },
-    [indicators, relationships]
-  );
-
-  // Handle Sunburst selection
-  const handleSunburstSelect = (indicatorId: string) => {
-    if (isFixedMode) {
-      // Open simulation modal instead of navigating
-      setSimulationModal({isOpen: true, indicatorId});
-    } else {
-      // Normal navigation
-      navigate(`/detail/${indicatorId}`);
-    }
-  };
-
-  // Load sunburst data when location changes
-  useEffect(() => {
-    const loadSunburstData = async () => {
-      if (!selectedLocation && indicators.length > 0 && relationships.length > 0) {
-        // Use global data
-        const transformed = transformToSunburstData(indicators, relationships);
-        setSunburstData(transformed);
-        return;
-      }
-      
-      if (selectedLocation) {
-        try {
-          const data = await getSunburstData(
-            selectedLocation.location_id,
-            targetLocation?.location_id
-          );
-          
-          // Transform the location-specific data to sunburst format
-          const valueMap = new Map(data.values.map(v => [v.indicator_id, Number(v.value)]));
-          
-          // Update indicators with location-specific values
-          const locationIndicators = data.indicators.map(ind => ({
-            ...ind,
-            current_value: valueMap.get(ind.indicator_id) || ind.current_value
-          }));
-          
-          const transformed = transformToSunburstData(locationIndicators, data.relationships);
-          setSunburstData(transformed);
-        } catch (error) {
-          console.error('Error loading location data:', error);
-          // Fallback to global data
-          const transformed = transformToSunburstData(indicators, relationships);
-          setSunburstData(transformed);
-        }
-      }
-    };
-    
-    loadSunburstData();
-  }, [selectedLocation, targetLocation, indicators, relationships]);
-  
-  // Find or set the root indicator (Wellbeing)
-  useEffect(() => {
-    if (!loading && indicators.length > 0) {
-      // Try to find the Wellbeing indicator
-      const wellbeing = indicators.find(ind => ind.name.toLowerCase() === 'wellbeing');
-      
-      // If not found, use the first indicator
-      setRootIndicator(wellbeing || indicators[0]);
-    }
-  }, [loading, indicators]);
-  
-  // Get prediction data for the root indicator
-  useEffect(() => {
-    if (rootIndicator) {
-      const fetchPrediction = async () => {
-        setIsPredicting(true);
-        try {
-          const prediction = await predictTrend(
-            rootIndicator.indicator_id,
-            selectedLocation?.location_id
-          );
-          setPredictionData(prediction);
-        } catch (err) {
-          console.error('Error predicting trend:', err);
-        } finally {
-          setIsPredicting(false);
-        }
-      };
-      
-      fetchPrediction();
-    }
-  }, [rootIndicator, selectedLocation]);
-  
-  // Get top drivers
-  useEffect(() => {
-    if (rootIndicator && indicators.length > 0 && relationships.length > 0) {
-      const drivers = getTopDrivers(
-        rootIndicator.indicator_id,
-        indicators,
-        relationships,
-        userSettings.topDriversCount
-      );
-      setTopDrivers(drivers);
-    }
-  }, [rootIndicator, indicators, relationships, userSettings.topDriversCount]);
-  
-  // Set visible nodes from sunburst data
-  useEffect(() => {
-    if (sunburstData.nodes.length > 0) {
-      setVisibleNodes(sunburstData.nodes);
-    }
-  }, [sunburstData]);
-  
-  const handleIndicatorSelect = (indicatorId: string) => {
-    navigate(`/detail/${indicatorId}`);
-  };
-  
-  const [isPanelOpen, setIsPanelOpen] = useState<boolean>(true);
-  
-  const handleDiveClick = () => {
-    if (rootIndicator) {
-      navigate(`/detail/${rootIndicator.indicator_id}`);
-    }
-  };
-  
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-red-600">Error Loading Data</h2>
-          <p className="mt-2">{error.message}</p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="mt-4"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-  
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-        <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">Ecosystem</h1>
-              <p className="mt-2">Exploring socio-economic indicators and their relationships</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <SunburstFixModeToggle 
-                isFixedMode={isFixedMode}
-                onToggle={setIsFixedMode}
-              />
-              <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
-            </div>
-          </div>
-          {/* Smart Search Box */}
-          <div className="mt-6">
-            <SmartSearchBox />
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Community Wellbeing Overview
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Explore how different aspects of wellbeing connect and influence each other in your community.
+          </p>
         </div>
-        
-        <div className="p-6">
-          <div className="mb-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <EnhancedLocationPicker />
-              <TargetLocationToggle />
+
+        {/* Controls */}
+        <div className="flex flex-wrap gap-4 mb-8 justify-center">
+          <SettingsDialog />
+          <SmartSearchBox onSelect={(indicator) => setSelectedIndicator(indicator)} />
+          <TargetLocationToggle />
+          <SunburstFixModeToggle 
+            isFixed={isFixedMode} 
+            onToggle={setIsFixedMode} 
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Panel */}
+          <div className="lg:col-span-1 space-y-6">
+            <Breadcrumbs />
+            <DescriptionPanel 
+              indicator={selectedIndicator}
+              onDescriptionUpdate={() => {}}
+            />
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Influence Metrics</h3>
+              <InfluenceMetricsComputer />
             </div>
-            <LocationBreadcrumbs />
           </div>
-          <div className="flex left-0 mb-4">
-            <Button variant="outline" onClick={() => setIsPanelOpen(prev => !prev)}>
-              {isPanelOpen ? 'Hide Panel' : 'Show Panel'}
-            </Button>
-          </div>
-        {loading ? (
-          <div className="space-y-8">
-            <div className="flex justify-center">
-              <Skeleton className="h-[600px] w-[600px] rounded-full" />
-            </div>
-            <Skeleton className="h-10 w-full rounded-md" />
-            <Skeleton className="h-64 w-full rounded-md" />
-            <Skeleton className="h-64 w-full rounded-md" />
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {isPanelOpen && (
-                <div className="lg:col-span-1 space-y-4">
-                  <IndicatorSelector
-                    onIndicatorSelect={handleIndicatorSelect}
-                    currentIndicatorId={rootIndicator?.indicator_id}
-                  />
-                  <CommunityStories
-                    indicatorId={rootIndicator?.indicator_id}
-                    locationId={selectedLocation?.location_id}
-                    maxStories={3}
-                  />
-                </div>
-              )}
 
-              <div
-                className={
-                  isPanelOpen
-                    ? "lg:col-span-3 space-y-6"
-                    : "lg:col-span-4 space-y-6"
-                }
-              >
-                <div className="relative flex justify-center">
-                  <div className="w-full max-w-3xl">
-                    <SunburstChart
-                      nodes={sunburstData.nodes}
-                      links={sunburstData.links}
-                      onSelect={handleSunburstSelect}
-                      onVisibleNodesChange={setVisibleNodes}
-                      onCoreChange={handleCoreChange}
-                    />
-                  </div>
-                  {currentParentId && currentChildId && (
-                    <div className="absolute bottom-4 right-4">
-                      <QualitativeStoryBox
-                        parentId={currentParentId}
-                        childId={currentChildId}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {rootIndicator && (
-                  <>
-                    <Breadcrumbs
-                      items={[{ id: rootIndicator.indicator_id, name: rootIndicator.name }]}
-                      onNavigate={handleIndicatorSelect}
-                    />
-
-                    <div className="flex justify-center gap-4 mb-6">
-                      <Button onClick={handleDiveClick} size="lg">
-                        Dive Into {rootIndicator.name}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => navigate(`/research/${rootIndicator.indicator_id}`)}
-                        size="lg"
-                      >
-                        Research {rootIndicator.name}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() => navigate('/treemap')}
-                      >
-                        View Tree Map
-                      </Button>
-                    </div>
-
-                    <DescriptionPanel
-                      coreIndicator={rootIndicator}
-                      indicators={indicators}
-                      relationships={relationships}
-                      visibleNodes={visibleNodes}
-                      llmMode={llmMode}
-                    />
-
-                    {isPredicting ? (
-                      <div className="bg-white shadow rounded-lg p-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                          Historical & Predicted Trends
-                        </h2>
-                        <div className="h-64 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto" />
-                            <p className="mt-4 text-gray-500">Generating prediction...</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      predictionData && <TrendGraph predictionData={predictionData} />
-                    )}
-                  </>
-                )}
+          {/* Center Panel - Sunburst */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="relative">
+                <SunburstChart 
+                  onSelect={(nodeId) => {
+                    if (isFixedMode) {
+                      setSimulationModal({ 
+                        isOpen: true, 
+                        targetIndicatorId: nodeId || undefined 
+                      });
+                    } else {
+                      const indicator = indicators.find(i => i.indicator_id === nodeId);
+                      if (indicator) {
+                        setSelectedIndicator(indicator);
+                      }
+                    }
+                  }}
+                />
               </div>
             </div>
-          </>
-        )}
-        </div>
-      </div>
+          </div>
 
-      {/* Simulation Modal */}
-      <SimulationModal
-        isOpen={simulationModal.isOpen}
-        onClose={() => setSimulationModal({isOpen: false})}
-      />
+          {/* Right Panel */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Trend Analysis</h3>
+              <TrendGraph />
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Simulation</h3>
+              <Simulator />
+            </div>
+
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Community Stories</h3>
+              <CommunityStories />
+            </div>
+          </div>
+        </div>
+
+        {simulationModal.isOpen && (
+          <SimulationModal
+            isOpen={simulationModal.isOpen}
+            targetIndicatorId={simulationModal.targetIndicatorId}
+            onClose={() => setSimulationModal({ isOpen: false, targetIndicatorId: undefined })}
+          />
+        )}
+      </div>
     </div>
   );
 };
