@@ -14,12 +14,20 @@ const Dashboard: React.FC = () => {
 
   if (!profile) return null;
 
+const handleDiveClick = () => {
+  navigate('/detail');
+};
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Welcome, {profile.first_name}</h1>
+        <Button onClick={handleDiveClick}>
+          Dive into Data
+        </Button>
         <Button onClick={() => navigate('/wallet')}>View Wallet</Button>
+
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Points Summary */}
