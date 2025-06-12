@@ -9,6 +9,103 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_inputs: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          id: string
+          indicator_id: string
+          input_type: string
+          rationale: string | null
+          value: number
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          id?: string
+          indicator_id: string
+          input_type: string
+          rationale?: string | null
+          value: number
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          id?: string
+          indicator_id?: string
+          input_type?: string
+          rationale?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_inputs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_inputs_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+        ]
+      }
+      flagged_responses: {
+        Row: {
+          created_at: string | null
+          flag_reason: string
+          id: string
+          rep_id: string | null
+          response_id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          flag_reason: string
+          id?: string
+          rep_id?: string | null
+          response_id: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          flag_reason?: string
+          id?: string
+          rep_id?: string | null
+          response_id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flagged_responses_rep_id_fkey"
+            columns: ["rep_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flagged_responses_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "relationship_user_responses"
+            referencedColumns: ["response_id"]
+          },
+          {
+            foreignKeyName: "flagged_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historical_trends: {
         Row: {
           created_at: string | null
@@ -142,6 +239,53 @@ export type Database = {
           {
             foreignKeyName: "locations_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          first_name: string
+          has_completed_onboarding: boolean | null
+          id: string
+          location_id: string | null
+          phone_number: string | null
+          profile_photo: string | null
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          first_name: string
+          has_completed_onboarding?: boolean | null
+          id: string
+          location_id?: string | null
+          phone_number?: string | null
+          profile_photo?: string | null
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          first_name?: string
+          has_completed_onboarding?: boolean | null
+          id?: string
+          location_id?: string | null
+          phone_number?: string | null
+          profile_photo?: string | null
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_location_id_fkey"
+            columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["location_id"]
@@ -298,6 +442,76 @@ export type Database = {
           },
         ]
       }
+      rep_tasks: {
+        Row: {
+          created_at: string | null
+          description: string
+          due_date: string | null
+          id: string
+          rep_id: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          rep_id: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          rep_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rep_tasks_rep_id_fkey"
+            columns: ["rep_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      researcher_credits: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          credits: number
+          description: string | null
+          id: string
+          researcher_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          credits?: number
+          description?: string | null
+          id?: string
+          researcher_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          credits?: number
+          description?: string | null
+          id?: string
+          researcher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "researcher_credits_researcher_id_fkey"
+            columns: ["researcher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulation_changes: {
         Row: {
           change_id: string
@@ -363,6 +577,54 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      survey_control: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          priority: number | null
+          survey_id: string
+          target_locations: string[] | null
+          target_roles: string[]
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          survey_id: string
+          target_locations?: string[] | null
+          target_roles: string[]
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          priority?: number | null
+          survey_id?: string
+          target_locations?: string[] | null
+          target_roles?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_control_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_control_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["survey_id"]
+          },
+        ]
       }
       survey_questions: {
         Row: {

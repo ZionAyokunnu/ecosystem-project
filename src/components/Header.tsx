@@ -1,87 +1,118 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import SettingsDialog from '@/components/SettingsDialog';
-import { Cog, Home, BarChart2, Activity, Clock } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/hooks/useAuth';
+import { User, LogOut, Settings, Trophy, Wallet } from 'lucide-react';
 
 const Header: React.FC = () => {
-  const location = useLocation();
-  
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
-  
+
+  const getRoleDashboard = () => {
+    if (!profile) return '/dashboard';
+    
+    switch (profile.role) {
+      case 'admin':
+        return '/admin';
+      case 'community_rep':
+        return '/rep-dashboard';
+      case 'researcher':
+        return '/researcher/insights';
+      default:
+        return '/dashboard';
+    }
+  };
+
   return (
-    <header className="bg-white shadow">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between py-4">
-          <Link to="/" className="flex items-center space-x-2">
-            <Activity className="h-6 w-6 text-blue-600" />
-            <span className="text-xl font-bold text-gray-800">Ecosystem</span>
+    <header className="bg-white shadow-sm border-b">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          <Link to="/" className="text-xl font-bold text-blue-600">
+            Community Ecosystem
           </Link>
           
-          <nav className="hidden md:flex items-center space-x-2">
-            <Link to="/">
-              <Button variant={isActive('/') ? "default" : "ghost"} className="flex items-center space-x-1">
-                <Home className="h-4 w-4" />
-                <span>Home</span>
-              </Button>
+          <nav className="hidden md:flex space-x-6">
+            <Link to="/overview" className="text-gray-600 hover:text-blue-600">
+              Overview
             </Link>
-             <Link to="/Overview">
-              <Button variant={isActive('/Overview') ? "default" : "ghost"} className="flex items-center space-x-1">
-                <Home className="h-4 w-4" />
-                <span>Overview</span>
-              </Button>
+            <Link to="/stories" className="text-gray-600 hover:text-blue-600">
+              Stories
             </Link>
-            <Link to="/profiles">
-              <Button variant={isActive('/profiles') ? "default" : "ghost"} className="flex items-center space-x-1">
-                <Clock className="h-4 w-4" />
-                <span>Profiles</span>
-              </Button>
+            <Link to="/leaderboard" className="text-gray-600 hover:text-blue-600">
+              Leaderboard
             </Link>
-            
-            <SettingsDialog 
-              trigger={
-                <Button variant="outline" size="icon">
-                  <Cog className="h-4 w-4" />
-                </Button>
-              } 
-            />
           </nav>
-          
-          <div className="md:hidden">
-            <SettingsDialog 
-              trigger={
-                <Button variant="outline" size="icon">
-                  <Cog className="h-4 w-4" />
-                </Button>
-              } 
-            />
-          </div>
-        </div>
-        
-        {/* Mobile nav */}
-        <div className="md:hidden border-t pt-2 pb-3">
-          <div className="flex justify-around">
-            <Link to="/" className={`flex flex-col items-center px-3 py-2 rounded-md text-sm font-medium ${
-              isActive('/') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
-            }`}>
-              <Home className="h-5 w-5" />
-              <span>Home</span>
-            </Link>
-            <Link to="/Overview" className={`flex flex-col items-center px-3 py-2 rounded-md text-sm font-medium ${
-              isActive('/Overview') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
-            }`}>
-              <Home className="h-5 w-5" />
-              <span>Overview</span>
-            </Link>
-            <Link to="/profiles" className={`flex flex-col items-center px-3 py-2 rounded-md text-sm font-medium ${
-              isActive('/profiles') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
-            }`}>
-              <Clock className="h-5 w-5" />
-              <span>Profiles</span>
-            </Link>
+
+          <div className="flex items-center space-x-4">
+            {user && profile ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span>{profile.first_name}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate(getRoleDashboard())}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/wallet')}>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Wallet
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => navigate('/leaderboard')}>
+                    <Trophy className="w-4 h-4 mr-2" />
+                    Leaderboard
+                  </DropdownMenuItem>
+                  
+                  {profile.role === 'community_rep' && (
+                    <DropdownMenuItem onClick={() => navigate('/rep-dashboard')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Rep Dashboard
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {profile.role === 'admin' && (
+                    <DropdownMenuItem onClick={() => navigate('/admin')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Admin Panel
+                    </DropdownMenuItem>
+                  )}
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button onClick={() => navigate('/auth')}>
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </div>
