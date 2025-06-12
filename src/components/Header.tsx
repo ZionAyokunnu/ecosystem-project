@@ -26,11 +26,11 @@ const Header: React.FC = () => {
     
     switch (profile.role) {
       case 'admin':
-        return '/admin';
+        return '/dashboard';
       case 'community_rep':
-        return '/rep-dashboard';
+        return '/dashboard';
       case 'researcher':
-        return '/researcher/insights';
+        return 'dashboard';
       default:
         return '/dashboard';
     }
@@ -97,6 +97,13 @@ const Header: React.FC = () => {
                     <DropdownMenuItem onClick={() => navigate('/admin')}>
                       <Settings className="w-4 h-4 mr-2" />
                       Admin Panel
+                    </DropdownMenuItem>
+                  )}
+
+                  {profile.role === 'researcher' && (
+                    <DropdownMenuItem onClick={() => navigate('/researcher/insights')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Research Panel
                     </DropdownMenuItem>
                   )}
                   

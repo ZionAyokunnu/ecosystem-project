@@ -29,6 +29,13 @@ const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings, refreshData } = useEcosystem();
+
+  useEffect(() => {
+    if (!indicatorId && indicators.length > 0) {
+      const defaultRoot = indicators.find(i => i.name.toLowerCase() === 'wellbeing') || indicators[0];
+      navigate(`/detail/${defaultRoot.indicator_id}`, { replace: true });
+    }
+  }, [indicatorId, indicators, navigate]);
   
   const [coreIndicator, setCoreIndicator] = useState<Indicator | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string, name: string }>>([]);
@@ -382,7 +389,7 @@ useEffect(() => {
                   {canDiveDeeper && (
                     <div className="flex justify-center mb-6">
                       <Button onClick={() => handleIndicatorSelect(coreIndicator.indicator_id)} size="lg">
-                        Dive Deeper
+                        Dive Deeper, but not working yet
                       </Button>
                       <Button 
                       variant="outline" 

@@ -81,7 +81,7 @@ const App = () => (
                       </ProtectedRoute>
                     } />
                     
-                    <Route path="detail/:indicatorId" element={
+                    <Route path="detail" element={
                       <ProtectedRoute>
                         <DetailView />
                       </ProtectedRoute>

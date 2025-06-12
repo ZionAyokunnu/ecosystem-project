@@ -109,7 +109,7 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Data Input Section */}
