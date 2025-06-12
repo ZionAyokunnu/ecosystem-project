@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserContextType {
   userProfile: UserProfile | null;
@@ -12,6 +13,7 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 const DEFAULT_PROFILE: UserProfile = {
+  id: '',
   name: '',
   role: 'resident',
   location_id: '',
@@ -23,6 +25,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load profile from localStorage on mount
   useEffect(() => {
+    const loadUserProfile = async () => {
     const saved = localStorage.getItem('userProfile');
     if (saved) {
       try {
@@ -30,11 +33,29 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserProfile(parsed);
       } catch (error) {
         console.error('Error parsing saved profile:', error);
-        setUserProfile(DEFAULT_PROFILE);
+        // setUserProfile(DEFAULT_PROFILE);
       }
     } else {
-      setUserProfile(DEFAULT_PROFILE);
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+
+        if (user) {
+          setUserProfile({
+            ...DEFAULT_PROFILE,
+            id: user.id, // ✅ Set real UUID from Supabase
+            name: user.user_metadata?.name || '',
+          });
+        } else {
+          setUserProfile(DEFAULT_PROFILE);
+        }
+      } catch (error) {
+        console.error('Error fetching user from Supabase:', error);
+        setUserProfile(DEFAULT_PROFILE);
+      }
     }
+  };
+  loadUserProfile();
   }, []);
 
   // Save to localStorage whenever profile changes

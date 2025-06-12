@@ -3,6 +3,8 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 
+const SKIP_ONBOARDING = true; // 🔧 Set to false in production
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -16,6 +18,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // Allow access to onboarding, profile, and homepage without restrictions
     const allowedPaths = ['/onboarding', '/profile', '/'];
     const isAllowedPath = allowedPaths.includes(location.pathname);
+
+    if (SKIP_ONBOARDING) return;
 
     if (!userProfile) {
       // Still loading profile
@@ -48,11 +52,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Allow access if onboarding is complete or user is admin or on allowed path
+  // Allow access if onboarding is complete or user is admin or on allowed path or SKIP_ONBOARDING
   const allowedPaths = ['/onboarding', '/profile', '/'];
   const isAllowedPath = allowedPaths.includes(location.pathname);
   
-  if (isOnboardingComplete || userProfile.role === 'admin' || isAllowedPath) {
+  if (isOnboardingComplete || userProfile.role === 'admin' || SKIP_ONBOARDING || isAllowedPath) {
     return <>{children}</>;
   }
 

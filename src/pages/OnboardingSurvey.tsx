@@ -57,7 +57,7 @@ const OnboardingSurvey = () => {
   const handleComplete = async () => {
     try {
       // Award points for completing onboarding
-      const userId = userProfile?.name || 'demo-user';
+      const userId = userProfile?.name || userProfile?.id;
       await awardPoints(userId, 'survey_completed', 50, { survey_type: 'onboarding' });
       
       setOnboardingComplete(true);

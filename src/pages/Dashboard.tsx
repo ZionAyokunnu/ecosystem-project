@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from '@/react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import PointsTracker from '@/components/PointsTracker';
 import BadgeRenderer from '@/components/BadgeRenderer';
 import { Award, BookOpen, MapPin } from 'lucide-react';

@@ -10,7 +10,7 @@ const PointsTracker: React.FC = () => {
   const [points, setPoints] = useState({ total_points: 0, recent_activities: [] });
   const [loading, setLoading] = useState(true);
 
-  const userId = userProfile?.name || 'demo-user';
+  const userId = userProfile?.name || userProfile?.id;
 
   useEffect(() => {
     const fetchPoints = async () => {

@@ -114,7 +114,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domain = 'H
 
   const handleResponseSubmit = async () => {
     const question = questions[currentQuestionIndex];
-    const userId = userProfile?.name || 'demo-user';
+    const userId = userProfile?.name || userProfile?.id;
     
     const response = {
       user_id: userId,

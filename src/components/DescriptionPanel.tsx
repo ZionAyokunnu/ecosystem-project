@@ -25,18 +25,24 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   relationships,
   visibleNodes,
   correlations = {},
-  llmMode = 'business'
+  llmMode = 'community',
 }) => {
-  // Debug: log inputs at the very top of the component
+    // Move the coreIndicator check to the very top before any usage
+  if (!coreIndicator) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  // Debug: log inputs now that coreIndicator is confirmedadd
   console.log('🔍 [DescriptionPanel] inputs:', {
     core: coreIndicator.indicator_id,
     visibleNodeIds: visibleNodes.map(n => n.id),
-    llmMode,
-    laggingIds: (() => {
-      // We need to call useDriverComputation here, but it's below. So, for correct order, move this log after laggingDrivers is available.
-      return undefined;
-    })(),
-    thrivingIds: (() => undefined)(),
+    llmMode
   });
   const [analysisText, setAnalysisText] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
@@ -113,51 +119,12 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
       </div>
     );
   }
-
-
-  // Generate LLM analysis
-  useEffect(() => {
-    const generateAnalysis = async () => {
-      if (!coreIndicator) return;
-      
-      setIsLoadingAnalysis(true);
-      try {
-        const thrivingNames = (thrivingDrivers || []).map(d => d.name).join(', ');
-        const laggingNames = (laggingDrivers || []).map(d => d.name).join(', ');
-        
-        const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
-        
-        const analysis = await queryLocalLLM(prompt);
-        setAnalysisText(analysis);
-      } catch (error) {
-        console.error('Failed to generate LLM analysis:', error);
-        setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
-      } finally {
-        setIsLoadingAnalysis(false);
-      }
-    };
-
-    if (coreIndicator && (thrivingDrivers?.length > 0 || laggingDrivers?.length > 0)) {
-      generateAnalysis();
-    } else if (coreIndicator) {
-      setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
-    }
-  }, [coreIndicator, thrivingDrivers, laggingDrivers]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Early return if no core indicator
-  if (!coreIndicator) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <Skeleton className="h-8 w-64 mb-4" />
-        <Skeleton className="h-4 w-full mb-2" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
+  
+  console.log('🔍 [DescriptionPanel] inputs:', {
+  core: coreIndicator.indicator_id,
+  visibleNodeIds: visibleNodes.map(n => n.id),
+  llmMode,
+});
 
   const renderIndicatorList = (indicators: Indicator[], type: 'positive' | 'negative') => {
     if (!indicators || !indicators || indicators.length === 0) {
@@ -167,7 +134,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     return (
       <ul className="mt-1 space-y-1">
         {indicators.map((indicator, index) => {
-          const correlation = correlations[indicator.indicator_id];
+          const correlation = correlations?.[indicator.indicator_id];
           const correlationText = correlation !== undefined 
             ? ` (${(correlation * 100).toFixed(1)}%)` 
             : '';

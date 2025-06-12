@@ -172,7 +172,7 @@ const CommunityStoriesPage: React.FC = () => {
             Real stories from community members about local initiatives and changes
           </p>
         </div>
-<div className="relative">Add commentMore actions
+<div className="relative">
           <Button onClick={() => setShowForm(!showForm)}>
             <Plus className="w-4 h-4 mr-2" />
             Share Your Story
@@ -351,7 +351,7 @@ const CommunityStoriesPage: React.FC = () => {
 
                   </div>
 
-                    <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">Add commentMore actions
+                    <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">
                     <div className="flex items-center gap-4">
                       <span>By {story.author}</span>
                       <span>{getTimeAgo(story.created_at)}</span>

@@ -138,6 +138,7 @@ export interface CommunityStory {
 }
 
 export interface UserProfile {
+  id: string;
   name: string;
   role: 'resident' | 'community_rep' | 'admin' | 'researcher' | 'business';
   location_id: string;

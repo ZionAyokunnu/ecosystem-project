@@ -48,3 +48,21 @@ export const getAllLocations = async (): Promise<Location[]> => {
     type: item.type as 'country' | 'region' | 'city' | 'ward'
   }));
 };
+
+export const getRootLocations = async (): Promise<Location[]> => {
+  const { data, error } = await supabase
+    .from('locations')
+    .select('*')
+    .is('parent_id', null) // root locations have no parent
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching root locations:', error);
+    throw error;
+  }
+
+  return (data || []).map(item => ({
+    ...item,
+    type: item.type as 'country' | 'region' | 'city' | 'ward'
+  }));
+};

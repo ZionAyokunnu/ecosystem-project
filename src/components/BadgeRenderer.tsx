@@ -72,24 +72,28 @@ const BadgeRenderer: React.FC<BadgeRendererProps> = ({ badges, variant = 'full' 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {badges.map((badge) => {
-        const config = getBadgeConfig(badge.badge_type);
-        const Icon = config.icon;
-        return (
-          <div key={badge.id} className="flex items-center p-4 bg-white rounded-lg border shadow-sm">
-            <div className={`p-3 rounded-full ${config.color} mr-4`}>
-              <Icon className="w-6 h-6" />
+      {Array.isArray(badges) ? (
+        badges.map((badge) => {
+          const config = getBadgeConfig(badge.badge_type);
+          const Icon = config.icon;
+          return (
+            <div key={badge.id} className="flex items-center p-4 bg-white rounded-lg border shadow-sm">
+              <div className={`p-3 rounded-full ${config.color} mr-4`}>
+                <Icon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">{config.label}</h3>
+                <p className="text-sm text-gray-600">{config.description}</p>
+                <p className="text-xs text-gray-500">
+                  Earned {new Date(badge.awarded_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">{config.label}</h3>
-              <p className="text-sm text-gray-600">{config.description}</p>
-              <p className="text-xs text-gray-500">
-                Earned {new Date(badge.awarded_at).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
         );
-      })}
+      }
+      )) : (
+        <div className="text-gray-500">No badges available</div>
+      )}
     </div>
   );
 };
