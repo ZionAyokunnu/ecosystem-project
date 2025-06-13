@@ -16,17 +16,17 @@ app.use(cors({
 
 app.use(express.json());
 
-// app.options('/local-llm', (req, res) => {
-//   console.log("🔍 This one up. Sending prompt to LLM:", prompt);
-//   console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
-//   res.setHeader('Access-Control-Allow-Origin', 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app');
-//   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-//   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//   res.setHeader('Access-Control-Allow-Credentials', 'true');
-//   res.sendStatus(200);
-// });
+app.options('/local-llm', (req, res) => {
+  console.log("🔍 This one up. Sending prompt to LLM:", prompt);
+  console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
+  res.setHeader('Access-Control-Allow-Origin', 'https://ecosystem-project-zion-ayokunnus-projects.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
-app.options('*', cors());
+// app.options('*', cors());
 
 console.log('✅ ROUTE ACTIVE - /local-llm');
 
