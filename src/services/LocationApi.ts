@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Location, LocationPath } from "@/types";
+import { Location, LocationPath, IndicatorValue } from "@/types";
 
 export const getLocationChildren = async (parentId?: string): Promise<Location[]> => {
   const { data, error } = await supabase

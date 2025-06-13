@@ -19,7 +19,10 @@ interface SearchResult {
   actionUrl: string;
 }
 
-const SmartSearchBox: React.FC = () => {
+interface SmartSearchBoxProps {
+  onSelect?: (indicator: any) => void;
+}
+const SmartSearchBox: React.FC<SmartSearchBoxProps> = ({ onSelect }) => {
   const { indicators } = useEcosystem();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -81,13 +84,20 @@ const SmartSearchBox: React.FC = () => {
     
     return results.slice(0, 6); // Limit results
   }, [query, indicators]);
-  
+
   const handleResultClick = (result: SearchResult) => {
-    navigate(result.actionUrl);
-    setQuery('');
-    setIsExpanded(false);
-  };
-  
+  if (result.type === 'indicator' && onSelect) {
+    const indicator = indicators.find(i => i.indicator_id === result.id);
+    if (indicator) {
+      onSelect(indicator);
+    }
+  }
+  navigate(result.actionUrl);
+  setQuery('');
+  setIsExpanded(false);
+};
+
+
   const getResultIcon = (type: string) => {
     switch (type) {
       case 'indicator':

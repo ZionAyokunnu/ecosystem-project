@@ -1,18 +1,39 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Star, Award, Users } from 'lucide-react';
 
+import { getUserBadges } from '@/services/gamificationApi'; 
+
 interface BadgeRendererProps {
-  badges: Array<{
+  badges?: Array<{
     id: string;
     badge_type: string;
     awarded_at: string;
   }>;
+  userId?: string;
+  limit?: number;
   variant?: 'full' | 'compact';
 }
 
-const BadgeRenderer: React.FC<BadgeRendererProps> = ({ badges, variant = 'full' }) => {
+const BadgeRenderer: React.FC<BadgeRendererProps> = ({ badges: initialBadges, userId, limit, variant = 'full' }) => {
+  const [badges, setBadges] = useState(initialBadges || []);
+
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (!userId) return;
+      try {
+        const fetched = await getUserBadges(userId);
+        const limited = limit ? fetched.slice(0, limit) : fetched;
+        setBadges(limited);
+      } catch (error) {
+        console.error('Failed to fetch badges:', error);
+      }
+    };
+
+    fetchBadges();
+  }, [userId, limit]);
+
   const getBadgeConfig = (type: string) => {
     switch (type) {
       case 'survey_starter':

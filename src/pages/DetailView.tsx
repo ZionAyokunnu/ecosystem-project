@@ -23,6 +23,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import SunburstCenterCircle from '@/components/SunburstCenterCircle';
 import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
 import SimulationModal from '@/components/SimulationModal';
+import SettingsDialog from '@/components/SettingsDialog';
 
 
 const DetailView: React.FC = () => {
@@ -347,6 +348,7 @@ useEffect(() => {
         <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
           <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
           <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
+          <SettingsDialog trigger={<button>Adjust drill</button>} />
         </div>
         
         <div className="p-6">
@@ -362,9 +364,8 @@ useEffect(() => {
           ) : coreIndicator ? (
             <>
               <Breadcrumbs
-                items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
-                onNavigate={id => navigate(`/detail/${id}`)}
-              />
+                    items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
+                    onNavigate={id => navigate(`/detail/${id}`)}  />
               <Tabs defaultValue="analysis" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="analysis">Analysis</TabsTrigger>
@@ -424,15 +425,15 @@ useEffect(() => {
                     )
                   )}
                 </TabsContent>
-                 {/* Sunburst Fix Mode Toggle */}
-                <div className="flex justify-center">
-                  <SunburstFixModeToggle 
-                    fixMode={isFixedMode}
-                    isFixed={isFixedMode}
-                    onToggle={setIsFixedMode}
-                  />
-                </div>
+
                 <TabsContent value="simulation" className="pt-4">
+                  {/* Sunburst Fix Mode Toggle */}
+                  <div className="flex justify-center">
+                    <SunburstFixModeToggle 
+                      fixMode={isFixedMode}
+                      onToggle={() => setIsFixedMode(prev => !prev)}
+                    />
+                  </div>
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl">
                       <SunburstChart

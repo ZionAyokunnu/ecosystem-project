@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BarChart3, Users, Award, TrendingUp } from 'lucide-react';
+import SmartSearchBox from '@/components/SmartSearchBox';
 
 const Homepage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +34,6 @@ const Homepage: React.FC = () => {
           Understand the connections in your community. Map relationships between social, 
           economic, and environmental indicators to build a stronger future together.
         </p>
-        
         {user && profile ? (
           <div className="space-y-4">
             <p className="text-lg text-gray-700">Welcome back, {profile.first_name}!</p>
@@ -46,6 +46,9 @@ const Homepage: React.FC = () => {
                   Complete Onboarding
                 </Button>
               )}
+            </div>
+            <div className="max-w-2xl mx-auto mb-8">
+            <SmartSearchBox />
             </div>
           </div>
         ) : (

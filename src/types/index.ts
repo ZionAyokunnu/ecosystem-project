@@ -74,6 +74,7 @@ export interface QualitativeStory {
 }
 
 export interface SunburstNode {
+  depth: number;
   id: string;
   name: string;
   value: number;

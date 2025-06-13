@@ -14,6 +14,7 @@ interface SunburstChartProps {
   onBreadcrumbsChange?: (items: Array<{ id: string; name: string }>) => void;
   onVisibleNodesChange?: (visible: SunburstNode[]) => void;
   onCoreChange?: (id: string | null) => void;
+  fixedMode?: boolean;
 }
 
 const SunburstChart: React.FC<SunburstChartProps> = ({

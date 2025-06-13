@@ -1,11 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Coins, TrendingUp } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { getUserPoints } from '@/services/gamificationApi';
 
-const PointsTracker: React.FC = () => {
+interface PointsTrackerProps {
+  userId?: string;
+}
+
+const PointsTracker: React.FC<PointsTrackerProps> = ({ userId: propUserId }) => {
   const { userProfile } = useUser();
   const [points, setPoints] = useState({ total_points: 0, recent_activities: [] });
   const [loading, setLoading] = useState(true);

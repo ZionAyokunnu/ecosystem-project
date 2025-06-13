@@ -1,23 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Database, Users, BarChart } from 'lucide-react';
+import { Settings, Database, Users, BarChart, Save, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { updateIndicatorValue, recordAdminIndicatorChange, updateHistoricalValue } from '@/services/api';
+import InfluenceMetricsComputer from '@/components/InfluenceMetricsComputer';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@radix-ui/react-dropdown-menu';
+import { useEcosystem } from '@/context/EcosystemContext';
 
 const AdminDashboard: React.FC = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [indicators, setIndicators] = useState<any[]>([]);
   const [selectedIndicator, setSelectedIndicator] = useState('');
-  const [newValue, setNewValue] = useState('');
   const [rationale, setRationale] = useState('');
   const [users, setUsers] = useState<any[]>([]);
+  const { loading: ecoLoading, error: ecoError, indicators: ecoIndicators } = useEcosystem();
+  const [inputYear, setInputYear] = useState('');
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     fetchIndicators();
@@ -41,51 +49,6 @@ const AdminDashboard: React.FC = () => {
     setUsers(data || []);
   };
 
-  const handleUpdateIndicator = async () => {
-    if (!selectedIndicator || !newValue || !profile) return;
-
-    const { error: adminInputError } = await supabase
-      .from('admin_inputs')
-      .insert({
-        indicator_id: selectedIndicator,
-        value: parseFloat(newValue),
-        input_type: 'current_value',
-        rationale,
-        admin_id: profile.id
-      });
-
-    if (adminInputError) {
-      toast({
-        title: "Error",
-        description: "Failed to record admin input",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const { error: updateError } = await supabase
-      .from('indicators')
-      .update({ current_value: parseFloat(newValue) })
-      .eq('indicator_id', selectedIndicator);
-
-    if (updateError) {
-      toast({
-        title: "Error",
-        description: "Failed to update indicator",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Indicator updated successfully"
-      });
-      setSelectedIndicator('');
-      setNewValue('');
-      setRationale('');
-      fetchIndicators();
-    }
-  };
-
   const handleRoleChange = async (userId: string, newRole: string) => {
     const { error } = await supabase
       .from('profiles')
@@ -107,8 +70,67 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleHistoricalUpdate = async () => {
+    if (!selectedIndicator || !inputYear || !inputValue) return;
+
+    const result = await updateHistoricalValue({
+      indicator_id: selectedIndicator,
+      year: parseInt(inputYear),
+      value: parseFloat(inputValue),
+      rationale,
+      admin_id: profile.id
+    });
+
+    if (!result.success) {
+      toast({ title: 'Error', description: 'Failed to update historical value', variant: 'destructive' });
+    } else {
+      toast({ title: 'Success', description: 'Historical value updated successfully' });
+      setSelectedIndicator('');
+      setInputYear('');
+      setInputValue('');
+      setRationale('');
+      fetchIndicators(); // optional
+    }
+  };
+
+  const handleSmartUpdate = async () => {
+    if (!selectedIndicator || !inputYear || !inputValue || !profile) return;
+
+    const numericYear = parseInt(inputYear);
+    const numericValue = parseFloat(inputValue);
+    const currentYear = new Date().getFullYear();
+
+    if (numericYear === currentYear) {
+      await recordAdminIndicatorChange({
+        indicator_id: selectedIndicator,
+        value: numericValue,
+        rationale,
+        admin_id: profile.id
+      });
+
+      toast({ title: 'Success', description: 'Current year value updated.' });
+    } else {
+      await updateHistoricalValue({
+        indicator_id: selectedIndicator,
+        year: numericYear,
+        value: numericValue,
+        rationale,
+        admin_id: profile.id
+      });
+
+      toast({ title: 'Success', description: `Value for ${numericYear} updated.` });
+    }
+
+    setInputYear('');
+    setInputValue('');
+    setRationale('');
+    setSelectedIndicator('');
+    fetchIndicators();
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
+
       <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -143,9 +165,20 @@ const AdminDashboard: React.FC = () => {
                 id="new-value"
                 type="number"
                 step="0.01"
-                value={newValue}
-                onChange={(e) => setNewValue(e.target.value)}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Enter new value"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="input-year">Year</Label>
+              <Input
+                id="input-year"
+                type="number"
+                value={inputYear}
+                onChange={(e) => setInputYear(e.target.value)}
+                placeholder={`e.g., ${new Date().getFullYear()}`}
               />
             </div>
 
@@ -160,8 +193,8 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <Button 
-              onClick={handleUpdateIndicator}
-              disabled={!selectedIndicator || !newValue}
+              onClick={handleSmartUpdate}
+              disabled={!selectedIndicator || !inputValue || !inputYear}
               className="w-full"
             >
               Update Indicator
@@ -204,8 +237,26 @@ const AdminDashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+
+        <Separator />
+
+        {/* Influence Metrics Computer */}
+        <div>
+          {ecoLoading ? (
+            <Skeleton className="h-96 w-full" />
+          ) : ecoError ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{ecoError.message}</AlertDescription>
+            </Alert>
+          ) : (
+            <InfluenceMetricsComputer />
+          )}
+        </div>
+
       </div>
-    </div>
+      </div>
   );
 };
 

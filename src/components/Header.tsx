@@ -40,19 +40,19 @@ const Header: React.FC = () => {
     <header className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          <Link to="/" className="text-xl font-bold text-blue-600">
+          <Link to="/overview" className="text-xl font-bold text-blue-600">
             Community Ecosystem
           </Link>
           
           <nav className="hidden md:flex space-x-6">
             <Link to="/overview" className="text-gray-600 hover:text-blue-600">
-              Overview
+              Home
             </Link>
             <Link to="/stories" className="text-gray-600 hover:text-blue-600">
               Stories
             </Link>
-            <Link to="/leaderboard" className="text-gray-600 hover:text-blue-600">
-              Leaderboard
+            <Link to="/detail" className="text-gray-600 hover:text-blue-600">
+              Data & Insights
             </Link>
           </nav>
 

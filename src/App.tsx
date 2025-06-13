@@ -10,7 +10,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import MainLayout from "@/components/MainLayout";
 import Overview from "@/pages/Overview";
 import DetailView from "@/pages/DetailView";
-import ProfilesView from "@/pages/ProfilesView";
 import NotFound from "./pages/NotFound";
 import { LocationProvider } from "@/context/LocationContext";
 import ResearchPage from "@/pages/ResearchPage";
@@ -84,12 +83,6 @@ const App = () => (
                     <Route path="detail" element={
                       <ProtectedRoute>
                         <DetailView />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="profiles" element={
-                      <ProtectedRoute>
-                        <ProfilesView />
                       </ProtectedRoute>
                     } />
                     

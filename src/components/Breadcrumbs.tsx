@@ -3,6 +3,7 @@ import React from 'react';
 interface BreadcrumbsProps {
   items: Array<{ id: string; name: string }>;
   onNavigate: (id: string) => void;
+  depth: number;
 }
 
 const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, onNavigate }) => {
