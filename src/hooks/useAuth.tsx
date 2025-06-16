@@ -53,7 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .eq('id', session.user.id)
               .single();
             
-            setProfile(profileData);
+            if (profileData) {
+              setProfile({
+                ...profileData,
+                role: profileData.role as Profile['role'],
+              });
+            } else {
+              setProfile(null);
+            }
             setLoading(false);
           }, 0);
         } else {
@@ -76,7 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', session.user.id)
           .single()
           .then(({ data: profileData }) => {
-            setProfile(profileData);
+            if (profileData) {
+              setProfile({
+                ...profileData,
+                role: profileData.role as Profile['role'],
+              });
+            } else {
+              setProfile(null);
+            }
             setLoading(false);
           });
       } else {

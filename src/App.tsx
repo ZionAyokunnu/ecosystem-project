@@ -17,7 +17,7 @@ import Homepage from "@/pages/Homepage";
 import CommunityStoriesPage from "@/pages/CommunityStoriesPage";
 import TreeMapPage from "@/pages/TreeMapPage";
 import Profile from "@/pages/Profile";
-import { OnboardingSurvey } from "@/pages/OnboardingSurvey";
+import OnboardingSurvey from "@/pages/OnboardingSurvey";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Wallet from "@/pages/Wallet";
