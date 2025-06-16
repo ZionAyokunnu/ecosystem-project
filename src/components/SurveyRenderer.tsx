@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/context/UserContext';
-import { ArrowRight, ArrowLeft, Plus, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Plus, Target, TrendingUp, TrendingDown, Minus, ArrowUpDown, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SurveyQuestion {
@@ -22,12 +22,20 @@ interface SurveyQuestion {
   child_indicator: { name: string };
 }
 
+interface Domain {
+  domain_id: string;
+  name: string;
+  level: number;
+  parent_id: string | null;
+}
+
 interface SurveyRendererProps {
   onComplete: (responses: any[]) => void;
   domainId?: string;
+  domainPath?: Domain[];
 }
 
-const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId }) => {
+const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, domainPath = [] }) => {
   const { userProfile } = useUser();
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,72 +51,134 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
 
   useEffect(() => {
     if (!domainId) {
-      console.error("SurveyRenderer: domainId is missing — survey cannot load.");
+      console.error("🚨 SurveyRenderer: domainId is missing — survey cannot load.");
       return;
     }
+    console.log("🎯 SurveyRenderer: Starting with domainId:", domainId);
+    console.log("🗂️ SurveyRenderer: Domain path:", domainPath);
     fetchSurveyQuestions();
   }, [domainId]);
 
   const fetchSurveyQuestions = async () => {
     try {
       setLoading(true);
+      console.log("🔍 Fetching survey questions for domain:", domainId);
 
-      // Check if a survey exists for this domain ID
-      const { data: surveys } = await supabase
+      // First, get relationship pairs for this domain from relationship_domains table
+      const { data: relationshipPairs, error: relError } = await supabase
+        .from('relationship_domains')
+        .select(`
+          relationship_id,
+          relationships!inner(
+            relationship_id,
+            parent_id,
+            child_id,
+            parent_indicator:indicators!parent_id(indicator_id, name),
+            child_indicator:indicators!child_id(indicator_id, name)
+          )
+        `)
+        .eq('domain_id', domainId);
+
+      if (relError) {
+        console.error("❌ Error fetching relationship pairs:", relError);
+        throw relError;
+      }
+
+      console.log("📊 Relationship pairs found:", relationshipPairs);
+
+      if (!relationshipPairs || relationshipPairs.length === 0) {
+        console.log("⚠️ No relationship pairs found for domain:", domainId);
+        toast.error('No survey questions available for this domain.');
+        setQuestions([]);
+        setLoading(false);
+        return;
+      }
+
+      // Check if a survey exists for this domain
+      let surveyId;
+      const { data: existingSurveys } = await supabase
         .from('surveys')
         .select('survey_id')
         .eq('domain', domainId)
         .eq('status', 'active')
         .limit(1);
 
-      if (!surveys || surveys.length === 0) {
-        // Create survey if none exists
+      if (existingSurveys && existingSurveys.length > 0) {
+        surveyId = existingSurveys[0].survey_id;
+        console.log("✅ Using existing survey:", surveyId);
+      } else {
+        // Create new survey
+        const domainName = domainPath.length > 0 ? domainPath[domainPath.length - 1].name : 'Unknown Domain';
         const { data: newSurvey, error: surveyError } = await supabase
           .from('surveys')
-          .insert([{ domain: domainId, status: 'active', title: `Survey for ${domainId}` }])
+          .insert([{ 
+            domain: domainId, 
+            status: 'active', 
+            title: `${domainName} Relationship Survey`
+          }])
           .select()
           .single();
         
-        if (surveyError) throw surveyError;
+        if (surveyError) {
+          console.error("❌ Error creating survey:", surveyError);
+          throw surveyError;
+        }
 
-        const newSurveyId = newSurvey.survey_id;
+        surveyId = newSurvey.survey_id;
+        console.log("🆕 Created new survey:", surveyId);
+      }
 
-        // Get relationship pairs for this domain
-        const { data: pairs, error: relError } = await supabase
-          .from('relationship_domains')
-          .select('relationship_id, relationships(parent_id, child_id)')
-          .eq('domain_id', domainId);
+      // Get existing questions for this survey
+      const { data: existingQuestions, error: questionsError } = await supabase
+        .from('survey_questions')
+        .select(`
+          *,
+          parent_indicator:indicators!parent_indicator_id(name),
+          child_indicator:indicators!child_indicator_id(name)
+        `)
+        .eq('survey_id', surveyId);
 
-        if (relError) throw relError;
+      if (questionsError) {
+        console.error("❌ Error fetching questions:", questionsError);
+        throw questionsError;
+      }
 
-        const newQuestions = pairs.map(p => ({
-          survey_id: newSurveyId,
-          parent_indicator_id: p.relationships.parent_id,
-          child_indicator_id: p.relationships.child_id,
-          prompt: `How do these community aspects relate to each other?`,
+      console.log("📝 Existing questions:", existingQuestions);
+
+      // If no questions exist, create them from relationship pairs
+      if (!existingQuestions || existingQuestions.length === 0) {
+        console.log("🏗️ Creating questions from relationship pairs...");
+        
+        const newQuestions = relationshipPairs.map(pair => ({
+          survey_id: surveyId,
+          parent_indicator_id: pair.relationships.parent_id,
+          child_indicator_id: pair.relationships.child_id,
+          prompt: `How do these community factors relate to each other?`,
           input_type: 'relationship',
         }));
 
         const { data: insertedQuestions, error: insertError } = await supabase
           .from('survey_questions')
           .insert(newQuestions)
-          .select('*, parent_indicator:indicators!parent_indicator_id(name), child_indicator:indicators!child_indicator_id(name)');
+          .select(`
+            *,
+            parent_indicator:indicators!parent_indicator_id(name),
+            child_indicator:indicators!child_indicator_id(name)
+          `);
         
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("❌ Error inserting questions:", insertError);
+          throw insertError;
+        }
+
+        console.log("✅ Created questions:", insertedQuestions);
         setQuestions(insertedQuestions || []);
       } else {
-        // Survey exists, fetch its questions
-        const surveyId = surveys[0].survey_id;
-        const { data: allQuestions, error: qErr } = await supabase
-          .from('survey_questions')
-          .select('*, parent_indicator:indicators!parent_indicator_id(name), child_indicator:indicators!child_indicator_id(name)')
-          .eq('survey_id', surveyId);
-        
-        if (qErr) throw qErr;
-        setQuestions(allQuestions || []);
+        console.log("✅ Using existing questions:", existingQuestions);
+        setQuestions(existingQuestions || []);
       }
     } catch (error) {
-      console.error("SurveyRenderer: failed to load questions", error);
+      console.error("💥 SurveyRenderer: failed to load questions", error);
       toast.error('Failed to load survey questions');
     } finally {
       setLoading(false);
@@ -130,14 +200,14 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
     },
     { 
       value: 'Mutual', 
-      label: 'Mutual influence', 
-      icon: Target,
-      description: 'Both factors influence each other'
+      label: 'Both influence each other', 
+      icon: ArrowUpDown,
+      description: 'Both factors influence each other equally'
     },
     { 
       value: 'Unclear', 
       label: 'Relationship unclear', 
-      icon: Minus,
+      icon: HelpCircle,
       description: 'The relationship is not clear or may not exist'
     }
   ];
@@ -147,6 +217,8 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
       toast.error('Please select a relationship direction');
       return;
     }
+
+    console.log("➡️ Moving to next question. Current response:", currentResponse);
 
     const response = {
       ...currentResponse,
@@ -173,9 +245,10 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
       setNewOptionText('');
     } else {
       // Submit all responses
+      console.log("🏁 Submitting all responses:", newResponses);
       try {
         for (const resp of newResponses) {
-          await supabase
+          const { error } = await supabase
             .from('relationship_user_responses')
             .insert([{
               user_id: resp.user_id,
@@ -187,10 +260,16 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
               notes_file_url: resp.notes || null,
               additional_indicator_ids: resp.additionalOptions
             }]);
+          
+          if (error) {
+            console.error("❌ Error submitting response:", error);
+            throw error;
+          }
         }
+        console.log("✅ All responses submitted successfully");
         onComplete(newResponses);
       } catch (error) {
-        console.error('Error submitting responses:', error);
+        console.error('💥 Error submitting responses:', error);
         toast.error('Failed to submit responses');
       }
     }
@@ -251,6 +330,16 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Domain Context */}
+      {domainPath.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border">
+          <h3 className="text-sm font-medium text-gray-700 mb-1">Survey Domain</h3>
+          <div className="text-lg font-semibold text-blue-700">
+            {domainPath.map(d => d.name).join(' → ')}
+          </div>
+        </div>
+      )}
+
       {/* Progress */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-gray-600">
@@ -285,14 +374,14 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId })
               value={currentResponse.direction} 
               onValueChange={(value) => setCurrentResponse({...currentResponse, direction: value})}
             >
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid gap-3">
                 {directions.map((dir) => {
                   const IconComponent = dir.icon;
                   return (
                     <div key={dir.value} className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                       <RadioGroupItem value={dir.value} id={dir.value} />
                       <Label htmlFor={dir.value} className="flex-1 cursor-pointer">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                           <IconComponent className="w-5 h-5 text-gray-600" />
                           <div>
                             <div className="font-medium">{dir.label}</div>

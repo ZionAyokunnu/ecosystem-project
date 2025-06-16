@@ -10,12 +10,14 @@ import { awardPoints } from '@/services/gamificationApi';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 interface Domain {
   parent_id: string | null;
   level: number;
   domain_id: string;
   name: string;
+  indicator_id: string | null;
 }
 
 const OnboardingSurvey = () => {
@@ -23,32 +25,10 @@ const OnboardingSurvey = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [responses, setResponses] = useState<any>({});
-  const [rootDomains, setRootDomains] = useState<Domain[]>([]);
-  const [childDomains, setChildDomains] = useState<Domain[]>([]);
+  const [currentDomains, setCurrentDomains] = useState<Domain[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const [domainPath, setDomainPath] = useState<Domain[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Load root domains (level 1)
-  useEffect(() => {
-    const fetchDomains = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('domains')
-          .select('*')
-          .eq('level', 1)
-          .order('name');
-        if (error) throw error;
-        setRootDomains(data || []);
-      } catch (error) {
-        console.error('Error fetching domains:', error);
-        toast.error('Failed to load domains');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchDomains();
-  }, []);
 
   const steps = [
     { 
@@ -84,9 +64,38 @@ const OnboardingSurvey = () => {
     { value: 'business', label: 'Business Owner', description: 'I run a business in this area' }
   ];
 
+  // Load root domains (level 1) on component mount
+  useEffect(() => {
+    const fetchRootDomains = async () => {
+      try {
+        setIsLoading(true);
+        console.log('🔍 Fetching root domains (level 1)...');
+        
+        const { data, error } = await supabase
+          .from('domains')
+          .select('*')
+          .eq('level', 1)
+          .order('name');
+          
+        if (error) throw error;
+        
+        console.log('✅ Root domains fetched:', data);
+        setCurrentDomains(data || []);
+        setDomainPath([]);
+      } catch (error) {
+        console.error('❌ Error fetching root domains:', error);
+        toast.error('Failed to load domains');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRootDomains();
+  }, []);
+
   const handleDomainSelect = (domain: Domain) => {
+    console.log('🎯 Domain selected:', domain);
     setSelectedDomain(domain);
-    setChildDomains([]); // Clear any previous children
   };
 
   const handleNext = async () => {
@@ -98,8 +107,25 @@ const OnboardingSurvey = () => {
 
       setIsLoading(true);
       try {
-        // Fetch children of selected domain
-        const { data, error } = await supabase
+        console.log('🔄 Processing domain selection:', selectedDomain);
+        console.log('📊 Current domain level:', selectedDomain.level);
+
+        // Check if this is a level 3 domain (leaf with indicator_id)
+        if (selectedDomain.level === 3 && selectedDomain.indicator_id) {
+          console.log('🎯 Reached level 3 domain with indicator_id:', selectedDomain.indicator_id);
+          
+          // Add to path and save final domain
+          const finalPath = [...domainPath, selectedDomain];
+          setDomainPath(finalPath);
+          setResponses({ ...responses, domain: selectedDomain.domain_id, domainPath: finalPath });
+          setCurrentStep(currentStep + 1);
+          return;
+        }
+
+        // Fetch children for levels 1 and 2
+        console.log('🔍 Fetching children for domain:', selectedDomain.domain_id);
+        
+        const { data: children, error } = await supabase
           .from('domains')
           .select('*')
           .eq('parent_id', selectedDomain.domain_id)
@@ -107,17 +133,23 @@ const OnboardingSurvey = () => {
 
         if (error) throw error;
 
-        if (data && data.length > 0) {
-          // Has children - show them
-          setChildDomains(data);
+        console.log('📝 Children found:', children);
+
+        if (children && children.length > 0) {
+          // Has children - show them and update path
+          const newPath = [...domainPath, selectedDomain];
+          console.log('🗂️ Updated domain path:', newPath);
+          
+          setDomainPath(newPath);
+          setCurrentDomains(children);
           setSelectedDomain(null); // Reset selection for next level
         } else {
-          // No children - this is a leaf domain
-          setResponses({ ...responses, domain: selectedDomain.domain_id });
-          setCurrentStep(currentStep + 1);
+          // No children but not level 3 - this shouldn't happen with proper data
+          console.log('⚠️ No children found for non-level-3 domain');
+          toast.error('Domain structure incomplete. Please contact support.');
         }
       } catch (error) {
-        console.error('Error fetching child domains:', error);
+        console.error('❌ Error processing domain selection:', error);
         toast.error('Failed to load subdomains');
       } finally {
         setIsLoading(false);
@@ -131,42 +163,51 @@ const OnboardingSurvey = () => {
 
   const handlePrevious = async () => {
     if (steps[currentStep].type === 'domain') {
-      if (childDomains.length > 0) {
+      if (domainPath.length > 0) {
         // We're in a subdomain level - go back to parent level
         try {
           setIsLoading(true);
+          const currentParent = domainPath[domainPath.length - 1];
+          const newPath = domainPath.slice(0, -1);
           
-          // Get the parent of the first child (they all have same parent)
-          const parentId = childDomains[0].parent_id;
-          
-          if (parentId) {
-            // Fetch parent domain
-            const { data: parentData, error: parentError } = await supabase
+          console.log('⬅️ Going back from path:', domainPath);
+          console.log('🎯 New path will be:', newPath);
+          console.log('📍 Current parent:', currentParent);
+
+          if (newPath.length === 0) {
+            // Going back to root level
+            console.log('🏠 Returning to root level');
+            
+            const { data: rootDomains, error } = await supabase
               .from('domains')
               .select('*')
-              .eq('domain_id', parentId)
-              .single();
-
-            if (parentError) throw parentError;
-
-            // Fetch siblings of parent
-            const { data: siblingsData, error: siblingsError } = await supabase
-              .from('domains')
-              .select('*')
-              .eq('parent_id', parentData.parent_id || null)
+              .eq('level', 1)
               .order('name');
 
-            if (siblingsError) throw siblingsError;
-
-            setSelectedDomain(parentData);
-            setChildDomains(siblingsData || []);
-          } else {
-            // Parent is root level
+            if (error) throw error;
+            
+            setCurrentDomains(rootDomains || []);
+            setDomainPath([]);
             setSelectedDomain(null);
-            setChildDomains([]);
+          } else {
+            // Going back to parent level
+            const grandParent = newPath[newPath.length - 1];
+            console.log('👴 Grandparent domain:', grandParent);
+            
+            const { data: siblings, error } = await supabase
+              .from('domains')
+              .select('*')
+              .eq('parent_id', grandParent.domain_id)
+              .order('name');
+
+            if (error) throw error;
+            
+            setCurrentDomains(siblings || []);
+            setDomainPath(newPath);
+            setSelectedDomain(currentParent);
           }
         } catch (error) {
-          console.error('Error navigating to parent domain:', error);
+          console.error('❌ Error navigating back:', error);
           toast.error('Failed to navigate back');
         } finally {
           setIsLoading(false);
@@ -177,6 +218,44 @@ const OnboardingSurvey = () => {
       }
     } else if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleBreadcrumbNavigation = async (domainId: string) => {
+    console.log('🍞 Breadcrumb navigation to domain:', domainId);
+    
+    // Find the domain in the current path
+    const targetIndex = domainPath.findIndex(d => d.domain_id === domainId);
+    
+    if (targetIndex === -1) {
+      // Navigate to root
+      const { data: rootDomains, error } = await supabase
+        .from('domains')
+        .select('*')
+        .eq('level', 1)
+        .order('name');
+
+      if (!error && rootDomains) {
+        setCurrentDomains(rootDomains);
+        setDomainPath([]);
+        setSelectedDomain(null);
+      }
+    } else {
+      // Navigate to specific level
+      const newPath = domainPath.slice(0, targetIndex + 1);
+      const targetDomain = domainPath[targetIndex];
+      
+      const { data: children, error } = await supabase
+        .from('domains')
+        .select('*')
+        .eq('parent_id', targetDomain.domain_id)
+        .order('name');
+
+      if (!error && children) {
+        setCurrentDomains(children);
+        setDomainPath(newPath);
+        setSelectedDomain(null);
+      }
     }
   };
 
@@ -248,9 +327,6 @@ const OnboardingSurvey = () => {
         );
 
       case 'domain':
-        const options = childDomains.length > 0 ? childDomains : rootDomains;
-        const isSubdomain = childDomains.length > 0;
-        
         return (
           <div className="space-y-8 animate-fade-in">
             <div className="text-center">
@@ -262,11 +338,17 @@ const OnboardingSurvey = () => {
               <h2 className="text-3xl font-bold text-gray-800 mb-2">{step.title}</h2>
               <p className="text-lg text-gray-600">{step.content}</p>
               
-              {isSubdomain && selectedDomain && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    <strong>Exploring:</strong> {selectedDomain.name}
-                  </p>
+              {/* Domain Breadcrumbs */}
+              {domainPath.length > 0 && (
+                <div className="mt-4">
+                  <Breadcrumbs 
+                    items={[
+                      { id: 'root', name: 'All Domains' },
+                      ...domainPath.map(d => ({ id: d.domain_id, name: d.name }))
+                    ]}
+                    onNavigate={handleBreadcrumbNavigation}
+                    depth={domainPath.length}
+                  />
                 </div>
               )}
             </div>
@@ -277,7 +359,7 @@ const OnboardingSurvey = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
-                {options.map((domain, index) => (
+                {currentDomains.map((domain, index) => (
                   <Button
                     key={domain.domain_id}
                     variant={selectedDomain?.domain_id === domain.domain_id ? 'default' : 'outline'}
@@ -288,6 +370,10 @@ const OnboardingSurvey = () => {
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="font-medium">{domain.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Level {domain.level}
+                      {domain.level === 3 && domain.indicator_id && ' • Final Selection'}
+                    </div>
                   </Button>
                 ))}
               </div>
@@ -312,6 +398,7 @@ const OnboardingSurvey = () => {
                 handleComplete();
               }}
               domainId={responses.domain}
+              domainPath={responses.domainPath || []}
             />
           </div>
         );
@@ -363,7 +450,7 @@ const OnboardingSurvey = () => {
             <Button 
               variant="outline" 
               onClick={handlePrevious} 
-              disabled={currentStep === 0 && childDomains.length === 0}
+              disabled={currentStep === 0 && domainPath.length === 0}
               className="transition-all duration-200 hover:scale-105"
             >
               <ArrowLeft className="w-4 h-4 mr-2" /> Previous
