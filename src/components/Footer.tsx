@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="flex flex-col md:flex-row md:space-x-4 items-center">
-            <a href="#" className="text-gray-300 hover:text-white transition-colors py-1">
+            <a href="/About" className="text-gray-300 hover:text-white transition-colors py-1">
               About
             </a>
             <a href="#" className="text-gray-300 hover:text-white transition-colors py-1">

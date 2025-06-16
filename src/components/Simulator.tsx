@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Indicator, SimulationChange } from '@/types';
+import { Indicator, PredictionResult, SimulationChange } from '@/types';
 import { getColorByValue } from '@/utils/indicatorUtils';
 import { toast } from '@/components/ui/use-toast';
 
@@ -11,6 +11,9 @@ interface SimulatorProps {
   onSaveSimulation: (name: string, description: string) => void;
   positiveDrivers: Indicator[];
   negativeDrivers: Indicator[];
+  isLoading?: boolean;
+  simulationResult?: PredictionResult | null;
+  onClearSimulation?: () => void;
 }
 
 const Simulator: React.FC<SimulatorProps> = ({

@@ -74,6 +74,7 @@ export interface QualitativeStory {
 }
 
 export interface SunburstNode {
+  depth: number;
   id: string;
   name: string;
   value: number;
@@ -125,4 +126,65 @@ export interface UserSettings {
   topDriversCount: number;
   showPercentileDrivers: boolean;
   percentileThreshold: number;
+}
+
+export interface CommunityStory {
+  id: string;
+  indicator_id: string;
+  location_id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  votes: number;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  role: 'resident' | 'community_rep' | 'admin' | 'researcher' | 'business';
+  location_id: string;
+  hasCompletedOnboarding: boolean;
+}
+
+export interface Survey {
+  survey_id: string;
+  title: string;
+  domain: string;
+  is_compulsory: boolean;
+  applicable_roles: string[];
+  created_by: string;
+  status: 'active' | 'archived';
+  created_at?: string;
+}
+
+export interface SurveyQuestion {
+  question_id: string;
+  survey_id: string;
+  parent_indicator_id: string;
+  child_indicator_id: string;
+  prompt: string;
+  input_type: 'slider' | 'select' | 'file';
+  allow_file_upload: boolean;
+  allow_additional_indicator: boolean;
+  is_required: boolean;
+  branching_condition?: string;
+  created_at?: string;
+}
+
+export interface RelationshipUserResponse {
+  response_id: string;
+  user_id: string;
+  parent_id: string;
+  child_id: string;
+  domain: string;
+  strength_score: number;
+  direction: 'A→B' | 'B→A' | 'Mutual' | 'Unclear';
+  notes_file_url?: string;
+  additional_indicator_ids?: string[];
+  created_at: string;
+}
+
+export interface SimulationModalState {
+  isOpen: boolean;
+  targetIndicatorId?: string;
 }

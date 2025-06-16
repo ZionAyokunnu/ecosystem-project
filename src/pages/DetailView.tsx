@@ -20,12 +20,26 @@ import { getIndicatorById, predictTrend, createSimulation } from '@/services/api
 import { Indicator, SimulationChange, PredictionResult, SunburstNode } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import SunburstCenterCircle from '@/components/SunburstCenterCircle';
+import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
+import SimulationModal from '@/components/SimulationModal';
+import SettingsDialog from '@/components/SettingsDialog';
+import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
+import LLMContextToggle from '@/components/LLMContextToggle';
+import { Settings } from 'lucide-react';
 
 
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings, refreshData } = useEcosystem();
+
+  useEffect(() => {
+    if (!indicatorId && indicators.length > 0) {
+      const defaultRoot = indicators.find(i => i.name.toLowerCase() === 'wellbeing') || indicators[0];
+      navigate(`/detail/${defaultRoot.indicator_id}`, { replace: true });
+    }
+  }, [indicatorId, indicators, navigate]);
   
   const [coreIndicator, setCoreIndicator] = useState<Indicator | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Array<{ id: string, name: string }>>([]);
@@ -45,6 +59,8 @@ const DetailView: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
+  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
+  const [currentChildId, setCurrentChildId] = useState<string | null>(null);
 
 const handleCoreChange = useCallback(
   (newId: string | null) => {
@@ -53,6 +69,17 @@ const handleCoreChange = useCallback(
     const found = indicators.find(ind => ind.indicator_id === newId);
     if (found) {
       setCoreIndicator(found);     // drives DescriptionPanel header & value
+
+      // Find parent-child relationship for qualitative stories
+      const parentRelationship = relationships.find(r => r.child_id === newId);
+      if (parentRelationship) {
+        setCurrentParentId(parentRelationship.parent_id);
+        setCurrentChildId(newId);
+      } else {
+        // If it's a root indicator, use it as both parent and child
+        setCurrentParentId(newId);
+        setCurrentChildId(newId);
+      }                 
     }
   },
   [indicators]
@@ -79,6 +106,12 @@ const visibleIndicators = useMemo(() => {
     //  🚨 drop any that somehow didn’t resolve (shouldn’t happen)
     .filter((ind): ind is Indicator => Boolean(ind))
 }, [visibleNodes, indicators])
+
+const [isFixedMode, setIsFixedMode] = useState<boolean>(false);
+const [simulationModal, setSimulationModal] = useState<{ isOpen: boolean; targetId: string | null }>({
+    isOpen: false,
+    targetId: null
+  });
 
 useEffect(() => {
   console.log(
@@ -213,6 +246,15 @@ useEffect(() => {
     navigate(`/detail/${selectedId}`);
   };
   
+    const handleSunburstNodeClick = (nodeId: string) => {
+    if (isFixedMode) {
+      // In fixed mode, show simulation instead of drilling down
+      setSimulationModal({ isOpen: true, targetId: nodeId });
+    } else {
+      // Normal drill-down behavior
+      navigate(`/detail/${nodeId}`);
+    }
+  };
   const handleBreadcrumbClick = (selectedId: string) => {
     navigate(`/detail/${selectedId}`);
   };
@@ -244,6 +286,16 @@ useEffect(() => {
     }
   };
   
+  // const handleSunburstNodeClick = (nodeId: string) => {
+  //   if (isFixedMode) {
+  //     // In fixed mode, show simulation instead of drilling downAdd commentMore actions
+  //     // For now, navigate to research page
+  //     navigate(`/research/${nodeId}`);
+  //   } else {
+  //     // Normal drill-down behavior
+  //     navigate(`/detail/${nodeId}`);
+  //   }
+  // };
   const handleSaveSimulation = async (name: string, description: string) => {
     if (simulationChanges.length === 0) {
       toast({
@@ -304,6 +356,8 @@ useEffect(() => {
   
   console.log('DetailView render, breadcrumbs:', breadcrumbs);
   
+  const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
+
   return (
     // right before JSX
     console.log('DetailView render, breadcrumbs:', breadcrumbs),
@@ -312,6 +366,15 @@ useEffect(() => {
         <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
           <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
           <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
+              <SettingsDialog 
+                trigger={
+                  <Button className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Adjust Drill
+                  </Button>
+                } 
+              />
+              <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
         </div>
         
         <div className="p-6">
@@ -326,11 +389,12 @@ useEffect(() => {
             </div>
           ) : coreIndicator ? (
             <>
+              <div className="relative z-50">
+                <EnhancedLocationPicker />
+              </div>
               <Breadcrumbs
-                items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
-                onNavigate={id => navigate(`/detail/${id}`)}
-              />
-              
+                    items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
+                    onNavigate={id => navigate(`/detail/${id}`)} depth={3}  />
               <Tabs defaultValue="analysis" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="analysis">Analysis</TabsTrigger>
@@ -339,7 +403,7 @@ useEffect(() => {
                 
                 <TabsContent value="analysis" className="pt-4">
                   <div className="flex justify-center mb-8">
-                    <div className="w-full max-w-3xl">
+                    <div className="w-full max-w-3xl relative">
                       <SunburstChart
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
@@ -348,13 +412,28 @@ useEffect(() => {
                         onVisibleNodesChange={setVisibleNodes}
                         onCoreChange={handleCoreChange}
                       />
+                      
                     </div>
                   </div>
                   
                   {canDiveDeeper && (
                     <div className="flex justify-center mb-6">
                       <Button onClick={() => handleIndicatorSelect(coreIndicator.indicator_id)} size="lg">
-                        Dive Deeper
+                        Dive Deeper, but not working yet
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="lg"
+                        onClick={() => navigate('/treemap')}
+                      >
+                        View Tree Map
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate(`/research/${coreIndicator.indicator_id}`)}
+                        size="lg"
+                      >
+                        Understand {coreIndicator.name}
                       </Button>
                     </div>
                   )}
@@ -382,8 +461,15 @@ useEffect(() => {
                     )
                   )}
                 </TabsContent>
-                
+
                 <TabsContent value="simulation" className="pt-4">
+                  {/* Sunburst Fix Mode Toggle */}
+                  <div className="flex justify-center">
+                    <SunburstFixModeToggle 
+                      fixMode={isFixedMode}
+                      onToggle={() => setIsFixedMode(prev => !prev)}
+                    />
+                  </div>
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl">
                       <SunburstChart
@@ -419,6 +505,12 @@ useEffect(() => {
               >
                 Return to Overview
               </Button>
+             {/* Simulation Modal */}
+            <SimulationModal
+              isOpen={simulationModal.isOpen}
+              onClose={() => setSimulationModal({ isOpen: false, targetId: null })}
+              targetIndicatorId={simulationModal.targetId || ''}
+            />
             </div>
           )}
         </div>

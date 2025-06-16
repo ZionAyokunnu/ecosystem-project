@@ -1,275 +1,278 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useEcosystem } from '@/context/EcosystemContext';
+import React, { useEffect, useMemo, useState } from 'react';
 import SunburstChart from '@/components/SunburstChart';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import DescriptionPanel from '@/components/DescriptionPanel';
-import TrendGraph from '@/components/TrendGraph';
-import { transformToSunburstData, getTopDrivers } from '@/utils/indicatorUtils';
-import { predictTrend } from '@/services/api';
-import { Indicator, PredictionResult, SunburstNode } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import QualitativeStoryBox from '@/components/QualitativeStoryBox';
-import LLMContextToggle from '@/components/LLMContextToggle';
-import { useLocation } from '@/context/LocationContext';
-import LocationPicker from '@/components/LocationPicker';
-import LocationBreadcrumbs from '@/components/LocationBreadcrumbs';
+import CommunityStories from '@/components/CommunityStories';
+import SmartSearchBox from '@/components/SmartSearchBox';
 import TargetLocationToggle from '@/components/TargetLocationToggle';
-import { getSunburstData } from '@/services/locationApi';
+import { useEcosystem } from '@/context/EcosystemContext';
+import { Indicator, SimulationModalState, SunburstNode } from '@/types';
+import SimulationModal from '@/components/SimulationModal';
+import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
+import { transformToSunburstData } from '@/utils/indicatorUtils';
+import { BarChart3, Users, Target, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AssociationSummaryCard from '@/components/AssociationSummaryCard';
 
-const Overview: React.FC = () => {
+const Overview = () => {
   const navigate = useNavigate();
-  const { indicators, relationships, loading, error, userSettings } = useEcosystem();
-  const [rootIndicator, setRootIndicator] = useState<Indicator | null>(null);
-  const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
-  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
-  const [currentChildId, setCurrentChildId] = useState<string | null>(null);
-  const { selectedLocation, targetLocation } = useLocation();
-  const [predictionData, setPredictionData] = useState<PredictionResult | null>(null);
-  const [isPredicting, setIsPredicting] = useState<boolean>(false);
+  const { indicators, relationships } = useEcosystem();
+  const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
+  const [simulationModal, setSimulationModal] = useState<SimulationModalState>({ isOpen: false, targetIndicatorId: undefined });
+  const [isFixedMode, setIsFixedMode] = useState(false);
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
-  const [sunburstData, setSunburstData] = useState<{ nodes: SunburstNode[], links: any[] }>({ nodes: [], links: [] });
-  const [topDrivers, setTopDrivers] = useState<{positiveDrivers: Indicator[], negativeDrivers: Indicator[]}>({
-    positiveDrivers: [],
-    negativeDrivers: []
-  });
+  const sunburstData = useMemo(() => {
+    return transformToSunburstData(indicators, relationships);
+  }, [indicators, relationships]);
+  const [selectedCoreId, setSelectedCoreId] = useState<string | null>(null);
+  const coreIndicator = useMemo(() => {
+    return indicators.find(ind => ind.indicator_id === selectedCoreId);
+  }, [selectedCoreId, indicators]);
 
+  const features = [
+      {
+        icon: BarChart3,
+        title: 'Interactive Sunburst Chart',
+        description: 'Explore relationships between different wellbeing indicators through our dynamic visualization.',
+        route: '/overview'
+      },
 
-  // keep track of whichever slice is currently centred in the Sunburst
-  const handleCoreChange = useCallback(
-    (newId: string | null) => {
-      if (!newId) return;                         // ignore synthetic root
-      const found = indicators.find(i => i.indicator_id === newId);
-      if (found) {
-        setRootIndicator(found) // drives DescriptionPanel + TrendGraph
-      
-        // Find parent-child relationship for qualitative stories
-        const parentRelationship = relationships.find(r => r.child_id === newId);
-        if (parentRelationship) {
-          setCurrentParentId(parentRelationship.parent_id);
-          setCurrentChildId(newId);
-        } else {
-          // If it's a root indicator, use it as both parent and child
-          setCurrentParentId(newId);
-          setCurrentChildId(newId);
-        }                 
-      }
-    },
-    [indicators, relationships]
-  );
-  // Load sunburst data when location changes
-  useEffect(() => {
-    const loadSunburstData = async () => {
-      if (!selectedLocation && indicators.length > 0 && relationships.length > 0) {
-        // Use global data
-        const transformed = transformToSunburstData(indicators, relationships);
-        setSunburstData(transformed);
-        return;
-      }
-      
-      if (selectedLocation) {
-        try {
-          const data = await getSunburstData(
-            selectedLocation.location_id,
-            targetLocation?.location_id
+      {
+        icon: Users,
+        title: 'Community Stories',
+        description: 'Read real stories from community members about local initiatives and changes.',
+        route: '/stories'
+      },
+      {
+        icon: Target,
+        title: 'Simulation Mode',
+        description: 'Predict how changes in one indicator might affect others in your community.',
+        route: () => {
+          const wellbeingIndicator = indicators.find(ind => 
+            ind.name.toLowerCase().includes('wellbeing')
           );
-          
-          // Transform the location-specific data to sunburst format
-          const valueMap = new Map(data.values.map(v => [v.indicator_id, Number(v.value)]));
-          const targetValueMap = new Map(data.targetValues.map(v => [v.indicator_id, Number(v.value)]));
-          
-          // Update indicators with location-specific values
-          const locationIndicators = data.indicators.map(ind => ({
-            ...ind,
-            current_value: valueMap.get(ind.indicator_id) || ind.current_value
-          }));
-          
-          const transformed = transformToSunburstData(locationIndicators, data.relationships);
-          setSunburstData(transformed);
-        } catch (error) {
-          console.error('Error loading location data:', error);
-          // Fallback to global data
-          const transformed = transformToSunburstData(indicators, relationships);
-          setSunburstData(transformed);
+          return wellbeingIndicator 
+            ? `/detail/${wellbeingIndicator.indicator_id}?simulate=true`
+            : '/overview';
         }
+      },
+      {
+        icon: TrendingUp,
+        title: 'Historical Trends',
+        description: 'Track progress over time and understand patterns in community wellbeing.',
+        route: () => {
+          const wellbeingIndicator = indicators.find(ind => 
+            ind.name.toLowerCase().includes('wellbeing')
+          );
+          return wellbeingIndicator 
+            ? `/research/${wellbeingIndicator.indicator_id}`
+            : '/overview';
+        }
+      }
+    ];
+
+    const domains = [
+      'Health & Wellness', 'Altruism', 'Purpose', 'Acommplishment',
+      'Safety & Security', 'Information', 'Love & Interest', 'Dignity',
+    ];
+
+    const handleFeatureClick = (feature: typeof features[0]) => {
+      const route = typeof feature.route === 'function' ? feature.route() : feature.route;
+      navigate(route);
+    };
+
+    const handleDomainClick = (domainName: string) => {
+      const matchingIndicator = indicators.find(ind => 
+        ind.name.toLowerCase() === domainName.toLowerCase() ||
+        ind.category.toLowerCase() === domainName.toLowerCase() ||
+        ind.name.toLowerCase().includes(domainName.toLowerCase().split(' ')[0])
+      );
+      
+      if (matchingIndicator) {
+        navigate(`/research/${matchingIndicator.indicator_id}`);
       }
     };
-    
-    loadSunburstData();
-  }, [selectedLocation, targetLocation, indicators, relationships]);
-  
-  // Find or set the root indicator (Wellbeing)
-  useEffect(() => {
-    if (!loading && indicators.length > 0) {
-      // Try to find the Wellbeing indicator
-      const wellbeing = indicators.find(ind => ind.name.toLowerCase() === 'wellbeing');
-      
-      // If not found, use the first indicator
-      setRootIndicator(wellbeing || indicators[0]);
-    }
-  }, [loading, indicators]);
-  
-  // Get prediction data for the root indicator
-  useEffect(() => {
+
+useEffect(() => {
+  // Ensure relationships is defined from context
+  if (indicators.length > 0 && relationships && relationships.length > 0) {
+    const allChildIds = new Set(relationships.map(r => r.child_id));
+    const rootIndicator =
+      indicators.find(ind => ind.name === 'Wellbeing') ||
+      indicators.find(ind => !allChildIds.has(ind.indicator_id)) ||
+      indicators[0];
     if (rootIndicator) {
-      const fetchPrediction = async () => {
-        setIsPredicting(true);
-        try {
-          const locationId = selectedLocation?.location_id || '00000000-0000-0000-0000-000000000000';
-          const prediction = await predictTrend(rootIndicator.indicator_id, selectedLocation?.location_id);
-          setPredictionData(prediction);
-        } catch (err) {
-          console.error('Error predicting trend:', err);
-        } finally {
-          setIsPredicting(false);
-        }
-      };
-      
-      fetchPrediction();
+      setSelectedCoreId(rootIndicator.indicator_id);
+      if (rootIndicator.name === 'Wellbeing') {
+        console.log("🌱 Root indicator set as:", rootIndicator.name);
+      } else if (!allChildIds.has(rootIndicator.indicator_id)) {
+        console.warn("⚠️ No 'Wellbeing' found, defaulted to orphan root:", rootIndicator.name);
+      } else {
+        console.warn("⚠️ No root found at all, defaulted to first indicator:", rootIndicator);
+      }
     }
-  }, [rootIndicator, selectedLocation]);
-  
-  // Get top drivers
-  useEffect(() => {
-    if (rootIndicator && indicators.length > 0 && relationships.length > 0) {
-      const drivers = getTopDrivers(
-        rootIndicator.indicator_id,
-        indicators,
-        relationships,
-        userSettings.topDriversCount
-      );
-      setTopDrivers(drivers);
-    }
-  }, [rootIndicator, indicators, relationships, userSettings.topDriversCount]);
-  
-  // Set visible nodes from sunburst data
-  useEffect(() => {
-    if (sunburstData.nodes.length > 0) {
-      setVisibleNodes(sunburstData.nodes);
-    }
-  }, [sunburstData]);
-  
-  const handleIndicatorSelect = (indicatorId: string) => {
-    navigate(`/detail/${indicatorId}`);
-  };
-  
-  const handleDiveClick = () => {
-    if (rootIndicator) {
-      navigate(`/detail/${rootIndicator.indicator_id}`);
-    }
-  };
-  
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-red-600">Error Loading Data</h2>
-          <p className="mt-2">{error.message}</p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="mt-4"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
   }
-  
+}, [indicators, relationships]);
+const llmMode: 'community' | 'business' = 'community'; // or use actual logic if applicable
+
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-        <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">Ecosystem</h1>
-              <p className="mt-2">Exploring socio-economic indicators and their relationships</p>
-            </div>
-            <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Community Wellbeing Overview
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Explore how different aspects of wellbeing connect and influence each other in your community.
+          </p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-wrap gap-4 mb-8 justify-center">
+          <SmartSearchBox onSelect={setSelectedIndicator} />
+        </div>
+        {/* What is Wellbeing Section */}
+        <div className="mb-16">
+          <Card className="max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">What is Community Wellbeing?</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-lg text-gray-700 mb-6">
+                Community wellbeing encompasses the social, economic, environmental, cultural, 
+                and political conditions that contribute to a thriving, sustainable community. 
+                It's measured across multiple interconnected domains that influence each other.
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+
+               {domains.map((domain, index) => {
+                  const hasMatchingIndicator = indicators.some(ind => 
+                    ind.name.toLowerCase() === domain.toLowerCase() ||
+                    ind.category.toLowerCase() === domain.toLowerCase() ||
+                    ind.name.toLowerCase().includes(domain.toLowerCase().split(' ')[0])
+                  );
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleDomainClick(domain)}
+                      disabled={!hasMatchingIndicator}
+                      className={`p-3 rounded-lg transition-colors ${
+                        hasMatchingIndicator
+                          ? 'bg-blue-50 hover:bg-blue-100 cursor-pointer border border-blue-200'
+                          : 'bg-gray-50 cursor-not-allowed border border-gray-200'
+                      }`}
+                    >
+                      <span className={`text-sm font-medium ${
+                        hasMatchingIndicator ? 'text-blue-900' : 'text-gray-400'
+                      }`}>
+                        {domain}
+                      </span>
+                    </button>
+                  );
+                })}
+
+              </div>
+
+              <p className="text-gray-600">
+                Our platform helps you understand how these domains interact and 
+                influence overall community health and happiness.
+              </p>
+            </CardContent>
+          </Card>
         </div>
         
-        <div className="p-6">
-          <div className="mb-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <LocationPicker />
-              <TargetLocationToggle />
-            </div>
-            <LocationBreadcrumbs />
-          </div>
-          {loading ? (
-            <div className="space-y-8">
-              <div className="flex justify-center">
-                <Skeleton className="h-[600px] w-[600px] rounded-full" />
-              </div>
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-64 w-full rounded-md" />
-              <Skeleton className="h-64 w-full rounded-md" />
-            </div>
-          ) : (
-            <>
-              <div className="relative flex justify-center mb-8">
-                <div className="w-full max-w-3xl">
-                  <SunburstChart
-                    nodes={sunburstData.nodes}
-                    links={sunburstData.links}
-                    onSelect={handleIndicatorSelect}
-                    onVisibleNodesChange={setVisibleNodes}
-                    onCoreChange={handleCoreChange}  
-                  />
-                </div>
+        {/* Column */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                {/* Qualitative Story Box positioned in bottom-right corner */}
-                {currentParentId && currentChildId && (
-                  <div className="absolute bottom-4 right-4">
-                    <QualitativeStoryBox 
-                      parentId={currentParentId}
-                      childId={currentChildId}
-                    />
-                  </div>
-                )}
+          {/* Left Panel - Sunburst */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="relative">
+                <SunburstChart 
+                  nodes={sunburstData.nodes}
+                  links={sunburstData.links}
+                  onCoreChange={(id) => setSelectedCoreId(id)}
+                  onVisibleNodesChange={setVisibleNodes}
+                  onSelect={(nodeId) => {
+                    if (isFixedMode) {
+                      setSimulationModal({ 
+                        isOpen: true, 
+                        targetIndicatorId: nodeId || undefined 
+                      });
+                    } else {
+                      setSelectedCoreId(nodeId ?? null);
+                    }
+                  }}
+                />
               </div>
-              
-              {rootIndicator && (
-                <>
-                  <Breadcrumbs
-                    items={[{ id: rootIndicator.indicator_id, name: rootIndicator.name }]}
-                    onNavigate={handleIndicatorSelect}
-                  />
-                  
-                  <div className="flex justify-center mb-6">
-                    <Button onClick={handleDiveClick} size="lg">
-                      Dive Into {rootIndicator.name}
-                    </Button>
-                  </div>
-                  
-                  <DescriptionPanel
-                    coreIndicator={rootIndicator}
-                    indicators={indicators}
-                    relationships={relationships}
-                    visibleNodes={visibleNodes}
-                    llmMode={llmMode}
-                  />
-                  
-                  {isPredicting ? (
-                    <div className="bg-white shadow rounded-lg p-6">
-                      <h2 className="text-lg font-semibold text-gray-800 mb-4">Historical & Predicted Trends</h2>
-                      <div className="h-64 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                          <p className="mt-4 text-gray-500">Generating prediction...</p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : predictionData ? (
-                    <TrendGraph predictionData={predictionData} />
-                  ) : null}
-                </>
-              )}
-            </>
-          )}
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="lg:col-span-1 space-y-6">
+            {coreIndicator && (
+              <DescriptionPanel
+                coreIndicator={coreIndicator}
+                indicators={indicators}
+                relationships={relationships}
+                visibleNodes={visibleNodes}
+                llmMode="community"
+              />
+            )}
+          </div>
+
+
+        </div>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">Community Stories</h3>
+          <CommunityStories />
+        </div>
+
+        {/* Data Sources Section */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Our Data & Community Role</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-900">Data Sources</h3>
+                  <ul className="text-left space-y-2 text-gray-700">
+                    <li>• Government statistics and census data</li>
+                    <li>• Community surveys and feedback</li>
+                    <li>• Local organization reports</li>
+                    <li>• Real-time community indicators</li>
+                    <li>• Historical trend analysis</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-900">Your Role</h3>
+                  <ul className="text-left space-y-2 text-gray-700">
+                    <li>• Share your community stories</li>
+                    <li>• Participate in local surveys</li>
+                    <li>• Use insights for advocacy</li>
+                    <li>• Connect with other community members</li>
+                    <li>• Help validate and improve data</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t">
+
+                <p className="text-gray-600">
+                  Our platform is built on the belief that community-driven data can lead to better decision-making and improved wellbeing for all.
+                </p>
+
+              </div>
+              <AssociationSummaryCard indicatorName={''} relatedIndicatorName={''} data={[]} averageStrength={0} totalResponses={0}/>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

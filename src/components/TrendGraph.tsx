@@ -9,6 +9,7 @@ interface TrendGraphProps {
 }
 
 const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData, onYearClick }) => {
+  if (!predictionData || !predictionData.years || !predictionData.values) return null;
   const { years, values } = predictionData;
 
   // Build one record per year with separate keys so Recharts can draw two distinct lines

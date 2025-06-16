@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Indicator, SunburstNode, Relationship } from '@/types';
 import { useDriverComputation } from '@/hooks/useDriverComputation';
@@ -7,8 +6,6 @@ import { queryLocalLLM } from '@/services/localLLM';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
-
-
 
 interface DescriptionPanelProps {
   coreIndicator: Indicator;
@@ -25,44 +22,23 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   relationships,
   visibleNodes,
   correlations = {},
-  llmMode = 'business'
+  llmMode = 'community',
 }) => {
-  // Debug: log inputs at the very top of the component
-  console.log('🔍 [DescriptionPanel] inputs:', {
-    core: coreIndicator.indicator_id,
-    visibleNodeIds: visibleNodes.map(n => n.id),
-    llmMode,
-    laggingIds: (() => {
-      // We need to call useDriverComputation here, but it's below. So, for correct order, move this log after laggingDrivers is available.
-      return undefined;
-    })(),
-    thrivingIds: (() => undefined)(),
-  });
   const [analysisText, setAnalysisText] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
 
-  // Use localIndicators if present, otherwise fallback to indicators
   const localIndicators = (typeof (window as any).localIndicators !== "undefined")
     ? (window as any).localIndicators
     : indicators;
 
-  // Compute dynamic drivers using localIndicators (simulation-adjusted)
   const { laggingDrivers, thrivingDrivers, visibleLinkedIndicators } = useDriverComputation(
     coreIndicator,
     localIndicators || [],
     relationships || [],
     visibleNodes || []
   );
-  // Debug: log inputs with drivers after computation
-  console.log('🔍 [DescriptionPanel] inputs:', {
-    core: coreIndicator.indicator_id,
-    visibleNodeIds: visibleNodes.map(n => n.id),
-    laggingIds: laggingDrivers.map(d => d.indicator_id),
-    thrivingIds: thrivingDrivers.map(d => d.indicator_id),
-  });
 
-  // Generate recommendations using localIndicators (simulation-adjusted)
   const recommendations = useRecommendations(
     laggingDrivers || [],
     thrivingDrivers || [],
@@ -70,18 +46,17 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     relationships || []
   );
 
-  // Generate LLM analysis
   useEffect(() => {
     const generateAnalysis = async () => {
       if (!coreIndicator) return;
-      
+
       setIsLoadingAnalysis(true);
       try {
         const thrivingNames = (thrivingDrivers || []).map(d => d.name).join(', ');
         const laggingNames = (laggingDrivers || []).map(d => d.name).join(', ');
-        
-        const prompt = `Provide a very concise, one-sentence recommendation and analysis of the current state and trends for "${coreIndicator.name}", whose current value is ${coreIndicator.current_value.toFixed(1)}. Indicate whether this value appears to be improving, declining, or stable. Note that its trajectory is driven up by its thriving indicators (${thrivingNames}) with values [${thrivingDrivers.map(d => d.current_value.toFixed(1)).join(', ')}] and dragged down by its three most-lagging indicators (${laggingNames}) with values [${laggingDrivers.map(d => d.current_value.toFixed(1)).join(', ')}]. Use celebratory tone for the drivers of its rise and deliver an urgency tone to address those holding it back. Begin sentence with short call to action. Respond in plain text only without formatting. Avoid generic or vague phrasing. Avoid the word "analysis" or "recommendation".`;
-        
+
+        const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
+
         const analysis = await queryLocalLLM(prompt, llmMode);
         setAnalysisText(analysis);
       } catch (error) {
@@ -103,52 +78,6 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     setMounted(true);
   }, []);
 
-  // Early return if no core indicator
-  if (!coreIndicator) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <Skeleton className="h-8 w-64 mb-4" />
-        <Skeleton className="h-4 w-full mb-2" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
-
-
-  // Generate LLM analysis
-  useEffect(() => {
-    const generateAnalysis = async () => {
-      if (!coreIndicator) return;
-      
-      setIsLoadingAnalysis(true);
-      try {
-        const thrivingNames = (thrivingDrivers || []).map(d => d.name).join(', ');
-        const laggingNames = (laggingDrivers || []).map(d => d.name).join(', ');
-        
-        const prompt = `Provide a concise, one-sentence analysis of the current state and trends for "${coreIndicator.name}", drawing on its relationships with the 3 highest indicators (${thrivingNames}) and 3 lowest indicators (${laggingNames}). Use domain-relevant language and avoid generic phrasing.`;
-        
-        const analysis = await queryLocalLLM(prompt);
-        setAnalysisText(analysis);
-      } catch (error) {
-        console.error('Failed to generate LLM analysis:', error);
-        setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
-      } finally {
-        setIsLoadingAnalysis(false);
-      }
-    };
-
-    if (coreIndicator && (thrivingDrivers?.length > 0 || laggingDrivers?.length > 0)) {
-      generateAnalysis();
-    } else if (coreIndicator) {
-      setAnalysisText(`Analysis of current state and trends for ${coreIndicator.name}.`);
-    }
-  }, [coreIndicator, thrivingDrivers, laggingDrivers]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Early return if no core indicator
   if (!coreIndicator) {
     return (
       <div className="bg-white shadow rounded-lg p-6 mb-6">
@@ -160,18 +89,18 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   }
 
   const renderIndicatorList = (indicators: Indicator[], type: 'positive' | 'negative') => {
-    if (!indicators || !indicators || indicators.length === 0) {
+    if (!indicators || indicators.length === 0) {
       return <p className="text-gray-500 italic">No {type === 'positive' ? 'thriving' : 'lagging'} drivers identified.</p>;
     }
-    
+
     return (
       <ul className="mt-1 space-y-1">
         {indicators.map((indicator, index) => {
-          const correlation = correlations[indicator.indicator_id];
+          const correlation = correlations?.[indicator.indicator_id];
           const correlationText = correlation !== undefined 
             ? ` (${(correlation * 100).toFixed(1)}%)` 
             : '';
-          
+
           return (
             <li 
               key={indicator.indicator_id} 
@@ -193,7 +122,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
       </ul>
     );
   };
-  
+
   return (
     <TooltipProvider>
       <div className="bg-white shadow rounded-lg p-6 mb-6">
@@ -226,7 +155,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
             </div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 className="font-medium text-green-700 mb-1">Thriving Drivers</h3>
@@ -237,7 +166,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
             {renderIndicatorList(laggingDrivers || [], 'negative')}
           </div>
         </div>
-        
+
         {recommendations && recommendations.length > 0 && (
           <div className="mt-6 border-t pt-4">
             <h3 className="font-medium text-gray-800 mb-2">Your data-driven insights:</h3>
@@ -267,7 +196,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
         )}
       </div>
     </TooltipProvider>
-     );
+  );
 };
 
 export default DescriptionPanel;
