@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BarChart3, Users, Award, TrendingUp } from 'lucide-react';
 import SmartSearchBox from '@/components/SmartSearchBox';
+import WellbeingStatusCard from '@/components/WellbeingStatusCard';
 
 const Homepage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,6 +57,11 @@ const Homepage: React.FC = () => {
             Get Started
           </Button>
         )}
+      </section>
+
+      {/* Wellbeing Status Card */}
+      <section className="container mx-auto px-4">
+        <WellbeingStatusCard />
       </section>
 
       {/* Features Section */}
