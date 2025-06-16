@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
-import { useUser } from '@/context/UserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { ArrowRight, ArrowLeft, Plus, Target, TrendingUp, TrendingDown, Minus, ArrowUpDown, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,7 +35,7 @@ interface SurveyRendererProps {
 }
 
 const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, domainPath = [] }) => {
-  const { userProfile } = useUser();
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
@@ -54,10 +53,16 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
       console.error("🚨 SurveyRenderer: domainId is missing — survey cannot load.");
       return;
     }
+    if (!user?.id) {
+      console.error("🚨 SurveyRenderer: user ID is missing — survey cannot load.");
+      toast.error('Please log in to complete the survey');
+      return;
+    }
     console.log("🎯 SurveyRenderer: Starting with domainId:", domainId);
+    console.log("👤 SurveyRenderer: User ID:", user.id);
     console.log("🗂️ SurveyRenderer: Domain path:", domainPath);
     fetchSurveyQuestions();
-  }, [domainId]);
+  }, [domainId, user]);
 
   const fetchSurveyQuestions = async () => {
     try {
@@ -218,14 +223,21 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
       return;
     }
 
+    if (!user?.id) {
+      console.error("🚨 No user ID available for submission");
+      toast.error('Please log in to submit responses');
+      return;
+    }
+
     console.log("➡️ Moving to next question. Current response:", currentResponse);
+    console.log("👤 User ID for submission:", user.id);
 
     const response = {
       ...currentResponse,
       question_id: questions[currentQuestionIndex].question_id,
       parent_id: questions[currentQuestionIndex].parent_indicator_id,
       child_id: questions[currentQuestionIndex].child_indicator_id,
-      user_id: userProfile?.id,
+      user_id: user.id, // Using user.id from useAuth instead of userProfile.id
       domain: domainId,
       strength_score: currentResponse.strength[0],
       created_at: new Date().toISOString()
@@ -248,6 +260,17 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
       console.log("🏁 Submitting all responses:", newResponses);
       try {
         for (const resp of newResponses) {
+          console.log("📤 Submitting response:", {
+            user_id: resp.user_id,
+            parent_id: resp.parent_id,
+            child_id: resp.child_id,
+            domain: resp.domain,
+            direction: resp.direction,
+            strength_score: resp.strength_score,
+            notes_file_url: resp.notes || null,
+            additional_indicator_ids: resp.additionalOptions
+          });
+
           const { error } = await supabase
             .from('relationship_user_responses')
             .insert([{
@@ -321,6 +344,14 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
     return (
       <div className="text-center p-8">
         <p className="text-gray-600">No survey questions available for this domain.</p>
+      </div>
+    );
+  }
+
+  if (!user?.id) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-600">Please log in to complete the survey.</p>
       </div>
     );
   }
