@@ -17,7 +17,7 @@ import Homepage from "@/pages/Homepage";
 import CommunityStoriesPage from "@/pages/CommunityStoriesPage";
 import TreeMapPage from "@/pages/TreeMapPage";
 import Profile from "@/pages/Profile";
-import OnboardingSurvey from "@/pages/OnboardingSurvey";
+import { OnboardingSurvey } from "@/pages/OnboardingSurvey";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Wallet from "@/pages/Wallet";
@@ -27,6 +27,7 @@ import Dashboard from "@/pages/Dashboard";
 import RepDashboard from "@/pages/RepDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Leaderboard from "@/pages/Leaderboard";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -131,6 +132,10 @@ const App = () => (
                         <TreeMapPage />
                       </ProtectedRoute>
                     } />
+                  </Route>
+                  
+                  <Route path="/about" element={<MainLayout />}>
+                    <Route index element={<About />} />
                   </Route>
                   
                   <Route path="/profile" element={<MainLayout />}>

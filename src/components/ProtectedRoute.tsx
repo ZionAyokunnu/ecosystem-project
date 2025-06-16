@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@/context/UserContext';
 
-const SKIP_ONBOARDING = true; // 🔧 Set to false in production
+const SKIP_ONBOARDING = false; // 🔧 Set to false in production
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

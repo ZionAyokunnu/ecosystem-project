@@ -24,6 +24,9 @@ import SunburstCenterCircle from '@/components/SunburstCenterCircle';
 import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
 import SimulationModal from '@/components/SimulationModal';
 import SettingsDialog from '@/components/SettingsDialog';
+import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
+import LLMContextToggle from '@/components/LLMContextToggle';
+import { Settings } from 'lucide-react';
 
 
 const DetailView: React.FC = () => {
@@ -56,6 +59,8 @@ const DetailView: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPredicting, setIsPredicting] = useState<boolean>(false);
+  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
+  const [currentChildId, setCurrentChildId] = useState<string | null>(null);
 
 const handleCoreChange = useCallback(
   (newId: string | null) => {
@@ -64,6 +69,17 @@ const handleCoreChange = useCallback(
     const found = indicators.find(ind => ind.indicator_id === newId);
     if (found) {
       setCoreIndicator(found);     // drives DescriptionPanel header & value
+
+      // Find parent-child relationship for qualitative stories
+      const parentRelationship = relationships.find(r => r.child_id === newId);
+      if (parentRelationship) {
+        setCurrentParentId(parentRelationship.parent_id);
+        setCurrentChildId(newId);
+      } else {
+        // If it's a root indicator, use it as both parent and child
+        setCurrentParentId(newId);
+        setCurrentChildId(newId);
+      }                 
     }
   },
   [indicators]
@@ -340,6 +356,8 @@ useEffect(() => {
   
   console.log('DetailView render, breadcrumbs:', breadcrumbs);
   
+  const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
+
   return (
     // right before JSX
     console.log('DetailView render, breadcrumbs:', breadcrumbs),
@@ -348,7 +366,15 @@ useEffect(() => {
         <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
           <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
           <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
-          <SettingsDialog trigger={<button>Adjust drill</button>} />
+              <SettingsDialog 
+                trigger={
+                  <Button className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Adjust Drill
+                  </Button>
+                } 
+              />
+              <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
         </div>
         
         <div className="p-6">
@@ -363,9 +389,12 @@ useEffect(() => {
             </div>
           ) : coreIndicator ? (
             <>
+              <div className="relative z-50">
+                <EnhancedLocationPicker />
+              </div>
               <Breadcrumbs
                     items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
-                    onNavigate={id => navigate(`/detail/${id}`)}  />
+                    onNavigate={id => navigate(`/detail/${id}`)} depth={3}  />
               <Tabs defaultValue="analysis" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="analysis">Analysis</TabsTrigger>
@@ -393,12 +422,19 @@ useEffect(() => {
                         Dive Deeper, but not working yet
                       </Button>
                       <Button 
-                      variant="outline" 
-                      size="lg"
-                      onClick={() => navigate('/treemap')}
-                    >
-                      View Tree Map
-                    </Button>
+                        variant="outline" 
+                        size="lg"
+                        onClick={() => navigate('/treemap')}
+                      >
+                        View Tree Map
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate(`/research/${coreIndicator.indicator_id}`)}
+                        size="lg"
+                      >
+                        Understand {coreIndicator.name}
+                      </Button>
                     </div>
                   )}
                   

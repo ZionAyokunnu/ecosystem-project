@@ -16,7 +16,8 @@ const Wallet = () => {
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = userProfile?.name || userProfile?.id;
+  // const userId = userProfile?.name || userProfile?.id;
+  const userId = userProfile?.id;
 
   useEffect(() => {
     const fetchWalletData = async () => {

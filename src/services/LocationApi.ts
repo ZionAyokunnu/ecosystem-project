@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Location, LocationPath, IndicatorValue } from "@/types";
 
 export const getLocationChildren = async (parentId?: string): Promise<Location[]> => {
-  const { data, error } = await supabase
-    .from('locations')
-    .select('*')
-    .eq('parent_id', parentId || null)
-    .order('name');
+  let query = supabase.from('locations').select('*');
+  if (parentId) {
+    query = query.eq('parent_id', parentId);
+  } else {
+    query = query.is('parent_id', null);
+  }
+  const { data, error } = await query.order('name');
 
   if (error) {
     console.error('Error fetching location children:', error);

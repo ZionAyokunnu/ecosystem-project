@@ -86,7 +86,7 @@ const Header: React.FC = () => {
                     Leaderboard
                   </DropdownMenuItem>
                   
-                  {profile.role === 'community_rep' && (
+                  {(profile.role === 'community_rep' || profile.role === 'admin') &&  (
                     <DropdownMenuItem onClick={() => navigate('/rep-dashboard')}>
                       <Settings className="w-4 h-4 mr-2" />
                       Rep Dashboard
@@ -100,7 +100,7 @@ const Header: React.FC = () => {
                     </DropdownMenuItem>
                   )}
 
-                  {profile.role === 'researcher' && (
+                  {(profile.role === 'researcher' || profile.role === 'admin') && (
                     <DropdownMenuItem onClick={() => navigate('/researcher/insights')}>
                       <Settings className="w-4 h-4 mr-2" />
                       Research Panel

@@ -13,6 +13,7 @@ import { transformToSunburstData } from '@/utils/indicatorUtils';
 import { BarChart3, Users, Target, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AssociationSummaryCard from '@/components/AssociationSummaryCard';
 
 const Overview = () => {
   const navigate = useNavigate();
@@ -269,6 +270,7 @@ const llmMode: 'community' | 'business' = 'community'; // or use actual logic if
                 </p>
 
               </div>
+              <AssociationSummaryCard indicatorName={''} relatedIndicatorName={''} data={[]} averageStrength={0} totalResponses={0}/>
             </CardContent>
           </Card>
         </div>

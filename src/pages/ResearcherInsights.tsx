@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { supabase } from '@/integrations/supabase/client';
 import { useEcosystem } from '@/context/EcosystemContext';
 import { TrendingUp, Users, FileText, Filter } from 'lucide-react';
+import AssociationSummaryCard from '@/components/AssociationSummaryCard';
 
 interface InsightData {
   parent_id: string;
@@ -319,6 +320,41 @@ const ResearcherInsights = () => {
                       </table>
                     </div>
                   </CardContent>
+                  <div>
+                    <AssociationSummaryCard
+                      indicatorName={selectedIndicatorData?.name || 'Unknown'}
+                      relatedIndicatorName="N/A"
+                      data={(() => {
+                        const total = insights.reduce(
+                          (sum, insight) =>
+                            sum +
+                            (insight.directions['A→B'] || 0) +
+                            (insight.directions['B→A'] || 0) +
+                            (insight.directions['Mutual'] || 0) +
+                            (insight.directions['Unclear'] || 0),
+                          0
+                        );
+                        const directions = ['A→B', 'B→A', 'Mutual', 'Unclear'];
+                        return directions.map(direction => {
+                          const count = insights.reduce(
+                            (sum, insight) => sum + (insight.directions[direction] || 0),
+                            0
+                          );
+                          return {
+                            direction,
+                            count,
+                            percentage: total > 0 ? Math.round((count / total) * 1000) / 10 : 0
+                          };
+                        });
+                      })()}
+                      averageStrength={
+                        insights.length > 0 
+                          ? Math.round((insights.reduce((sum, insight) => sum + insight.avg_strength, 0) / insights.length) * 10) / 10
+                          : 0
+                      }
+                      totalResponses={insights.reduce((sum, insight) => sum + insight.response_count, 0)}
+                    />
+                  </div>
                 </Card>
               </div>
             )}
