@@ -26,6 +26,8 @@ app.options('/local-llm', (req, res) => {
   res.sendStatus(200);
 });
 
+// app.options('*', cors());
+
 console.log('✅ ROUTE ACTIVE - /local-llm');
 
 app.post('/local-llm', async (req, res) => {
