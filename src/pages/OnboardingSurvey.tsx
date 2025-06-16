@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Lightbulb, Users, Target, BookOpen } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import SurveyRenderer from '@/components/SurveyRenderer';
 import { awardPoints } from '@/services/gamificationApi';
@@ -21,7 +22,8 @@ interface Domain {
 }
 
 const OnboardingSurvey = () => {
-  const { userProfile, setOnboardingComplete } = useUser();
+  const { setOnboardingComplete } = useUser();
+  const { user } = useAuth(); // Use useAuth instead of userProfile
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [responses, setResponses] = useState<any>({});
@@ -69,7 +71,7 @@ const OnboardingSurvey = () => {
     const fetchRootDomains = async () => {
       try {
         setIsLoading(true);
-        console.log('🔍 Fetching root domains (level 1)...');
+        console.log('🔍 OnboardingSurvey: Fetching root domains (level 1)...');
         
         const { data, error } = await supabase
           .from('domains')
@@ -79,11 +81,11 @@ const OnboardingSurvey = () => {
           
         if (error) throw error;
         
-        console.log('✅ Root domains fetched:', data);
+        console.log('✅ OnboardingSurvey: Root domains fetched:', data);
         setCurrentDomains(data || []);
         setDomainPath([]);
       } catch (error) {
-        console.error('❌ Error fetching root domains:', error);
+        console.error('❌ OnboardingSurvey: Error fetching root domains:', error);
         toast.error('Failed to load domains');
       } finally {
         setIsLoading(false);
@@ -94,7 +96,7 @@ const OnboardingSurvey = () => {
   }, []);
 
   const handleDomainSelect = (domain: Domain) => {
-    console.log('🎯 Domain selected:', domain);
+    console.log('🎯 OnboardingSurvey: Domain selected:', domain);
     setSelectedDomain(domain);
   };
 
@@ -107,23 +109,24 @@ const OnboardingSurvey = () => {
 
       setIsLoading(true);
       try {
-        console.log('🔄 Processing domain selection:', selectedDomain);
-        console.log('📊 Current domain level:', selectedDomain.level);
+        console.log('🔄 OnboardingSurvey: Processing domain selection:', selectedDomain);
+        console.log('📊 OnboardingSurvey: Current domain level:', selectedDomain.level);
 
         // Check if this is a level 3 domain (leaf with indicator_id)
         if (selectedDomain.level === 3 && selectedDomain.indicator_id) {
-          console.log('🎯 Reached level 3 domain with indicator_id:', selectedDomain.indicator_id);
+          console.log('🎯 OnboardingSurvey: Reached level 3 domain with indicator_id:', selectedDomain.indicator_id);
           
           // Add to path and save final domain
           const finalPath = [...domainPath, selectedDomain];
           setDomainPath(finalPath);
           setResponses({ ...responses, domain: selectedDomain.domain_id, domainPath: finalPath });
+          console.log('✅ OnboardingSurvey: Final domain saved, moving to survey step');
           setCurrentStep(currentStep + 1);
           return;
         }
 
         // Fetch children for levels 1 and 2
-        console.log('🔍 Fetching children for domain:', selectedDomain.domain_id);
+        console.log('🔍 OnboardingSurvey: Fetching children for domain:', selectedDomain.domain_id);
         
         const { data: children, error } = await supabase
           .from('domains')
@@ -133,23 +136,23 @@ const OnboardingSurvey = () => {
 
         if (error) throw error;
 
-        console.log('📝 Children found:', children);
+        console.log('📝 OnboardingSurvey: Children found:', children);
 
         if (children && children.length > 0) {
           // Has children - show them and update path
           const newPath = [...domainPath, selectedDomain];
-          console.log('🗂️ Updated domain path:', newPath);
+          console.log('🗂️ OnboardingSurvey: Updated domain path:', newPath);
           
           setDomainPath(newPath);
           setCurrentDomains(children);
           setSelectedDomain(null); // Reset selection for next level
         } else {
           // No children but not level 3 - this shouldn't happen with proper data
-          console.log('⚠️ No children found for non-level-3 domain');
+          console.log('⚠️ OnboardingSurvey: No children found for non-level-3 domain');
           toast.error('Domain structure incomplete. Please contact support.');
         }
       } catch (error) {
-        console.error('❌ Error processing domain selection:', error);
+        console.error('❌ OnboardingSurvey: Error processing domain selection:', error);
         toast.error('Failed to load subdomains');
       } finally {
         setIsLoading(false);
@@ -170,13 +173,13 @@ const OnboardingSurvey = () => {
           const currentParent = domainPath[domainPath.length - 1];
           const newPath = domainPath.slice(0, -1);
           
-          console.log('⬅️ Going back from path:', domainPath);
-          console.log('🎯 New path will be:', newPath);
-          console.log('📍 Current parent:', currentParent);
+          console.log('⬅️ OnboardingSurvey: Going back from path:', domainPath);
+          console.log('🎯 OnboardingSurvey: New path will be:', newPath);
+          console.log('📍 OnboardingSurvey: Current parent:', currentParent);
 
           if (newPath.length === 0) {
             // Going back to root level
-            console.log('🏠 Returning to root level');
+            console.log('🏠 OnboardingSurvey: Returning to root level');
             
             const { data: rootDomains, error } = await supabase
               .from('domains')
@@ -192,7 +195,7 @@ const OnboardingSurvey = () => {
           } else {
             // Going back to parent level
             const grandParent = newPath[newPath.length - 1];
-            console.log('👴 Grandparent domain:', grandParent);
+            console.log('👴 OnboardingSurvey: Grandparent domain:', grandParent);
             
             const { data: siblings, error } = await supabase
               .from('domains')
@@ -207,7 +210,7 @@ const OnboardingSurvey = () => {
             setSelectedDomain(currentParent);
           }
         } catch (error) {
-          console.error('❌ Error navigating back:', error);
+          console.error('❌ OnboardingSurvey: Error navigating back:', error);
           toast.error('Failed to navigate back');
         } finally {
           setIsLoading(false);
@@ -222,7 +225,7 @@ const OnboardingSurvey = () => {
   };
 
   const handleBreadcrumbNavigation = async (domainId: string) => {
-    console.log('🍞 Breadcrumb navigation to domain:', domainId);
+    console.log('🍞 OnboardingSurvey: Breadcrumb navigation to domain:', domainId);
     
     // Find the domain in the current path
     const targetIndex = domainPath.findIndex(d => d.domain_id === domainId);
@@ -261,16 +264,32 @@ const OnboardingSurvey = () => {
 
   const handleComplete = async () => {
     try {
-      const userId = userProfile?.id;
-      if (!userId) throw new Error('No valid user ID');
+      console.log('🏁 OnboardingSurvey: Starting completion process');
+      console.log('👤 OnboardingSurvey: User from useAuth:', user);
+      
+      const userId = user?.id;
+      if (!userId) {
+        console.error('❌ OnboardingSurvey: No valid user ID from useAuth');
+        throw new Error('No valid user ID');
+      }
+
+      console.log('✅ OnboardingSurvey: Valid user ID found:', userId);
+      console.log('🎯 OnboardingSurvey: Awarding points...');
 
       await awardPoints(userId, 'survey_completed', 50, { survey_type: 'onboarding' });
 
+      console.log('✅ OnboardingSurvey: Points awarded successfully');
+      console.log('📝 OnboardingSurvey: Setting onboarding complete...');
+
       setOnboardingComplete(true);
+      
+      console.log('✅ OnboardingSurvey: Onboarding marked complete');
+      console.log('🚀 OnboardingSurvey: Navigating to overview...');
+
       toast.success('Onboarding completed! You earned 50 points.');
       navigate('/overview');
     } catch (err) {
-      console.error(err);
+      console.error('💥 OnboardingSurvey: Error in completion process:', err);
       toast.error('Error completing onboarding.');
     }
   };
@@ -394,6 +413,7 @@ const OnboardingSurvey = () => {
           <div className="animate-fade-in">
             <SurveyRenderer
               onComplete={(surveyResponses) => {
+                console.log('📋 OnboardingSurvey: Survey completed with responses:', surveyResponses);
                 setResponses({ ...responses, surveyResponses });
                 handleComplete();
               }}
