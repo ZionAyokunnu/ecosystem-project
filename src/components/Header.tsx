@@ -49,7 +49,7 @@ const Header: React.FC = () => {
               Home
             </Link>
             <Link to="/stories" className="text-gray-600 hover:text-blue-600">
-              Stories
+              Stories & Calls
             </Link>
             <Link to="/detail" className="text-gray-600 hover:text-blue-600">
               Data & Insights
