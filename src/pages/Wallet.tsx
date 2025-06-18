@@ -24,11 +24,10 @@ const Wallet = () => {
       try {
         setLoading(true);
         const [pointsData, badgesData, vouchersData] = await Promise.all([
-          getUserPoints(userId),
-          getUserBadges(userId),
-          getUserVouchers(userId)
+          getUserPoints(userId!),
+          getUserBadges(userId!),
+          getUserVouchers(userId!)
         ]);
-        
         setPoints(pointsData);
         setBadges(badgesData);
         setVouchers(vouchersData);
@@ -42,6 +41,9 @@ const Wallet = () => {
 
     if (userId) {
       fetchWalletData();
+    } else {
+      // no user, stop loading
+      setLoading(false);
     }
   }, [userId]);
 

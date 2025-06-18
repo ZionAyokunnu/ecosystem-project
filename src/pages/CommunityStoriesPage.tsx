@@ -167,7 +167,7 @@ const CommunityStoriesPage: React.FC = () => {
           Back to Overview
         </Button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Community Stories</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Community Stories and Calls</h1>
           <p className="text-gray-600 mt-1">
             Real stories from community members about local initiatives and changes
           </p>
