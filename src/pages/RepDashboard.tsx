@@ -35,6 +35,8 @@ const RepDashboard: React.FC = () => {
     if (profile?.location_id) {
       fetchTownStats();
       fetchFlaggedResponses(1);
+    } else {
+      setLoading(false);
     }
   }, [profile]);
 
