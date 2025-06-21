@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 const Wallet = () => {
   const { userProfile } = useUser();
+  console.log('Wallet render, userProfile:', userProfile);
   const [points, setPoints] = useState({ total_points: 0, recent_activities: [] });
   const [badges, setBadges] = useState([]);
   const [vouchers, setVouchers] = useState([]);
@@ -23,16 +24,19 @@ const Wallet = () => {
     const fetchWalletData = async () => {
       try {
         setLoading(true);
+        console.log('Wallet: Starting fetchWalletData for userId=', userId);
         const [pointsData, badgesData, vouchersData] = await Promise.all([
           getUserPoints(userId!),
           getUserBadges(userId!),
           getUserVouchers(userId!)
         ]);
+        console.log('Wallet: fetch results', { pointsData, badgesData, vouchersData });
         setPoints(pointsData);
         setBadges(badgesData);
         setVouchers(vouchersData);
       } catch (error) {
         console.error('Error fetching wallet data:', error);
+        console.log('Wallet: fetchWalletData encountered error', error);
         toast.error('Failed to load wallet data');
       } finally {
         setLoading(false);

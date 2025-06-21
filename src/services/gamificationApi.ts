@@ -57,6 +57,8 @@ export const getUserPoints = async (userId: string): Promise<UserPoints> => {
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
+  console.log('getUserPoints response:', { data, error });
+
   if (error) {
     console.error('Error fetching user points:', error);
     throw error;
@@ -75,6 +77,8 @@ export const getUserBadges = async (userId: string): Promise<UserBadge[]> => {
     .eq('user_id', userId)
     .order('awarded_at', { ascending: false });
 
+  console.log('getUserBadges response:', { data, error });
+
   if (error) {
     console.error('Error fetching user badges:', error);
     throw error;
@@ -90,6 +94,8 @@ export const getUserVouchers = async (userId: string): Promise<UserVoucher[]> =>
     .eq('user_id', userId)
     .eq('is_redeemed', false)
     .order('created_at', { ascending: false });
+
+  console.log('getUserVouchers response:', { data, error });
 
   if (error) {
     console.error('Error fetching user vouchers:', error);

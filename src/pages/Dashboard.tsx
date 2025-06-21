@@ -152,7 +152,7 @@ const handleAddStory = async () => {
         <h1 className="text-3xl font-bold">Welcome, {profile.first_name}</h1>
         <Button onClick={() => navigate('/wallet')}>View Wallet</Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {/* Points Summary */}
         <Card>
           <CardHeader>
