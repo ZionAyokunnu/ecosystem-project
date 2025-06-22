@@ -23,6 +23,7 @@ interface FlaggedResponse {
 
 const RepDashboard: React.FC = () => {
   const { profile } = useAuth();
+  console.log('RepDashboard render, profile:', profile);
   const [townStats, setTownStats] = useState<TownStats | null>(null);
   const [flaggedResponses, setFlaggedResponses] = useState<FlaggedResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,7 @@ const RepDashboard: React.FC = () => {
   const itemsPerPage = 5;
 
   useEffect(() => {
+    console.log('RepDashboard useEffect, profile.location_id:', profile?.location_id);
     if (profile?.location_id) {
       fetchTownStats();
       fetchFlaggedResponses(1);

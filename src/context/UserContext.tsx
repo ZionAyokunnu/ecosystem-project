@@ -44,13 +44,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const { data: { user }, error } = await supabase.auth.getUser();
           if (error) throw error;
           if (user) {
+            // Fetch extended profile data from public.profiles
+            const { data: dbProfile, error: dbError } = await supabase
+              .from('profiles')
+              .select('first_name, role, location_id, has_completed_onboarding')
+              .eq('id', user.id)
+              .single();
+            if (dbError) {
+              console.error('UserContext: Error fetching profile from DB:', dbError);
+            }
             const newProfile: UserProfile = {
               ...DEFAULT_PROFILE,
               id: user.id,
-              name: user.user_metadata?.name || '',
-              role: parsedSaved?.role || DEFAULT_PROFILE.role,
-              location_id: parsedSaved?.location_id || DEFAULT_PROFILE.location_id,
-              hasCompletedOnboarding: parsedSaved?.hasCompletedOnboarding ?? DEFAULT_PROFILE.hasCompletedOnboarding
+              name: dbProfile?.first_name || user.user_metadata?.name || '',
+              role: dbProfile?.role || parsedSaved?.role || DEFAULT_PROFILE.role,
+              location_id: dbProfile?.location_id || parsedSaved?.location_id || DEFAULT_PROFILE.location_id,
+              hasCompletedOnboarding: dbProfile?.has_completed_onboarding ?? parsedSaved?.hasCompletedOnboarding ?? DEFAULT_PROFILE.hasCompletedOnboarding
             };
             console.log('UserContext: Fetched userProfile', newProfile);
             setUserProfile(newProfile);
