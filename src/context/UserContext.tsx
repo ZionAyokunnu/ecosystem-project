@@ -26,36 +26,53 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load profile from localStorage on mount
   useEffect(() => {
     const loadUserProfile = async () => {
-    const saved = localStorage.getItem('userProfile');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setUserProfile(parsed);
-      } catch (error) {
-        console.error('Error parsing saved profile:', error);
-        // setUserProfile(DEFAULT_PROFILE);
+      const saved = localStorage.getItem('userProfile');
+      let parsedSaved = null;
+      if (saved) {
+        try {
+          parsedSaved = JSON.parse(saved);
+        } catch (error) {
+          console.error('Error parsing saved profile:', error);
+        }
       }
-    } else {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) throw error;
-
-        if (user) {
-          setUserProfile({
-            ...DEFAULT_PROFILE,
-            id: user.id, // ✅ Set real UUID from Supabase
-            name: user.user_metadata?.name || '',
-          });
-        } else {
+      if (parsedSaved && parsedSaved.id) {
+        console.log('UserContext: Using saved profile with id', parsedSaved.id);
+        setUserProfile(parsedSaved);
+      } else {
+        console.log('UserContext: Fetching profile from Supabase');
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error) throw error;
+          if (user) {
+            // Fetch extended profile data from public.profiles
+            const { data: dbProfile, error: dbError } = await supabase
+              .from('profiles')
+              .select('first_name, role, location_id, has_completed_onboarding')
+              .eq('id', user.id)
+              .single();
+            if (dbError) {
+              console.error('UserContext: Error fetching profile from DB:', dbError);
+            }
+            const newProfile: UserProfile = {
+              ...DEFAULT_PROFILE,
+              id: user.id,
+              name: dbProfile?.first_name || user.user_metadata?.name || '',
+              role: dbProfile?.role || parsedSaved?.role || DEFAULT_PROFILE.role,
+              location_id: dbProfile?.location_id || parsedSaved?.location_id || DEFAULT_PROFILE.location_id,
+              hasCompletedOnboarding: dbProfile?.has_completed_onboarding ?? parsedSaved?.hasCompletedOnboarding ?? DEFAULT_PROFILE.hasCompletedOnboarding
+            };
+            console.log('UserContext: Fetched userProfile', newProfile);
+            setUserProfile(newProfile);
+          } else {
+            setUserProfile(DEFAULT_PROFILE);
+          }
+        } catch (error) {
+          console.error('Error fetching user from Supabase:', error);
           setUserProfile(DEFAULT_PROFILE);
         }
-      } catch (error) {
-        console.error('Error fetching user from Supabase:', error);
-        setUserProfile(DEFAULT_PROFILE);
       }
-    }
-  };
-  loadUserProfile();
+    };
+    loadUserProfile();
   }, []);
 
   // Save to localStorage whenever profile changes
