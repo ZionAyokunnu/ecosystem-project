@@ -40,13 +40,16 @@ const Header: React.FC = () => {
     <header className="bg-white shadow-sm border-b">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          <Link to="/overview" className="text-xl font-bold text-blue-600">
+          <Link to="/homepage" className="text-xl font-bold text-blue-600">
             Community Ecosystem
           </Link>
           
           <nav className="hidden md:flex space-x-6">
-            <Link to="/overview" className="text-gray-600 hover:text-blue-600">
-              Home
+            <Link to="/" className="text-gray-600 hover:text-blue-600">
+              Initial Home
+            </Link>
+            <Link to="/home" className="text-gray-600 hover:text-blue-600">
+              New Landing
             </Link>
             <Link to="/stories" className="text-gray-600 hover:text-blue-600">
               Stories & Calls

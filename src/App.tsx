@@ -28,6 +28,7 @@ import RepDashboard from "@/pages/RepDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Leaderboard from "@/pages/Leaderboard";
 import About from "./pages/About";
+import Home from "./pages/Home";
 
 const queryClient = new QueryClient();
 
@@ -43,9 +44,11 @@ const App = () => (
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  
+
                   <Route path="/" element={<MainLayout />}>
                     <Route index element={<Homepage />} />
+
+                    <Route path="home" element={<Home />} />
                     
                     <Route path="dashboard" element={
                       <ProtectedRoute>
