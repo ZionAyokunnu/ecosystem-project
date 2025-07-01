@@ -25,7 +25,34 @@ export const getRootLocations = async (): Promise<Location[]> => {
   return locations.filter(loc => !loc.parent_id);
 };
 
-export const getLocationChildren = async (parentId: string): Promise<Location[]> => {
+export const getLocationChildren = async (parentId: string | null): Promise<Location[]> => {
   const locations = await getLocations();
+  if (parentId === null) {
+    return locations.filter(loc => !loc.parent_id);
+  }
   return locations.filter(loc => loc.parent_id === parentId);
+};
+
+export const getLocationPath = async (locationId: string): Promise<Array<{ location_id: string; name: string; type: string }>> => {
+  const locations = await getLocations();
+  const path: Array<{ location_id: string; name: string; type: string }> = [];
+  
+  let currentId = locationId;
+  const visited = new Set<string>();
+  
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId);
+    const location = locations.find(loc => loc.location_id === currentId);
+    if (!location) break;
+    
+    path.unshift({
+      location_id: location.location_id,
+      name: location.name,
+      type: location.type
+    });
+    
+    currentId = location.parent_id || '';
+  }
+  
+  return path;
 };

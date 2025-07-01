@@ -32,6 +32,7 @@ const EnhancedLocationPicker: React.FC = () => {
         // Mock engagement data for demonstration
         const countriesWithEngagement = countries.map(country => ({
           ...country,
+          type: country.type as 'country' | 'region' | 'city' | 'ward',
           survey_responses: Math.floor(Math.random() * 500) + 50,
           story_count: Math.floor(Math.random() * 20) + 5
         }));
@@ -52,6 +53,7 @@ const EnhancedLocationPicker: React.FC = () => {
           const regions = await getLocationChildren(selectedCountry);
           const regionsWithEngagement = regions.map(region => ({
             ...region,
+            type: region.type as 'country' | 'region' | 'city' | 'ward',
             survey_responses: Math.floor(Math.random() * 200) + 20,
             story_count: Math.floor(Math.random() * 15) + 2
           }));
@@ -76,6 +78,7 @@ const EnhancedLocationPicker: React.FC = () => {
           const cities = await getLocationChildren(selectedRegion);
           const citiesWithEngagement = cities.map(city => ({
             ...city,
+            type: city.type as 'country' | 'region' | 'city' | 'ward',
             survey_responses: Math.floor(Math.random() * 100) + 10,
             story_count: Math.floor(Math.random() * 10) + 1
           }));
@@ -99,6 +102,7 @@ const EnhancedLocationPicker: React.FC = () => {
           const wards = await getLocationChildren(selectedCity);
           const wardsWithEngagement = wards.map(ward => ({
             ...ward,
+            type: ward.type as 'country' | 'region' | 'city' | 'ward',
             survey_responses: Math.floor(Math.random() * 50) + 5,
             story_count: Math.floor(Math.random() * 5) + 1
           }));

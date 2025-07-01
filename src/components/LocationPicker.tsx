@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocation } from '@/context/LocationContext';
-import { getLocationChildren } from '@/services/locationApi'
+import { getLocationChildren } from '@/services/LocationApi';
 import { Location } from '@/types';
 import { ChevronRight } from 'lucide-react';
 
@@ -23,7 +23,10 @@ const LocationPicker: React.FC = () => {
     const loadCountries = async () => {
       try {
         const countries = await getLocationChildren(null);
-        setCountryOptions(countries);
+        setCountryOptions(countries.map(c => ({
+          ...c,
+          type: c.type as 'country' | 'region' | 'city' | 'ward'
+        })));
       } catch (error) {
         console.error('Error loading countries:', error);
       }
@@ -38,7 +41,10 @@ const LocationPicker: React.FC = () => {
       const loadRegions = async () => {
         try {
           const regions = await getLocationChildren(selectedCountry);
-          setRegionOptions(regions);
+          setRegionOptions(regions.map(r => ({
+            ...r,
+            type: r.type as 'country' | 'region' | 'city' | 'ward'
+          })));
           setSelectedRegion('');
           setCityOptions([]);
           setWardOptions([]);
@@ -57,7 +63,10 @@ const LocationPicker: React.FC = () => {
       const loadCities = async () => {
         try {
           const cities = await getLocationChildren(selectedRegion);
-          setCityOptions(cities);
+          setCityOptions(cities.map(c => ({
+            ...c,
+            type: c.type as 'country' | 'region' | 'city' | 'ward'
+          })));
           setSelectedCity('');
           setWardOptions([]);
         } catch (error) {
@@ -75,7 +84,10 @@ const LocationPicker: React.FC = () => {
       const loadWards = async () => {
         try {
           const wards = await getLocationChildren(selectedCity);
-          setWardOptions(wards);
+          setWardOptions(wards.map(w => ({
+            ...w,
+            type: w.type as 'country' | 'region' | 'city' | 'ward'
+          })));
           setSelectedWard('');
         } catch (error) {
           console.error('Error loading wards:', error);

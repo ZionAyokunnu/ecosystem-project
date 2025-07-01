@@ -103,7 +103,7 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
                 y={benchmark.target_value} 
                 stroke="#f59e0b" 
                 strokeDasharray="8 8"
-                label={{ value: `Target: ${benchmark.target_value}%`, position: "topLeft" }}
+                label={{ value: `Target: ${benchmark.target_value}%`, position: "top" }}
               />
             )}
             <Line
