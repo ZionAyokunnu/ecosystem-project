@@ -1,70 +1,21 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { Location, LocationPath, IndicatorValue } from "@/types";
+export interface Location {
+  location_id: string;
+  name: string;
+  type: string;
+  parent_id?: string;
+}
 
-export const getLocationChildren = async (parentId?: string): Promise<Location[]> => {
-  let query = supabase.from('locations').select('*');
-  if (parentId) {
-    query = query.eq('parent_id', parentId);
-  } else {
-    query = query.is('parent_id', null);
-  }
-  const { data, error } = await query.order('name');
-
-  if (error) {
-    console.error('Error fetching location children:', error);
-    throw error;
-  }
-
-  return (data || []).map(item => ({
-    ...item,
-    type: item.type as 'country' | 'region' | 'city' | 'ward'
-  }));
+// Mock location data for now - replace with actual API calls
+export const getLocations = async (): Promise<Location[]> => {
+  return [
+    { location_id: '1', name: 'St Neots', type: 'town' },
+    { location_id: '2', name: 'Cambridge', type: 'city', parent_id: '1' },
+    { location_id: '3', name: 'Huntingdon', type: 'town', parent_id: '1' },
+  ];
 };
 
-export const getLocationPath = async (locationId: string): Promise<LocationPath[]> => {
-  const { data, error } = await supabase
-    .rpc('get_location_path', { target_location_id: locationId });
-
-  if (error) {
-    console.error('Error fetching location path:', error);
-    throw error;
-  }
-
-  return data || [];
-};
-
-export const getAllLocations = async (): Promise<Location[]> => {
-  const { data, error } = await supabase
-    .from('locations')
-    .select('*')
-    .order('name');
-
-  if (error) {
-    console.error('Error fetching all locations:', error);
-    throw error;
-  }
-
-  return (data || []).map(item => ({
-    ...item,
-    type: item.type as 'country' | 'region' | 'city' | 'ward'
-  }));
-};
-
-export const getRootLocations = async (): Promise<Location[]> => {
-  const { data, error } = await supabase
-    .from('locations')
-    .select('*')
-    .is('parent_id', null) // root locations have no parent
-    .order('name');
-
-  if (error) {
-    console.error('Error fetching root locations:', error);
-    throw error;
-  }
-
-  return (data || []).map(item => ({
-    ...item,
-    type: item.type as 'country' | 'region' | 'city' | 'ward'
-  }));
+export const getLocationById = async (id: string): Promise<Location | null> => {
+  const locations = await getLocations();
+  return locations.find(loc => loc.location_id === id) || null;
 };

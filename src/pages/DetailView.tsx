@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -27,7 +25,6 @@ import SettingsDialog from '@/components/SettingsDialog';
 import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
 import LLMContextToggle from '@/components/LLMContextToggle';
 import { Settings } from 'lucide-react';
-
 
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
@@ -62,73 +59,43 @@ const DetailView: React.FC = () => {
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [currentChildId, setCurrentChildId] = useState<string | null>(null);
 
-const handleCoreChange = useCallback(
-  (newId: string | null) => {
-    if (!newId) return;            // synthetic root; ignore
-    setCurrentCoreId(newId);       // drives TrendGraph
-    const found = indicators.find(ind => ind.indicator_id === newId);
-    if (found) {
-      setCoreIndicator(found);     // drives DescriptionPanel header & value
-
-      // Find parent-child relationship for qualitative stories
-      const parentRelationship = relationships.find(r => r.child_id === newId);
-      if (parentRelationship) {
-        setCurrentParentId(parentRelationship.parent_id);
-        setCurrentChildId(newId);
-      } else {
-        // If it's a root indicator, use it as both parent and child
-        setCurrentParentId(newId);
-        setCurrentChildId(newId);
-      }                 
-    }
-  },
-  [indicators]
-);
-
-// IDs of wedges currently shown
-const visibleIds = useMemo(
-  () => visibleNodes.map(n => n.id),
-  [visibleNodes]
-);
-
-// // Actual Indicator objects that match those IDs
-// const visibleIndicators = useMemo(
-//   () => localIndicators.filter(ind => visibleIds.includes(ind.indicator_id)),
-//   [localIndicators, visibleIds]
-// );
-
-const visibleIndicators = useMemo(() => {
-  return visibleNodes
-    // //  ❌ drop the synthetic root (depth 0), if you don’t want it
-    // .filter(node => node.depth > 0)
-    //  ✅ map each wedge back to the full Indicator
-    .map(node => indicators.find(ind => ind.indicator_id === node.id))
-    //  🚨 drop any that somehow didn’t resolve (shouldn’t happen)
-    .filter((ind): ind is Indicator => Boolean(ind))
-}, [visibleNodes, indicators])
-
-const [isFixedMode, setIsFixedMode] = useState<boolean>(false);
-const [simulationModal, setSimulationModal] = useState<{ isOpen: boolean; targetId: string | null }>({
-    isOpen: false,
-    targetId: null
-  });
-
-useEffect(() => {
-  console.log(
-    "🌞 Sunburst shows:", visibleNodes.length,
-    "→ IDs:", visibleNodes.map(n => n.id)
+  const handleCoreChange = useCallback(
+    (newId: string | null) => {
+      if (!newId) return;
+      setCurrentCoreId(newId);
+      const found = indicators.find(ind => ind.indicator_id === newId);
+      if (found) {
+        setCoreIndicator(found);
+        const parentRelationship = relationships.find(r => r.child_id === newId);
+        if (parentRelationship) {
+          setCurrentParentId(parentRelationship.parent_id);
+          setCurrentChildId(newId);
+        } else {
+          setCurrentParentId(newId);
+          setCurrentChildId(newId);
+        }                 
+      }
+    },
+    [indicators]
   );
-  console.log(
-    "📋 Simulator has:", visibleIndicators.length,
-    "→ IDs:", visibleIndicators.map(i => i.indicator_id)
+
+  const visibleIds = useMemo(
+    () => visibleNodes.map(n => n.id),
+    [visibleNodes]
   );
-}, [visibleNodes, visibleIndicators]);
 
- useEffect(() => {
-     console.log('DetailView: visibleIndicators updated', visibleIndicators);
-   }, [visibleIndicators]);
+  const visibleIndicators = useMemo(() => {
+    return visibleNodes
+      .map(node => indicators.find(ind => ind.indicator_id === node.id))
+      .filter((ind): ind is Indicator => Boolean(ind))
+  }, [visibleNodes, indicators])
 
-  // Load core indicator and prepare data
+  const [isFixedMode, setIsFixedMode] = useState<boolean>(false);
+  const [simulationModal, setSimulationModal] = useState<{ isOpen: boolean; targetId: string | null }>({
+      isOpen: false,
+      targetId: null
+    });
+
   useEffect(() => {
     console.log('DetailView useEffect:', { indicatorId, loading, indicatorsCount: indicators.length });
     if (!indicatorId || loading || indicators.length === 0) return;
@@ -136,22 +103,17 @@ useEffect(() => {
     const loadIndicatorData = async () => {
       setIsLoading(true);
       try {
-        // Try to find the indicator in the already loaded indicators
         let indicator = indicators.find(ind => ind.indicator_id === indicatorId);
         
-        // If not found, try to fetch it directly
         if (!indicator) {
           indicator = await getIndicatorById(indicatorId);
         }
         
         if (indicator) {
           setCoreIndicator(indicator);
-          
-          // Reset simulation state when changing core indicator
           setLocalIndicators(indicators);
           setSimulationChanges([]);
           
-          // Get prediction data
           setIsPredicting(true);
           try {
             const prediction = await predictTrend(indicator.indicator_id);
@@ -162,7 +124,6 @@ useEffect(() => {
             setIsPredicting(false);
           }
           
-          // Get top drivers
           const drivers = getTopDrivers(
             indicator.indicator_id,
             indicators,
@@ -170,9 +131,8 @@ useEffect(() => {
             userSettings.topDriversCount
           );
           setTopDrivers(drivers);
-
           setSimulationDrivers(drivers);
-          // Compute breadcrumbs from relationships, skipping self-links
+
           const path: Array<{ id: string; name: string }> = [];
           const visited = new Set<string>();
           let currentIdTemp = indicator.indicator_id;
@@ -181,7 +141,6 @@ useEffect(() => {
             const indItem = indicators.find(i => i.indicator_id === currentIdTemp);
             if (!indItem) break;
             path.unshift({ id: indItem.indicator_id, name: indItem.name });
-            // find a parent link that is not a self-link
             const parentRel = relationships.find(rel =>
               rel.child_id === currentIdTemp && rel.parent_id !== currentIdTemp
             );
@@ -201,24 +160,13 @@ useEffect(() => {
       }
     };
     
-    
     loadIndicatorData();
   }, [indicatorId, indicators, relationships, loading, userSettings.topDriversCount]);
-
-  // (Removed: Set visible nodes from sunburst data. Now handled by SunburstChart callback)
-
-  
-
-  useEffect(() => {
-    console.log('Breadcrumbs updated:', breadcrumbs);
-  }, [breadcrumbs]);
 
   useEffect(() => {
     if (!currentCoreId) return;
 
-    console.log('STEP ③2 ▶️ fetching prediction for', currentCoreId);
     setIsPredicting(true);
-
     predictTrend(currentCoreId)
       .then(setPredictionData)
       .catch(err => {
@@ -239,22 +187,20 @@ useEffect(() => {
     setTopDrivers(drivers);
     setSimulationDrivers(drivers);
   }, [coreIndicator, indicators, relationships, userSettings.topDriversCount]);
-
   
   const handleIndicatorSelect = (selectedId: string) => {
     if (selectedId === indicatorId) return;
     navigate(`/detail/${selectedId}`);
   };
   
-    const handleSunburstNodeClick = (nodeId: string) => {
+  const handleSunburstNodeClick = (nodeId: string) => {
     if (isFixedMode) {
-      // In fixed mode, show simulation instead of drilling down
       setSimulationModal({ isOpen: true, targetId: nodeId });
     } else {
-      // Normal drill-down behavior
       navigate(`/detail/${nodeId}`);
     }
   };
+
   const handleBreadcrumbClick = (selectedId: string) => {
     navigate(`/detail/${selectedId}`);
   };
@@ -262,7 +208,6 @@ useEffect(() => {
   const handleSimulate = (changedIndicatorId: string, newValue: number) => {
     if (!coreIndicator) return;
     
-    // Perform simulation
     const { updatedIndicators, changes } = simulateChanges(
       changedIndicatorId,
       newValue,
@@ -273,7 +218,6 @@ useEffect(() => {
     setLocalIndicators(updatedIndicators);
     setSimulationChanges(changes);
     
-    // Update simulation drivers
     const updatedCore = updatedIndicators.find(ind => ind.indicator_id === coreIndicator.indicator_id);
     if (updatedCore) {
       const drivers = getTopDrivers(
@@ -286,16 +230,6 @@ useEffect(() => {
     }
   };
   
-  // const handleSunburstNodeClick = (nodeId: string) => {
-  //   if (isFixedMode) {
-  //     // In fixed mode, show simulation instead of drilling downAdd commentMore actions
-  //     // For now, navigate to research page
-  //     navigate(`/research/${nodeId}`);
-  //   } else {
-  //     // Normal drill-down behavior
-  //     navigate(`/detail/${nodeId}`);
-  //   }
-  // };
   const handleSaveSimulation = async (name: string, description: string) => {
     if (simulationChanges.length === 0) {
       toast({
@@ -312,7 +246,6 @@ useEffect(() => {
         description: `Simulation "${name}" has been saved successfully.`
       });
       
-      // Reset simulation state
       await refreshData();
       setLocalIndicators(indicators);
       setSimulationChanges([]);
@@ -320,19 +253,11 @@ useEffect(() => {
       console.error('Error saving simulation:', err);
       toast({
         title: "Error Saving Simulation",
-        description: "There was a problem saving your sim<suulation.",
+        description: "There was a problem saving your simulation.",
         variant: "destructive"
       });
     }
   };
-  
-  // Prepare sunburst data
-  const sunburstData = React.useMemo(() => {
-    if (coreIndicator && localIndicators.length > 0 && relationships.length > 0) {
-      return transformToSunburstData(localIndicators, relationships);
-    }
-    return { nodes: [], links: [] };
-  }, [coreIndicator, localIndicators, relationships]);
   
   const canDiveDeeper = coreIndicator && breadcrumbs.length < userSettings.maxDrillDepth;
   
@@ -353,14 +278,9 @@ useEffect(() => {
     );
   };
 
-  
-  console.log('DetailView render, breadcrumbs:', breadcrumbs);
-  
   const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
 
   return (
-    // right before JSX
-    console.log('DetailView render, breadcrumbs:', breadcrumbs),
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
         <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
@@ -405,14 +325,10 @@ useEffect(() => {
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl relative">
                       <SunburstChart
-                        nodes={sunburstData.nodes}
-                        links={sunburstData.links}
+                        indicators={localIndicators}
+                        relationships={relationships}
                         onSelect={handleIndicatorSelect}
-                        onBreadcrumbsChange={setBreadcrumbs}
-                        onVisibleNodesChange={setVisibleNodes}
-                        onCoreChange={handleCoreChange}
                       />
-                      
                     </div>
                   </div>
                   
@@ -443,6 +359,7 @@ useEffect(() => {
                     indicators={indicators}
                     relationships={relationships}
                     visibleNodes={visibleNodes}
+                    llmMode={llmMode}
                   />
                   
                   {isPredicting ? (
@@ -457,13 +374,17 @@ useEffect(() => {
                     </div>
                   ) : (
                     predictionData && (
-                      <TrendGraph predictionData={predictionData} />
+                      <TrendGraph 
+                        predictionData={predictionData}
+                        title={coreIndicator.name}
+                        locationName="St Neots"
+                        unitLabel="%"
+                      />
                     )
                   )}
                 </TabsContent>
 
                 <TabsContent value="simulation" className="pt-4">
-                  {/* Sunburst Fix Mode Toggle */}
                   <div className="flex justify-center">
                     <SunburstFixModeToggle 
                       fixMode={isFixedMode}
@@ -473,14 +394,11 @@ useEffect(() => {
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl">
                       <SunburstChart
-                        nodes={sunburstData.nodes}
-                        links={sunburstData.links}
-                        onCoreChange={handleCoreChange}
-                        onVisibleNodesChange={setVisibleNodes}
+                        indicators={localIndicators}
+                        relationships={relationships}
                       />
                     </div>
                   </div>
-              
 
                   <Simulator
                     key={visibleIndicators.length}
@@ -505,8 +423,7 @@ useEffect(() => {
               >
                 Return to Overview
               </Button>
-             {/* Simulation Modal */}
-            <SimulationModal
+             <SimulationModal
               isOpen={simulationModal.isOpen}
               onClose={() => setSimulationModal({ isOpen: false, targetId: null })}
               targetIndicatorId={simulationModal.targetId || ''}
