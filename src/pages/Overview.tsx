@@ -18,6 +18,7 @@ const Overview: React.FC = () => {
   const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
   const [llmMode, setLlmMode] = useState<'business' | 'community'>('community');
+  const [selectedId, setSelectedId] = useState<string>('');
 
   useEffect(() => {
     if (indicators.length > 0 && !selectedIndicator) {
@@ -25,6 +26,7 @@ const Overview: React.FC = () => {
         ind.name.toLowerCase().includes('wellbeing')
       ) || indicators[0];
       setSelectedIndicator(wellbeingIndicator);
+      setSelectedId(wellbeingIndicator.indicator_id);
     }
   }, [indicators, selectedIndicator]);
 
@@ -32,6 +34,7 @@ const Overview: React.FC = () => {
     const indicator = indicators.find(ind => ind.indicator_id === indicatorId);
     if (indicator) {
       setSelectedIndicator(indicator);
+      setSelectedId(indicatorId);
     }
   };
 
@@ -159,9 +162,9 @@ const Overview: React.FC = () => {
               <SunburstChart
                 indicators={indicators}
                 relationships={relationships}
-                onCoreChange={handleCoreChange}
+                onSelect={handleIndicatorSelect}
                 onVisibleNodesChange={setVisibleNodes}
-                onSelect={handleNodeSelect}
+                selectedId={selectedId}
               />
             </CardContent>
           </Card>

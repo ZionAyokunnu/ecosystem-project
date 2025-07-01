@@ -19,3 +19,13 @@ export const getLocationById = async (id: string): Promise<Location | null> => {
   const locations = await getLocations();
   return locations.find(loc => loc.location_id === id) || null;
 };
+
+export const getRootLocations = async (): Promise<Location[]> => {
+  const locations = await getLocations();
+  return locations.filter(loc => !loc.parent_id);
+};
+
+export const getLocationChildren = async (parentId: string): Promise<Location[]> => {
+  const locations = await getLocations();
+  return locations.filter(loc => loc.parent_id === parentId);
+};

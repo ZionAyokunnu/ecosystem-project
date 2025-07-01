@@ -379,6 +379,7 @@ const DetailView: React.FC = () => {
                         title={coreIndicator.name}
                         locationName="St Neots"
                         unitLabel="%"
+                        indicatorId={coreIndicator.indicator_id}
                       />
                     )
                   )}
