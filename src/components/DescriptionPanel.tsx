@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Indicator, SunburstNode, Relationship } from '@/types';
 import { useDriverComputation } from '@/hooks/useDriverComputation';
@@ -5,7 +6,8 @@ import { useRecommendations } from '@/hooks/useRecommendations';
 import { queryLocalLLM } from '@/services/localLLM';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DescriptionPanelProps {
   coreIndicator: Indicator;
@@ -14,6 +16,8 @@ interface DescriptionPanelProps {
   visibleNodes: SunburstNode[];
   correlations?: Record<string, number>;
   llmMode?: 'business' | 'community';
+  mode?: 'compact' | 'expanded';
+  actions?: Array<{ label: string; link?: string }>;
 }
 
 const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
@@ -23,10 +27,13 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
   visibleNodes,
   correlations = {},
   llmMode = 'community',
+  mode = 'expanded',
+  actions = [],
 }) => {
   const [analysisText, setAnalysisText] = useState<string>('');
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
   const [mounted, setMounted] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(mode === 'expanded');
 
   const localIndicators = (typeof (window as any).localIndicators !== "undefined")
     ? (window as any).localIndicators
@@ -113,7 +120,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                 type === 'positive' ? 'bg-green-500' : 'bg-red-500'
               }`}></span>
               <span>
-                {indicator.name} ({indicator.current_value.toFixed(1)})
+                {indicator.name} ({indicator.current_value.toFixed(1)}%)
                 <span className="text-gray-500 text-sm">{correlationText}</span>
               </span>
             </li>
@@ -123,14 +130,19 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
     );
   };
 
+  const truncateText = (text: string, maxLength: number = 100) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   return (
     <TooltipProvider>
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-white shadow-lg rounded-xl p-6 mb-6 border border-gray-100">
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">{coreIndicator.name} Overview</h2>
           <div className="flex items-center">
             <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md"
               style={{ 
                 background: coreIndicator.current_value > 66 
                   ? 'linear-gradient(to right, #00b09b, #96c93d)' 
@@ -139,15 +151,39 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                     : 'linear-gradient(to right, #cb2d3e, #ef473a)' 
               }}
             >
-              {coreIndicator.current_value.toFixed(1)}
+              {coreIndicator.current_value.toFixed(1)}%
             </div>
-            <div className="ml-4">
+            <div className="ml-4 flex-1">
               {isLoadingAnalysis ? (
                 <Skeleton className="h-4 w-80" />
               ) : (
-               <div>
-                  <p className="text-gray-600">{analysisText}</p>
-                  <p className="text-xs text-gray-400 mt-1">
+                <div className="bg-gray-50 rounded-lg p-4 shadow-sm">
+                  <p className="text-gray-700 leading-relaxed">
+                    {mode === 'compact' && !isExpanded 
+                      ? truncateText(analysisText) 
+                      : analysisText}
+                  </p>
+                  {mode === 'compact' && analysisText.length > 100 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsExpanded(!isExpanded)}
+                      className="mt-2 text-blue-600 hover:text-blue-800"
+                    >
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="w-4 h-4 mr-1" />
+                          Read less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4 mr-1" />
+                          Read more
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <p className="text-xs text-gray-400 mt-2">
                     Perspective: {llmMode === 'business' ? 'Business Stakeholder' : 'Community Member'}
                   </p>
                 </div>
@@ -189,6 +225,31 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                       <p className="text-sm">Based on analysis of {visibleLinkedIndicators?.length || 0} connected indicators</p>
                     </TooltipContent>
                   </Tooltip>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {actions && actions.length > 0 && (
+          <div className="mt-6 border-t pt-4">
+            <h3 className="font-medium text-gray-800 mb-2">Next Steps</h3>
+            <ul className="space-y-2">
+              {actions.map((action, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-blue-600 font-medium">•</span>
+                  {action.link ? (
+                    <a 
+                      href={action.link} 
+                      className="text-blue-600 hover:text-blue-800 underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {action.label}
+                    </a>
+                  ) : (
+                    <span className="text-gray-700">{action.label}</span>
+                  )}
                 </li>
               ))}
             </ul>

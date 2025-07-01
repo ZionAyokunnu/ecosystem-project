@@ -5,10 +5,21 @@ import { PredictionResult } from '@/types';
 
 interface TrendGraphProps {
   predictionData: PredictionResult;
-  onYearClick?: (year: number) => void;   // optional drill‑down handler
+  onYearClick?: (year: number) => void;
+  title: string;
+  locationName: string;
+  unitLabel: string;
+  optimalBenchmark?: number;
 }
 
-const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData, onYearClick }) => {
+const TrendGraph: React.FC<TrendGraphProps> = ({ 
+  predictionData, 
+  onYearClick, 
+  title, 
+  locationName, 
+  unitLabel,
+  optimalBenchmark 
+}) => {
   if (!predictionData || !predictionData.years || !predictionData.values) return null;
   const { years, values } = predictionData;
 
@@ -20,26 +31,53 @@ const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData, onYearClick }) 
     predictedValue: year >= currentYear ? values[i] : null
   }));
 
-  return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Historical & Predicted Trends</h2>
+  // Compute directional overlay color based on optimal benchmark
+  const currentValue = values[years.findIndex(y => y === currentYear)] || values[0];
+  const isImproving = optimalBenchmark ? currentValue >= optimalBenchmark : false;
+  const overlayColor = isImproving ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)';
 
-      <div className="h-64">
+  return (
+    <div className="bg-white shadow rounded-lg p-6" role="img" aria-label={`${title} trend chart for ${locationName}`}>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+        <p className="text-sm text-gray-600 subtitle">
+          {title} in {locationName} ({unitLabel})
+        </p>
+      </div>
+
+      <div className="h-64 relative">
+        {/* Directional overlay */}
+        <div 
+          className="absolute inset-0 rounded"
+          style={{ backgroundColor: overlayColor }}
+          aria-hidden="true"
+        />
+        
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             onClick={(e) => {
-              // e.activeLabel is the x‑axis label (year) that was clicked
               if (e && typeof e.activeLabel === 'number' && onYearClick) {
                 onYearClick(e.activeLabel);
               }
             }}
+            aria-label={`Line chart showing ${title} data over time`}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="year" />
-            <YAxis domain={[0, 100]} />
-            <Tooltip />
+            <XAxis 
+              dataKey="year" 
+              aria-label="Years"
+            />
+            <YAxis 
+              domain={[0, 100]} 
+              tickFormatter={v => `${v}%`}
+              aria-label={`${title} percentage`}
+            />
+            <Tooltip 
+              formatter={(value, name) => [`${value}%`, name]}
+              labelFormatter={(label) => `Year: ${label}`}
+            />
             <Legend />
             <Line
               type="monotone"
@@ -51,7 +89,7 @@ const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData, onYearClick }) 
               connectNulls
               isAnimationActive={true}
               animationDuration={800}
-              cursor="pointer"
+              style={{ cursor: 'pointer' }}
             />
             <Line
               type="monotone"
@@ -64,11 +102,25 @@ const TrendGraph: React.FC<TrendGraphProps> = ({ predictionData, onYearClick }) 
               connectNulls
               isAnimationActive={true}
               animationDuration={800}
-              cursor="pointer"
+              style={{ cursor: 'pointer' }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Mini-legend for directional overlay */}
+      {optimalBenchmark && (
+        <div className="mt-2 flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+            <span>Improvement</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
+            <span>Decline</span>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 p-3 bg-blue-50 rounded-md">
         <h3 className="font-medium text-blue-800 mb-1">Trend Analysis</h3>
