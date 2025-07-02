@@ -5,11 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { useLocation } from '@/context/LocationContext';
 import { getLocationChildren } from '@/services/LocationApi';
 import { Location } from '@/types';
-import { ChevronRight, Users, MessageSquare } from 'lucide-react';
+import { ChevronRight, MapPin, Users, FileText } from 'lucide-react';
 
 interface LocationWithEngagement extends Location {
-  survey_responses?: number;
-  story_count?: number;
+  survey_responses: number;
+  story_count: number;
 }
 
 const EnhancedLocationPicker: React.FC = () => {
@@ -29,14 +29,15 @@ const EnhancedLocationPicker: React.FC = () => {
     const loadCountries = async () => {
       try {
         const countries = await getLocationChildren(null);
-        // Mock engagement data for demonstration
-        const countriesWithEngagement = countries.map(country => ({
-          ...country,
-          type: country.type as 'country' | 'region' | 'city' | 'ward',
-          survey_responses: Math.floor(Math.random() * 500) + 50,
-          story_count: Math.floor(Math.random() * 20) + 5
+        const enhancedCountries = countries.map(c => ({
+          location_id: c.location_id,
+          name: c.name,
+          type: c.type as 'country' | 'region' | 'city' | 'ward',
+          parent_id: c.parent_id || null,
+          survey_responses: Math.floor(Math.random() * 100),
+          story_count: Math.floor(Math.random() * 50)
         }));
-        setCountryOptions(countriesWithEngagement);
+        setCountryOptions(enhancedCountries);
       } catch (error) {
         console.error('Error loading countries:', error);
       }
@@ -51,13 +52,15 @@ const EnhancedLocationPicker: React.FC = () => {
       const loadRegions = async () => {
         try {
           const regions = await getLocationChildren(selectedCountry);
-          const regionsWithEngagement = regions.map(region => ({
-            ...region,
-            type: region.type as 'country' | 'region' | 'city' | 'ward',
-            survey_responses: Math.floor(Math.random() * 200) + 20,
-            story_count: Math.floor(Math.random() * 15) + 2
+          const enhancedRegions = regions.map(r => ({
+            location_id: r.location_id,
+            name: r.name,
+            type: r.type as 'country' | 'region' | 'city' | 'ward',
+            parent_id: r.parent_id || null,
+            survey_responses: Math.floor(Math.random() * 80),
+            story_count: Math.floor(Math.random() * 30)
           }));
-          setRegionOptions(regionsWithEngagement);
+          setRegionOptions(enhancedRegions);
           setSelectedRegion('');
           setCityOptions([]);
           setWardOptions([]);
@@ -76,13 +79,15 @@ const EnhancedLocationPicker: React.FC = () => {
       const loadCities = async () => {
         try {
           const cities = await getLocationChildren(selectedRegion);
-          const citiesWithEngagement = cities.map(city => ({
-            ...city,
-            type: city.type as 'country' | 'region' | 'city' | 'ward',
-            survey_responses: Math.floor(Math.random() * 100) + 10,
-            story_count: Math.floor(Math.random() * 10) + 1
+          const enhancedCities = cities.map(c => ({
+            location_id: c.location_id,
+            name: c.name,
+            type: c.type as 'country' | 'region' | 'city' | 'ward',
+            parent_id: c.parent_id || null,
+            survey_responses: Math.floor(Math.random() * 60),
+            story_count: Math.floor(Math.random() * 20)
           }));
-          setCityOptions(citiesWithEngagement);
+          setCityOptions(enhancedCities);
           setSelectedCity('');
           setWardOptions([]);
         } catch (error) {
@@ -100,13 +105,15 @@ const EnhancedLocationPicker: React.FC = () => {
       const loadWards = async () => {
         try {
           const wards = await getLocationChildren(selectedCity);
-          const wardsWithEngagement = wards.map(ward => ({
-            ...ward,
-            type: ward.type as 'country' | 'region' | 'city' | 'ward',
-            survey_responses: Math.floor(Math.random() * 50) + 5,
-            story_count: Math.floor(Math.random() * 5) + 1
+          const enhancedWards = wards.map(w => ({
+            location_id: w.location_id,
+            name: w.name,
+            type: w.type as 'country' | 'region' | 'city' | 'ward',
+            parent_id: w.parent_id || null,
+            survey_responses: Math.floor(Math.random() * 40),
+            story_count: Math.floor(Math.random() * 15)
           }));
-          setWardOptions(wardsWithEngagement);
+          setWardOptions(enhancedWards);
           setSelectedWard('');
         } catch (error) {
           console.error('Error loading wards:', error);
@@ -136,104 +143,104 @@ const EnhancedLocationPicker: React.FC = () => {
     };
     
     const location = getSelectedLocation();
-    setSelectedLocation(location);
+    if (location) {
+      setSelectedLocation({
+        location_id: location.location_id,
+        name: location.name,
+        type: location.type,
+        parent_id: location.parent_id
+      });
+    } else {
+      setSelectedLocation(null);
+    }
   }, [selectedCountry, selectedRegion, selectedCity, selectedWard, countryOptions, regionOptions, cityOptions, wardOptions, setSelectedLocation]);
 
   const renderLocationOption = (location: LocationWithEngagement) => (
     <div className="flex items-center justify-between w-full">
-      <span>{location.name}</span>
+      <span className="flex items-center gap-2">
+        <MapPin className="w-3 h-3 text-gray-400" />
+        {location.name}
+      </span>
       <div className="flex items-center gap-2">
-        {location.survey_responses && (
-          <Badge variant="secondary" className="text-xs">
-            <Users className="w-3 h-3 mr-1" />
-            {location.survey_responses}
-          </Badge>
-        )}
-        {location.story_count && (
-          <Badge variant="outline" className="text-xs">
-            <MessageSquare className="w-3 h-3 mr-1" />
-            {location.story_count}
-          </Badge>
-        )}
+        <Badge variant="outline" className="text-xs">
+          <Users className="w-3 h-3 mr-1" />
+          {location.survey_responses}
+        </Badge>
+        <Badge variant="outline" className="text-xs">
+          <FileText className="w-3 h-3 mr-1" />
+          {location.story_count}
+        </Badge>
       </div>
     </div>
   );
   
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Country" />
-          </SelectTrigger>
-          <SelectContent>
-            {countryOptions.map((country) => (
-              <SelectItem key={country.location_id} value={country.location_id}>
-                {renderLocationOption(country)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        {selectedCountry && regionOptions.length > 0 && (
-          <>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-            <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Region" />
-              </SelectTrigger>
-              <SelectContent>
-                {regionOptions.map((region) => (
-                  <SelectItem key={region.location_id} value={region.location_id}>
-                    {renderLocationOption(region)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-        
-        {selectedRegion && cityOptions.length > 0 && (
-          <>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-            <Select value={selectedCity} onValueChange={setSelectedCity}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="City" />
-              </SelectTrigger>
-              <SelectContent>
-                {cityOptions.map((city) => (
-                  <SelectItem key={city.location_id} value={city.location_id}>
-                    {renderLocationOption(city)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-        
-        {selectedCity && wardOptions.length > 0 && (
-          <>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-            <Select value={selectedWard} onValueChange={setSelectedWard}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Ward" />
-              </SelectTrigger>
-              <SelectContent>
-                {wardOptions.map((ward) => (
-                  <SelectItem key={ward.location_id} value={ward.location_id}>
-                    {renderLocationOption(ward)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-      </div>
+    <div className="flex items-center gap-2 flex-wrap">
+      <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Select Country" />
+        </SelectTrigger>
+        <SelectContent>
+          {countryOptions.map((country) => (
+            <SelectItem key={country.location_id} value={country.location_id}>
+              {renderLocationOption(country)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       
-      {selectedLocation && (
-        <div className="text-sm text-gray-600">
-          <p>Community engagement data shows active participation in this area</p>
-        </div>
+      {selectedCountry && regionOptions.length > 0 && (
+        <>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select Region" />
+            </SelectTrigger>
+            <SelectContent>
+              {regionOptions.map((region) => (
+                <SelectItem key={region.location_id} value={region.location_id}>
+                  {renderLocationOption(region)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
+      
+      {selectedRegion && cityOptions.length > 0 && (
+        <>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <Select value={selectedCity} onValueChange={setSelectedCity}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select City" />
+            </SelectTrigger>
+            <SelectContent>
+              {cityOptions.map((city) => (
+                <SelectItem key={city.location_id} value={city.location_id}>
+                  {renderLocationOption(city)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
+      
+      {selectedCity && wardOptions.length > 0 && (
+        <>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <Select value={selectedWard} onValueChange={setSelectedWard}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select Ward" />
+            </SelectTrigger>
+            <SelectContent>
+              {wardOptions.map((ward) => (
+                <SelectItem key={ward.location_id} value={ward.location_id}>
+                  {renderLocationOption(ward)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
       )}
     </div>
   );

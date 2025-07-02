@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -7,11 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, TrendingDown, Users, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Users, Target, Brain } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Indicator, Relationship } from '@/types';
 import { getTopDrivers } from '@/utils/indicatorUtils';
+import PredictionChart from '@/components/PredictionChart';
+import ComparativeAnalysis from '@/components/ComparativeAnalysis';
+import AIInsightsPanel from '@/components/AIInsightsPanel';
 
 const ResearchPage: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
@@ -58,24 +60,102 @@ const ResearchPage: React.FC = () => {
     );
   }
 
-  // Mock historical data for demonstration
-  const historicalData = Array.from({ length: 10 }, (_, i) => ({
-    year: 2015 + i,
-    value: indicator.current_value + (Math.random() - 0.5) * 20,
-  }));
+  // Mock data for advanced analytics
+  const predictionData = Array.from({ length: 15 }, (_, i) => {
+    const year = 2020 + i;
+    const currentYear = new Date().getFullYear();
+    const isPrediction = year > currentYear;
+    const baseValue = indicator.current_value;
+    const trend = Math.sin((i - 5) * 0.3) * 10 + baseValue;
+    
+    return {
+      year,
+      historical: !isPrediction ? trend + (Math.random() - 0.5) * 5 : undefined,
+      predicted: trend + (Math.random() - 0.5) * 3,
+      confidence_low: trend - 8,
+      confidence_high: trend + 8,
+      is_prediction: isPrediction
+    };
+  });
 
-  const driverData = [
-    ...topDrivers.positiveDrivers.map(d => ({
-      name: d.name.slice(0, 20) + '...',
-      value: d.current_value,
-      type: 'positive'
-    })),
-    ...topDrivers.negativeDrivers.map(d => ({
-      name: d.name.slice(0, 20) + '...',
-      value: -d.current_value,
-      type: 'negative'
-    }))
-  ].slice(0, 10);
+  const comparisonData = [
+    {
+      location: selectedLocation?.name || 'Current Location',
+      current_value: indicator.current_value,
+      benchmark: 75,
+      difference: indicator.current_value - 75,
+      rank: 3
+    },
+    {
+      location: 'Regional Average',
+      current_value: 72,
+      benchmark: 75,
+      difference: -3,
+      rank: 4
+    },
+    {
+      location: 'National Average',
+      current_value: 68,
+      benchmark: 75,
+      difference: -7,
+      rank: 6
+    },
+    {
+      location: 'Best Performing',
+      current_value: 85,
+      benchmark: 75,
+      difference: 10,
+      rank: 1
+    },
+    {
+      location: 'Peer Location A',
+      current_value: 78,
+      benchmark: 75,
+      difference: 3,
+      rank: 2
+    }
+  ];
+
+  const aiInsights = [
+    {
+      type: 'recommendation' as const,
+      title: 'Focus on Infrastructure Development',
+      description: 'Analysis shows that improving local infrastructure could increase this indicator by 12-15% within 18 months.',
+      confidence: 0.87,
+      impact: 'high' as const,
+      timeframe: '18 months',
+      actions: [
+        'Increase public transportation accessibility',
+        'Improve digital infrastructure coverage',
+        'Enhance community facilities'
+      ]
+    },
+    {
+      type: 'prediction' as const,
+      title: 'Positive Trend Expected',
+      description: 'Based on current patterns and planned initiatives, this indicator is likely to improve by 8% over the next 2 years.',
+      confidence: 0.73,
+      impact: 'medium' as const,
+      timeframe: '24 months'
+    },
+    {
+      type: 'correlation' as const,
+      title: 'Strong Link to Education Outcomes',
+      description: 'There is a 0.82 correlation between this indicator and local education quality metrics.',
+      confidence: 0.92,
+      impact: 'high' as const,
+      actions: [
+        'Coordinate with education department',
+        'Implement joint improvement programs'
+      ]
+    }
+  ];
+
+  const prediction = {
+    trend: indicator.current_value > 60 ? 'increasing' as const : 'stable' as const,
+    confidence: 0.78,
+    factors: ['Economic Development', 'Population Growth', 'Policy Changes', 'Infrastructure Investment']
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -102,10 +182,12 @@ const ResearchPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="trends">Historical Trends</TabsTrigger>
-          <TabsTrigger value="drivers">Key Drivers</TabsTrigger>
+          <TabsTrigger value="trends">Historical</TabsTrigger>
+          <TabsTrigger value="drivers">Drivers</TabsTrigger>
+          <TabsTrigger value="predictions">Predictions</TabsTrigger>
+          <TabsTrigger value="comparison">Comparison</TabsTrigger>
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
         </TabsList>
 
@@ -193,7 +275,7 @@ const ResearchPage: React.FC = () => {
                 className="h-[400px]"
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={historicalData}>
+                  <LineChart data={[]}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" />
                     <YAxis />
@@ -257,70 +339,32 @@ const ResearchPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="insights">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  AI-Generated Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">Key Finding</h4>
-                    <p className="text-blue-800">
-                      Based on correlation analysis, {indicator.name} shows strong positive correlation with {topDrivers.positiveDrivers[0]?.name || 'related indicators'} in the current location context.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-yellow-50 rounded-lg">
-                    <h4 className="font-semibold text-yellow-900 mb-2">Recommendation</h4>
-                    <p className="text-yellow-800">
-                      Focus on improving {topDrivers.negativeDrivers[0]?.name || 'underperforming areas'} to see the most significant impact on {indicator.name}.
-                    </p>
-                  </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h4 className="font-semibold text-purple-900 mb-2">Trend Prediction</h4>
-                    <p className="text-purple-800">
-                      Current trajectory suggests {indicator.current_value > 60 ? 'continued improvement' : 'opportunity for growth'} with targeted interventions.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="predictions">
+          <PredictionChart
+            data={predictionData}
+            indicatorName={indicator.name}
+            currentValue={indicator.current_value}
+            prediction={prediction}
+          />
+        </TabsContent>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Collaboration Opportunities
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-2">Potential Stakeholders</h4>
-                    <ul className="space-y-1 text-sm text-gray-600">
-                      <li>• Local Government Agencies</li>
-                      <li>• Community Organizations</li>
-                      <li>• Educational Institutions</li>
-                      <li>• Healthcare Providers</li>
-                    </ul>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-2">Collaborative Domains</h4>
-                    <ul className="space-y-1 text-sm text-gray-600">
-                      <li>• Data Collection & Analysis</li>
-                      <li>• Community Engagement</li>
-                      <li>• Policy Development</li>
-                      <li>• Resource Allocation</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="comparison">
+          <ComparativeAnalysis
+            data={comparisonData}
+            indicatorName={indicator.name}
+            selectedLocation={selectedLocation?.name}
+          />
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <AIInsightsPanel
+            insights={aiInsights}
+            indicatorName={indicator.name}
+            onImplementAction={(action) => {
+              console.log('Implementing action:', action);
+              // Here you would integrate with actual implementation systems
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>
