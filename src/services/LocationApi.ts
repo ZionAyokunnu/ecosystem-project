@@ -6,10 +6,17 @@ export interface Location {
   parent_id?: string;
 }
 
+export interface LocationPath {
+  location_id: string;
+  name: string;
+  type: string;
+  depth?: number;
+}
+
 // Mock location data for now - replace with actual API calls
 export const getLocations = async (): Promise<Location[]> => {
   return [
-    { location_id: '1', name: 'St Neots', type: 'town' },
+    { location_id: '1', name: 'St Neots', type: 'town', parent_id: undefined },
     { location_id: '2', name: 'Cambridge', type: 'city', parent_id: '1' },
     { location_id: '3', name: 'Huntingdon', type: 'town', parent_id: '1' },
   ];
@@ -33,9 +40,9 @@ export const getLocationChildren = async (parentId: string | null): Promise<Loca
   return locations.filter(loc => loc.parent_id === parentId);
 };
 
-export const getLocationPath = async (locationId: string): Promise<Array<{ location_id: string; name: string; type: string }>> => {
+export const getLocationPath = async (locationId: string): Promise<LocationPath[]> => {
   const locations = await getLocations();
-  const path: Array<{ location_id: string; name: string; type: string }> = [];
+  const path: LocationPath[] = [];
   
   let currentId = locationId;
   const visited = new Set<string>();
@@ -48,11 +55,13 @@ export const getLocationPath = async (locationId: string): Promise<Array<{ locat
     path.unshift({
       location_id: location.location_id,
       name: location.name,
-      type: location.type
+      type: location.type,
+      depth: 0
     });
     
     currentId = location.parent_id || '';
   }
   
-  return path;
+  // Add depth to each item
+  return path.map((item, index) => ({ ...item, depth: index }));
 };

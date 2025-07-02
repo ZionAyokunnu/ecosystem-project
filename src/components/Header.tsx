@@ -1,123 +1,104 @@
 
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator 
-} from '@/components/ui/dropdown-menu';
+  Home, 
+  BarChart3, 
+  MessageSquare, 
+  FileText, 
+  Settings,
+  User,
+  LogOut,
+  TreePine
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { User, LogOut, Settings, Trophy, Wallet } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header: React.FC = () => {
-  const { user, profile, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const location = useLocation();
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
+  const navItems = [
+    { path: '/', label: 'Home', icon: Home },
+    { path: '/overview', label: 'Overview', icon: BarChart3 },
+    { path: '/stories', label: 'Stories', icon: MessageSquare },
+    { path: '/surveys', label: 'Surveys', icon: FileText },
+  ];
 
-  const getRoleDashboard = () => {
-    if (!profile) return '/dashboard';
-    
-    switch (profile.role) {
-      case 'admin':
-        return '/dashboard';
-      case 'community_rep':
-        return '/dashboard';
-      case 'researcher':
-        return 'dashboard';
-      default:
-        return '/dashboard';
-    }
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <header className="bg-white shadow-sm border-b">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex justify-between items-center">
-          <Link to="/overview" className="text-xl font-bold text-blue-600">
-            Community Ecosystem
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <TreePine className="h-8 w-8 text-green-600" />
+            <span className="font-bold text-xl text-gray-900">EcoSystem</span>
           </Link>
-          
-          <nav className="hidden md:flex space-x-6">
-            <Link to="/overview" className="text-gray-600 hover:text-blue-600">
-              Home
-            </Link>
-            <Link to="/stories" className="text-gray-600 hover:text-blue-600">
-              Stories & Calls
-            </Link>
-            <Link to="/detail" className="text-gray-600 hover:text-blue-600">
-              Data & Insights
-            </Link>
+
+          {/* Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive(item.path)
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
+          {/* User Menu */}
           <div className="flex items-center space-x-4">
-            {user && profile ? (
+            {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span>{profile.first_name}</span>
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{user.email}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate(getRoleDashboard())}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Dashboard
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
                   </DropdownMenuItem>
-                  
-                  <DropdownMenuItem onClick={() => navigate('/wallet')}>
-                    <Wallet className="w-4 h-4 mr-2" />
-                    Wallet
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="flex items-center">
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
                   </DropdownMenuItem>
-                  
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="w-4 h-4 mr-2" />
-                    Profile
-                  </DropdownMenuItem>
-                  
-                  <DropdownMenuItem onClick={() => navigate('/leaderboard')}>
-                    <Trophy className="w-4 h-4 mr-2" />
-                    Leaderboard
-                  </DropdownMenuItem>
-                  
-                  {(profile.role === 'community_rep' || profile.role === 'admin') &&  (
-                    <DropdownMenuItem onClick={() => navigate('/rep-dashboard')}>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Rep Dashboard
-                    </DropdownMenuItem>
-                  )}
-                  
-                  {profile.role === 'admin' && (
-                    <DropdownMenuItem onClick={() => navigate('/admin')}>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Admin Panel
-                    </DropdownMenuItem>
-                  )}
-
-                  {(profile.role === 'researcher' || profile.role === 'admin') && (
-                    <DropdownMenuItem onClick={() => navigate('/researcher/insights')}>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Research Panel
-                    </DropdownMenuItem>
-                  )}
-                  
                   <DropdownMenuSeparator />
-                  
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-2" />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate('/auth')}>
-                Sign In
+              <Button asChild>
+                <Link to="/auth">Sign In</Link>
               </Button>
             )}
           </div>

@@ -25,7 +25,8 @@ const LocationPicker: React.FC = () => {
         const countries = await getLocationChildren(null);
         setCountryOptions(countries.map(c => ({
           ...c,
-          type: c.type as 'country' | 'region' | 'city' | 'ward'
+          type: c.type as 'country' | 'region' | 'city' | 'ward',
+          parent_id: c.parent_id || null
         })));
       } catch (error) {
         console.error('Error loading countries:', error);
@@ -43,7 +44,8 @@ const LocationPicker: React.FC = () => {
           const regions = await getLocationChildren(selectedCountry);
           setRegionOptions(regions.map(r => ({
             ...r,
-            type: r.type as 'country' | 'region' | 'city' | 'ward'
+            type: r.type as 'country' | 'region' | 'city' | 'ward',
+            parent_id: r.parent_id || null
           })));
           setSelectedRegion('');
           setCityOptions([]);
@@ -65,7 +67,8 @@ const LocationPicker: React.FC = () => {
           const cities = await getLocationChildren(selectedRegion);
           setCityOptions(cities.map(c => ({
             ...c,
-            type: c.type as 'country' | 'region' | 'city' | 'ward'
+            type: c.type as 'country' | 'region' | 'city' | 'ward',
+            parent_id: c.parent_id || null
           })));
           setSelectedCity('');
           setWardOptions([]);
@@ -86,7 +89,8 @@ const LocationPicker: React.FC = () => {
           const wards = await getLocationChildren(selectedCity);
           setWardOptions(wards.map(w => ({
             ...w,
-            type: w.type as 'country' | 'region' | 'city' | 'ward'
+            type: w.type as 'country' | 'region' | 'city' | 'ward',
+            parent_id: w.parent_id || null
           })));
           setSelectedWard('');
         } catch (error) {

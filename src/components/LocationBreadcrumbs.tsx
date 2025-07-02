@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from '@/context/LocationContext';
 import { getLocationPath } from '@/services/LocationApi';
-import { LocationPath } from '@/types';
+import { LocationPath } from '@/services/LocationApi';
 import { ChevronRight, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -37,7 +37,7 @@ const LocationBreadcrumbs: React.FC = () => {
           location_id: location.location_id,
           name: location.name,
           type: location.type as 'country' | 'region' | 'city' | 'ward',
-          parent_id: null // We don't need parent_id for breadcrumb navigation
+          parent_id: null
         });
       }
     }
