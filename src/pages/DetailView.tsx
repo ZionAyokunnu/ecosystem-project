@@ -28,11 +28,15 @@ import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
 import LLMContextToggle from '@/components/LLMContextToggle';
 import { Settings } from 'lucide-react';
 
+import { useLocation } from '@/context/LocationContext';
+
 
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings, refreshData } = useEcosystem();
+
+  const { selectedLocation: userLocation } = useLocation();
 
   useEffect(() => {
     if (!indicatorId && indicators.length > 0) {
@@ -443,6 +447,7 @@ useEffect(() => {
                     indicators={indicators}
                     relationships={relationships}
                     visibleNodes={visibleNodes}
+                    llmMode={llmMode}
                   />
                   
                   {isPredicting ? (
@@ -457,7 +462,11 @@ useEffect(() => {
                     </div>
                   ) : (
                     predictionData && (
-                      <TrendGraph predictionData={predictionData} />
+                      <TrendGraph 
+                        predictionData={predictionData} 
+                        title={coreIndicator.name}
+                        locationName={userLocation?.name ?? ''}
+                        unitLabel="%"/>
                     )
                   )}
                 </TabsContent>

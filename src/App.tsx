@@ -29,6 +29,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import Leaderboard from "@/pages/Leaderboard";
 import About from "./pages/About";
 import Home from "./pages/Home";
+import "./App.css"
 
 const queryClient = new QueryClient();
 

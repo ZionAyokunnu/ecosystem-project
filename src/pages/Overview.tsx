@@ -10,18 +10,33 @@ import { Indicator, SimulationModalState, SunburstNode } from '@/types';
 import SimulationModal from '@/components/SimulationModal';
 import SunburstFixModeToggle from '@/components/SunburstFixModeToggle';
 import { transformToSunburstData } from '@/utils/indicatorUtils';
-import { BarChart3, Users, Target, TrendingUp } from 'lucide-react';
+import { BarChart3, Users, Target, TrendingUp, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AssociationSummaryCard from '@/components/AssociationSummaryCard';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
+import LLMContextToggle from '@/components/LLMContextToggle';
 
-const Overview = () => {
+
+const Overview: React.FC = () => {
   const navigate = useNavigate();
-  const { indicators, relationships } = useEcosystem();
+  const { indicators, relationships, loading, error } = useEcosystem();
   const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
   const [simulationModal, setSimulationModal] = useState<SimulationModalState>({ isOpen: false, targetIndicatorId: undefined });
   const [isFixedMode, setIsFixedMode] = useState(false);
   const [visibleNodes, setVisibleNodes] = useState<SunburstNode[]>([]);
+  const [llmMode, setLlmMode] = useState<'business' | 'community'>('community');
+
+  useEffect(() => {
+    if (indicators.length > 0 && !selectedIndicator) {
+      const wellbeingIndicator = indicators.find(ind => 
+        ind.name.toLowerCase().includes('wellbeing')
+      ) || indicators[0];
+      setSelectedIndicator(wellbeingIndicator);
+    }
+  }, [indicators, selectedIndicator]);
   const sunburstData = useMemo(() => {
     return transformToSunburstData(indicators, relationships);
   }, [indicators, relationships]);
@@ -114,7 +129,6 @@ useEffect(() => {
     }
   }
 }, [indicators, relationships]);
-const llmMode: 'community' | 'business' = 'community'; // or use actual logic if applicable
 
 
   return (

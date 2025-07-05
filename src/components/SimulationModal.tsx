@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, BarChart3, Eye } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -13,6 +13,7 @@ interface SimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetIndicatorId: string;
+  onViewChange?: () => void;
 }
 
 interface SimulationChange {
@@ -25,7 +26,8 @@ interface SimulationChange {
 const SimulationModal: React.FC<SimulationModalProps> = ({
   isOpen,
   onClose,
-  targetIndicatorId
+  targetIndicatorId,
+  onViewChange
 }) => {
   const { indicators, relationships } = useEcosystem();
   const [targetIndicator, setTargetIndicator] = useState<Indicator | null>(null);
@@ -116,6 +118,8 @@ const SimulationModal: React.FC<SimulationModalProps> = ({
 
   if (!targetIndicator) return null;
 
+  const hasChanges = simulationChanges.some(change => change.impact !== 0);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -136,16 +140,16 @@ const SimulationModal: React.FC<SimulationModalProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Current Value</p>
-                  <p className="text-2xl font-bold">{targetIndicator.current_value.toFixed(1)}</p>
+                  <p className="text-2xl font-bold">{targetIndicator.current_value.toFixed(1)}%</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Predicted Value</p>
-                  <p className="text-2xl font-bold text-blue-600">{predictedParentValue.toFixed(1)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{predictedParentValue.toFixed(1)}%</p>
                   <div className={`flex items-center justify-center gap-1 ${getImpactColor(predictedParentValue - targetIndicator.current_value)}`}>
                     {getImpactIcon(predictedParentValue - targetIndicator.current_value)}
                     <span className="text-sm font-medium">
                       {predictedParentValue - targetIndicator.current_value > 0 ? '+' : ''}
-                      {(predictedParentValue - targetIndicator.current_value).toFixed(1)}
+                      {(predictedParentValue - targetIndicator.current_value).toFixed(1)}%
                     </span>
                   </div>
                 </div>
@@ -235,9 +239,21 @@ const SimulationModal: React.FC<SimulationModalProps> = ({
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
-            <Button disabled={childIndicators.length === 0}>
-              Save Scenario
-            </Button>
+            <div className="flex gap-2">
+              {hasChanges && onViewChange && (
+                <Button
+                  variant="outline"
+                  onClick={onViewChange}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  View Changes
+                </Button>
+              )}
+              <Button disabled={childIndicators.length === 0}>
+                Save Scenario
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

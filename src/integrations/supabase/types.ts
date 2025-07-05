@@ -54,6 +54,44 @@ export type Database = {
           },
         ]
       }
+      benchmarks: {
+        Row: {
+          benchmark_type: string
+          created_at: string
+          description: string | null
+          id: string
+          indicator_id: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          benchmark_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          indicator_id: string
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          benchmark_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          indicator_id?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benchmarks_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+        ]
+      }
       domains: {
         Row: {
           domain_id: string

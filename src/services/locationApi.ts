@@ -34,6 +34,7 @@ export const getLocationPath = async (locationId: string): Promise<LocationPath[
   return data || [];
 };
 
+
 export const getAllLocations = async (): Promise<Location[]> => {
   const { data, error } = await supabase
     .from('locations')
@@ -65,6 +66,6 @@ export const getRootLocations = async (): Promise<Location[]> => {
 
   return (data || []).map(item => ({
     ...item,
-    type: item.type as 'country' | 'region' | 'city' | 'ward'
+    type: item.type as 'country' | 'region' | 'city' |  'ward'
   }));
 };

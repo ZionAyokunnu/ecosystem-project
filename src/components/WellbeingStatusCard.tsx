@@ -18,16 +18,19 @@ const WellbeingStatusCard: React.FC = () => {
 
   const { prediction } = usePrediction(wellbeingIndicator);
 
-  const { currentLevel, trend, locationName } = useMemo(() => {
+  const { percentageText, currentLevel, trend, locationName } = useMemo(() => {
     if (!wellbeingIndicator) {
       return {
         currentLevel: null,
+        percentageText: 'Happiness data not available',
         trend: 'stay the same',
         locationName: 'St Neots'
       };
     }
 
     const currentValue = wellbeingIndicator.current_value;
+
+    const percentageText = `${Math.round(currentValue)}% of people report happiness`;
     
     // Determine current level
     let level: string;
@@ -53,6 +56,7 @@ const WellbeingStatusCard: React.FC = () => {
     }
 
     return {
+      percentageText,
       currentLevel: level,
       trend: trendText,
       locationName: 'St Neots' // Could be made dynamic based on user's location
@@ -64,8 +68,8 @@ const WellbeingStatusCard: React.FC = () => {
       return "Happiness data not available.";
     }
     
-    return `${locationName} Happiness is ${currentLevel} and is expected to ${trend}.`;
-  }, [wellbeingIndicator, currentLevel, trend, locationName]);
+    return `${percentageText} in ${locationName} as ${currentLevel} and is expected to ${trend}.`;
+  }, [wellbeingIndicator, percentageText, currentLevel, trend, locationName]);
 
   return (
     <div className="w-full max-w-4xl mx-auto mb-12">
