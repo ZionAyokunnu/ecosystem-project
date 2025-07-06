@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
+import SurveyCreationForm from '@/components/SurveyCreationForm';
+import { useEcosystem } from '@/context/EcosystemContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Settings, Database, Users, BarChart, Save, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -14,16 +16,16 @@ import InfluenceMetricsComputer from '@/components/InfluenceMetricsComputer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@radix-ui/react-dropdown-menu';
-import { useEcosystem } from '@/context/EcosystemContext';
 
 const AdminDashboard: React.FC = () => {
   const { profile } = useAuth();
+  const { indicators: ecoIndicators } = useEcosystem();
+  const [showSurveyForm, setShowSurveyForm] = useState(false);
   const { toast } = useToast();
   const [indicators, setIndicators] = useState<any[]>([]);
   const [selectedIndicator, setSelectedIndicator] = useState('');
   const [rationale, setRationale] = useState('');
   const [users, setUsers] = useState<any[]>([]);
-  const { loading: ecoLoading, error: ecoError, indicators: ecoIndicators } = useEcosystem();
   const [inputYear, setInputYear] = useState('');
   const [inputValue, setInputValue] = useState('');
 
@@ -243,16 +245,7 @@ const AdminDashboard: React.FC = () => {
 
         {/* Influence Metrics Computer */}
         <div>
-          {ecoLoading ? (
-            <Skeleton className="h-96 w-full" />
-          ) : ecoError ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{ecoError.message}</AlertDescription>
-            </Alert>
-          ) : (
-            <InfluenceMetricsComputer />
-          )}
+          <InfluenceMetricsComputer />
         </div>
 
       </div>

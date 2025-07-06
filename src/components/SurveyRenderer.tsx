@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ArrowRight, ArrowLeft, Plus, Target, TrendingUp, TrendingDown, Minus, ArrowUpDown, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import ResponseRateBadge from './ResponseRateBadge';
 
 interface SurveyQuestion {
   question_id: string;
@@ -383,7 +384,14 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
       {/* Main Question Card */}
       <Card className="shadow-lg animate-fade-in">
         <CardHeader className="bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-t-lg">
-          <CardTitle className="text-xl">Relationship Assessment</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl">Relationship Assessment</CardTitle>
+            <ResponseRateBadge 
+              parentId={currentQuestion.parent_indicator_id}
+              childId={currentQuestion.child_indicator_id}
+              className="bg-white/20 text-white"
+            />
+          </div>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
           {/* Indicators */}

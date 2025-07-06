@@ -11,10 +11,15 @@ export interface Indicator {
 export interface Location {
   location_id: string;
   name: string;
-  type: 'country' | 'region' | 'city' | 'ward';
+  type: 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward';
   parent_id: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface LocationWithEngagement extends Location {
+  survey_responses: number;
+  story_count: number;
 }
 
 export interface IndicatorValue {

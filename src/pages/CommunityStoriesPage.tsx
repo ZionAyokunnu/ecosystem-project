@@ -11,6 +11,7 @@ import { useLocation } from '@/context/LocationContext';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getCommunityStories, createCommunityStory, likeStory, isStoryLiked, type CommunityStory } from '@/services/communityStoriesApi';
+import SuggestedInitiativeBox from '@/components/SuggestedInitiativeBox';
 
 
 
@@ -326,15 +327,17 @@ const CommunityStoriesPage: React.FC = () => {
                         <Badge variant="secondary">{category}</Badge>
                       </div>
                       <p className="text-gray-600 leading-relaxed">{body}</p>
-                      <div className="mt-2 text-sm text-gray-500">
-                        Related to: {indicatorName}
-                      </div>
-
-
-
-
-
-                    </div>
+                       <div className="mt-2 text-sm text-gray-500">
+                         Related to: {indicatorName}
+                       </div>
+                       
+                       {/* AI-Suggested Initiative */}
+                       <SuggestedInitiativeBox 
+                         storyText={body}
+                         indicatorName={indicatorName}
+                         locationName={selectedLocation?.name || 'Your area'}
+                       />
+                     </div>
 
                     <Button
                       variant="ghost"
