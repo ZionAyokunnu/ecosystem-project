@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -13,7 +14,7 @@ import { Indicator, Relationship } from '@/types';
 import { getTopDrivers } from '@/utils/indicatorUtils';
 import PredictionChart from '@/components/PredictionChart';
 import ComparativeAnalysis from '@/components/ComparativeAnalysis';
-import AIInsightsPanel from '@/components/AIInsightsPanel';
+import InsightsPanel from '@/components/InsightsPanel';
 
 const ResearchPage: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
@@ -60,7 +61,26 @@ const ResearchPage: React.FC = () => {
     );
   }
 
-  // Mock data for advanced analytics
+  // Mock historical data for demonstration
+  const historicalData = Array.from({ length: 10 }, (_, i) => ({
+    year: 2015 + i,
+    value: indicator.current_value + (Math.random() - 0.5) * 20,
+  }));
+
+  const driverData = [
+    ...topDrivers.positiveDrivers.map(d => ({
+      name: d.name.slice(0, 20) + '...',
+      value: d.current_value,
+      type: 'positive'
+    })),
+    ...topDrivers.negativeDrivers.map(d => ({
+      name: d.name.slice(0, 20) + '...',
+      value: -d.current_value,
+      type: 'negative'
+    }))
+  ].slice(0, 10);
+
+    // Mock data for advanced analytics
   const predictionData = Array.from({ length: 15 }, (_, i) => {
     const year = 2020 + i;
     const currentYear = new Date().getFullYear();
@@ -201,9 +221,9 @@ const ResearchPage: React.FC = () => {
                 {indicator.description || `${indicator.name} is a key indicator measuring aspects of community wellbeing in the ${indicator.category} domain. This metric helps track progress and identify areas for improvement.`}
               </p>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Current Score</h4>
-                  <p className="text-2xl font-bold text-blue-600">{indicator.current_value.toFixed(1)}</p>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">Current Score</h4>
+                  <p className="text-2xl font-bold text-gray-600">{indicator.current_value.toFixed(1)}</p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-green-900 mb-2">Domain</h4>
@@ -275,7 +295,7 @@ const ResearchPage: React.FC = () => {
                 className="h-[400px]"
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={[]}>
+                  <LineChart data={historicalData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="year" />
                     <YAxis />
@@ -287,6 +307,34 @@ const ResearchPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="predictions">
+          <PredictionChart
+            data={predictionData}
+            indicatorName={indicator.name}
+            currentValue={indicator.current_value}
+            prediction={prediction}
+          />
+        </TabsContent>
+
+        <TabsContent value="comparison">
+          <ComparativeAnalysis
+            data={comparisonData}
+            indicatorName={indicator.name}
+            selectedLocation={selectedLocation?.name}
+          />
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <InsightsPanel
+            insights={aiInsights}
+            indicatorName={indicator.name}
+            onImplementAction={(action) => {
+              console.log('Implementing action:', action);
+              // Here you would integrate with actual implementation systems
+            }}
+          />
+          </TabsContent>
 
         <TabsContent value="drivers">
           <Card>
@@ -339,32 +387,70 @@ const ResearchPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="predictions">
-          <PredictionChart
-            data={predictionData}
-            indicatorName={indicator.name}
-            currentValue={indicator.current_value}
-            prediction={prediction}
-          />
-        </TabsContent>
-
-        <TabsContent value="comparison">
-          <ComparativeAnalysis
-            data={comparisonData}
-            indicatorName={indicator.name}
-            selectedLocation={selectedLocation?.name}
-          />
-        </TabsContent>
-
         <TabsContent value="insights">
-          <AIInsightsPanel
-            insights={aiInsights}
-            indicatorName={indicator.name}
-            onImplementAction={(action) => {
-              console.log('Implementing action:', action);
-              // Here you would integrate with actual implementation systems
-            }}
-          />
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  AI-Generated Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-2">Key Finding</h4>
+                    <p className="text-gray-800">
+                      Based on correlation analysis, {indicator.name} shows strong positive correlation with {topDrivers.positiveDrivers[0]?.name || 'related indicators'} in the current location context.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-yellow-50 rounded-lg">
+                    <h4 className="font-semibold text-yellow-900 mb-2">Recommendation</h4>
+                    <p className="text-yellow-800">
+                      Focus on improving {topDrivers.negativeDrivers[0]?.name || 'underperforming areas'} to see the most significant impact on {indicator.name}.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <h4 className="font-semibold text-purple-900 mb-2">Trend Prediction</h4>
+                    <p className="text-purple-800">
+                      Current trajectory suggests {indicator.current_value > 60 ? 'continued improvement' : 'opportunity for growth'} with targeted interventions.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Collaboration Opportunities
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold mb-2">Potential Stakeholders</h4>
+                    <ul className="space-y-1 text-sm text-gray-600">
+                      <li>• Local Government Agencies</li>
+                      <li>• Community Organizations</li>
+                      <li>• Educational Institutions</li>
+                      <li>• Healthcare Providers</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-semibold mb-2">Collaborative Domains</h4>
+                    <ul className="space-y-1 text-sm text-gray-600">
+                      <li>• Data Collection & Analysis</li>
+                      <li>• Community Engagement</li>
+                      <li>• Policy Development</li>
+                      <li>• Resource Allocation</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

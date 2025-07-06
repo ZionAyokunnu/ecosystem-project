@@ -40,7 +40,7 @@ const BadgeRenderer: React.FC<BadgeRendererProps> = ({ badges: initialBadges, us
         return {
           icon: Star,
           label: 'Survey Starter',
-          color: 'bg-blue-100 text-blue-800',
+          color: 'bg-gray-100 text-gray-800',
           description: 'Completed your first survey'
         };
       case '5x_participant':

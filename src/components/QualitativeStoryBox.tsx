@@ -16,6 +16,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
   parentId,
   childId
 }) => {
+  console.log('QualitativeStoryBox props → parentId:', parentId, 'childId:', childId);
   const [stories, setStories] = useState<QualitativeStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +29,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
 
   useEffect(() => {
     const fetchStories = async () => {
+      console.log(`QualitativeStoryBox: fetchStories starting for parentId=${parentId}, childId=${childId}`);
       const key = getCacheKey(parentId, childId);
       setCacheKey(key);
       
@@ -48,7 +50,9 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
       
       try {
         const fetchedStories = await getQualitativeStories(parentId, childId);
+        console.log('QualitativeStoryBox: fetchedStories:', fetchedStories);
         setStories(fetchedStories);
+        console.log('QualitativeStoryBox: stories state after setStories:', fetchedStories);
         
         // Cache the results
         localStorage.setItem(key, JSON.stringify(fetchedStories));
@@ -68,6 +72,9 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
 
   const latestStory = stories.length > 0 ? stories[0] : null;
 
+  // Debug: log rendering and current stories state
+  console.log('QualitativeStoryBox: rendering, current stories:', stories);
+
   return (
     <Card className="w-80 bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200">
       <CardHeader 
@@ -76,7 +83,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
       >
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4 text-blue-600" />
+            <MessageCircle className="w-4 h-4 text-gray-600" />
             <span>Community Stories</span>
           </div>
           <Button variant="ghost" size="sm" className="p-0 h-auto">
@@ -119,7 +126,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
                 <p>{new Date(latestStory.created_at).toLocaleDateString()}</p>
               </div>
               {stories.length > 1 && (
-                <p className="text-xs text-blue-600">
+                <p className="text-xs text-gray-600">
                   +{stories.length - 1} more stories
                 </p>
               )}
@@ -129,7 +136,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
               <p className="text-sm text-gray-500 mb-2">
                 No stories yet for this relationship.
               </p>
-              <Button variant="link" size="sm" className="text-blue-600 p-0 h-auto">
+              <Button variant="link" size="sm" className="text-gray-600 p-0 h-auto">
                 Be the first to share a story
               </Button>
             </div>

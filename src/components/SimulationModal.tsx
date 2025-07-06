@@ -144,7 +144,7 @@ const SimulationModal: React.FC<SimulationModalProps> = ({
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Predicted Value</p>
-                  <p className="text-2xl font-bold text-blue-600">{predictedParentValue.toFixed(1)}%</p>
+                  <p className="text-2xl font-bold text-gray-600">{predictedParentValue.toFixed(1)}%</p>
                   <div className={`flex items-center justify-center gap-1 ${getImpactColor(predictedParentValue - targetIndicator.current_value)}`}>
                     {getImpactIcon(predictedParentValue - targetIndicator.current_value)}
                     <span className="text-sm font-medium">

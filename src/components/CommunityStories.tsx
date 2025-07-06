@@ -170,7 +170,7 @@ const fetchStories = async () => {
             
             return (
               <div key={story.story_id}>
-                <div className="border-l-4 border-blue-500 pl-4 py-2">
+                <div className="border-l-4 border-gray-500 pl-4 py-2">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">

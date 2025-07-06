@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocation } from '@/context/LocationContext';
-import { getLocationChildren } from '@/services/LocationApi';
+import { getLocationChildren } from '@/services/locationApi'
 import { Location } from '@/types';
 import { ChevronRight } from 'lucide-react';
 
@@ -12,11 +12,15 @@ const LocationPicker: React.FC = () => {
   const [regionOptions, setRegionOptions] = useState<Location[]>([]);
   const [cityOptions, setCityOptions] = useState<Location[]>([]);
   const [wardOptions, setWardOptions] = useState<Location[]>([]);
+  const [nationOptions, setNationOptions] = useState<Location[]>([]);
+  const [townOptions, setTownOptions] = useState<Location[]>([]);
   
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedRegion, setSelectedRegion] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('');
   const [selectedWard, setSelectedWard] = useState<string>('');
+  const [selectedNation, setSelectedNation] = useState<string>('');
+  const [selectedTown, setSelectedTown] = useState<string>('');
   
   // Load countries on mount
   useEffect(() => {
@@ -25,7 +29,7 @@ const LocationPicker: React.FC = () => {
         const countries = await getLocationChildren(null);
         setCountryOptions(countries.map(c => ({
           ...c,
-          type: c.type as 'country' | 'region' | 'city' | 'ward',
+          type: c.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           parent_id: c.parent_id || null
         })));
       } catch (error) {
@@ -35,29 +39,52 @@ const LocationPicker: React.FC = () => {
     
     loadCountries();
   }, []);
-  
-  // Load regions when country changes
+
+  // Load nations when country changes
   useEffect(() => {
-    if (selectedCountry) {
+    if (!selectedCountry) return;
+    const loadNations = async () => {
+      try {
+        const nations = await getLocationChildren(selectedCountry);
+        setNationOptions(nations.map(n => ({
+          ...n,
+          type: n.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
+          
+        })));
+        setSelectedNation('');
+        setRegionOptions([]);
+        setCityOptions([]);
+        setTownOptions([]);
+        setWardOptions([]);
+      } catch (err) {
+        console.error('Error loading nations:', err);
+      }
+    };
+    loadNations();
+  }, [selectedCountry]);
+  
+  // Load regions when nation changes
+  useEffect(() => {
+    if (selectedNation) {
       const loadRegions = async () => {
         try {
-          const regions = await getLocationChildren(selectedCountry);
+          const regions = await getLocationChildren(selectedNation);
           setRegionOptions(regions.map(r => ({
             ...r,
-            type: r.type as 'country' | 'region' | 'city' | 'ward',
-            parent_id: r.parent_id || null
+            type: r.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward'
           })));
           setSelectedRegion('');
           setCityOptions([]);
           setWardOptions([]);
+          setTownOptions([]);
+          setSelectedTown('');
         } catch (error) {
           console.error('Error loading regions:', error);
         }
       };
-      
       loadRegions();
     }
-  }, [selectedCountry]);
+  }, [selectedNation]);
   
   // Load cities when region changes
   useEffect(() => {
@@ -67,40 +94,58 @@ const LocationPicker: React.FC = () => {
           const cities = await getLocationChildren(selectedRegion);
           setCityOptions(cities.map(c => ({
             ...c,
-            type: c.type as 'country' | 'region' | 'city' | 'ward',
-            parent_id: c.parent_id || null
+            type: c.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward'
           })));
           setSelectedCity('');
           setWardOptions([]);
+          setTownOptions([]);
+          setSelectedTown('');
         } catch (error) {
           console.error('Error loading cities:', error);
         }
       };
-      
       loadCities();
     }
   }, [selectedRegion]);
-  
-  // Load wards when city changes
+
+  // Load towns when city changes
   useEffect(() => {
-    if (selectedCity) {
+    if (!selectedCity) return;
+    const loadTowns = async () => {
+      try {
+        const towns = await getLocationChildren(selectedCity);
+        setTownOptions(towns.map(t => ({
+          ...t,
+          type: t.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward'
+        })));
+        setSelectedTown('');
+        setWardOptions([]);
+        setSelectedWard('');
+      } catch (err) {
+        console.error('Error loading towns:', err);
+      }
+    };
+    loadTowns();
+  }, [selectedCity]);
+  
+  // Load wards when town changes
+  useEffect(() => {
+    if (selectedTown) {
       const loadWards = async () => {
         try {
-          const wards = await getLocationChildren(selectedCity);
+          const wards = await getLocationChildren(selectedTown);
           setWardOptions(wards.map(w => ({
             ...w,
-            type: w.type as 'country' | 'region' | 'city' | 'ward',
-            parent_id: w.parent_id || null
+            type: w.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward'
           })));
           setSelectedWard('');
         } catch (error) {
           console.error('Error loading wards:', error);
         }
       };
-      
       loadWards();
     }
-  }, [selectedCity]);
+  }, [selectedTown]);
   
   // Update selected location when selections change
   useEffect(() => {
@@ -108,11 +153,17 @@ const LocationPicker: React.FC = () => {
       if (selectedWard) {
         return wardOptions.find(w => w.location_id === selectedWard) || null;
       }
+      if (selectedTown) {
+        return townOptions.find(t => t.location_id === selectedTown) || null;
+      }
       if (selectedCity) {
         return cityOptions.find(c => c.location_id === selectedCity) || null;
       }
       if (selectedRegion) {
         return regionOptions.find(r => r.location_id === selectedRegion) || null;
+      }
+      if (selectedNation) {
+        return nationOptions.find(n => n.location_id === selectedNation) || null;
       }
       if (selectedCountry) {
         return countryOptions.find(c => c.location_id === selectedCountry) || null;
@@ -122,7 +173,21 @@ const LocationPicker: React.FC = () => {
     
     const location = getSelectedLocation();
     setSelectedLocation(location);
-  }, [selectedCountry, selectedRegion, selectedCity, selectedWard, countryOptions, regionOptions, cityOptions, wardOptions, setSelectedLocation]);
+  }, [
+    selectedCountry,
+    selectedRegion,
+    selectedCity,
+    selectedWard,
+    selectedNation,
+    selectedTown,
+    countryOptions,
+    regionOptions,
+    cityOptions,
+    wardOptions,
+    nationOptions,
+    townOptions,
+    setSelectedLocation
+  ]);
   
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -138,8 +203,26 @@ const LocationPicker: React.FC = () => {
           ))}
         </SelectContent>
       </Select>
-      
-      {selectedCountry && regionOptions.length > 0 && (
+
+      {selectedCountry && nationOptions.length > 0 && (
+        <>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <Select value={selectedNation} onValueChange={setSelectedNation}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Nation" />
+            </SelectTrigger>
+            <SelectContent>
+              {nationOptions.map(n => (
+                <SelectItem key={n.location_id} value={n.location_id}>
+                  {n.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
+
+      {selectedNation && regionOptions.length > 0 && (
         <>
           <ChevronRight className="w-4 h-4 text-gray-400" />
           <Select value={selectedRegion} onValueChange={setSelectedRegion}>
@@ -156,7 +239,7 @@ const LocationPicker: React.FC = () => {
           </Select>
         </>
       )}
-      
+
       {selectedRegion && cityOptions.length > 0 && (
         <>
           <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -174,8 +257,26 @@ const LocationPicker: React.FC = () => {
           </Select>
         </>
       )}
-      
-      {selectedCity && wardOptions.length > 0 && (
+
+      {selectedCity && townOptions.length > 0 && (
+        <>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <Select value={selectedTown} onValueChange={setSelectedTown}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Town" />
+            </SelectTrigger>
+            <SelectContent>
+              {townOptions.map(t => (
+                <SelectItem key={t.location_id} value={t.location_id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
+
+      {selectedTown && wardOptions.length > 0 && (
         <>
           <ChevronRight className="w-4 h-4 text-gray-400" />
           <Select value={selectedWard} onValueChange={setSelectedWard}>

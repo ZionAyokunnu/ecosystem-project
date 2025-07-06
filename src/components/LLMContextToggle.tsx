@@ -14,7 +14,7 @@ const LLMContextToggle: React.FC<LLMContextToggleProps> = ({
 }) => {
   // Load saved preference from localStorage on mount
   useEffect(() => {
-    const savedMode = localStorage.getItem('llmMode') as 'business' | 'community';
+    const savedMode = localStorage.getItem('llmMode') as 'community' | 'business';
     if (savedMode && (savedMode === 'business' || savedMode === 'community')) {
       onModeChange(savedMode);
     }
@@ -38,8 +38,8 @@ const LLMContextToggle: React.FC<LLMContextToggleProps> = ({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="business">Business</SelectItem>
           <SelectItem value="community">Community</SelectItem>
+          <SelectItem value="business">Business</SelectItem>
         </SelectContent>
       </Select>
     </div>

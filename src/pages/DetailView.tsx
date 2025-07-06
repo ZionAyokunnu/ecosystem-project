@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -26,10 +28,15 @@ import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
 import LLMContextToggle from '@/components/LLMContextToggle';
 import { Settings } from 'lucide-react';
 
+import { useLocation } from '@/context/LocationContext';
+
+
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
   const navigate = useNavigate();
   const { indicators, relationships, loading, error, userSettings, refreshData } = useEcosystem();
+
+  const { selectedLocation: userLocation } = useLocation();
 
   useEffect(() => {
     if (!indicatorId && indicators.length > 0) {
@@ -59,43 +66,73 @@ const DetailView: React.FC = () => {
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [currentChildId, setCurrentChildId] = useState<string | null>(null);
 
-  const handleCoreChange = useCallback(
-    (newId: string | null) => {
-      if (!newId) return;
-      setCurrentCoreId(newId);
-      const found = indicators.find(ind => ind.indicator_id === newId);
-      if (found) {
-        setCoreIndicator(found);
-        const parentRelationship = relationships.find(r => r.child_id === newId);
-        if (parentRelationship) {
-          setCurrentParentId(parentRelationship.parent_id);
-          setCurrentChildId(newId);
-        } else {
-          setCurrentParentId(newId);
-          setCurrentChildId(newId);
-        }                 
-      }
-    },
-    [indicators]
+const handleCoreChange = useCallback(
+  (newId: string | null) => {
+    if (!newId) return;            // synthetic root; ignore
+    setCurrentCoreId(newId);       // drives TrendGraph
+    const found = indicators.find(ind => ind.indicator_id === newId);
+    if (found) {
+      setCoreIndicator(found);     // drives DescriptionPanel header & value
+
+      // Find parent-child relationship for qualitative stories
+      const parentRelationship = relationships.find(r => r.child_id === newId);
+      if (parentRelationship) {
+        setCurrentParentId(parentRelationship.parent_id);
+        setCurrentChildId(newId);
+      } else {
+        // If it's a root indicator, use it as both parent and child
+        setCurrentParentId(newId);
+        setCurrentChildId(newId);
+      }                 
+    }
+  },
+  [indicators]
+);
+
+// IDs of wedges currently shown
+const visibleIds = useMemo(
+  () => visibleNodes.map(n => n.id),
+  [visibleNodes]
+);
+
+// // Actual Indicator objects that match those IDs
+// const visibleIndicators = useMemo(
+//   () => localIndicators.filter(ind => visibleIds.includes(ind.indicator_id)),
+//   [localIndicators, visibleIds]
+// );
+
+const visibleIndicators = useMemo(() => {
+  return visibleNodes
+    // //  ❌ drop the synthetic root (depth 0), if you don’t want it
+    // .filter(node => node.depth > 0)
+    //  ✅ map each wedge back to the full Indicator
+    .map(node => indicators.find(ind => ind.indicator_id === node.id))
+    //  🚨 drop any that somehow didn’t resolve (shouldn’t happen)
+    .filter((ind): ind is Indicator => Boolean(ind))
+}, [visibleNodes, indicators])
+
+const [isFixedMode, setIsFixedMode] = useState<boolean>(false);
+const [simulationModal, setSimulationModal] = useState<{ isOpen: boolean; targetId: string | null }>({
+    isOpen: false,
+    targetId: null
+  });
+
+useEffect(() => {
+  console.log(
+    "🌞 Sunburst shows:", visibleNodes.length,
+    "→ IDs:", visibleNodes.map(n => n.id)
   );
-
-  const visibleIds = useMemo(
-    () => visibleNodes.map(n => n.id),
-    [visibleNodes]
+  console.log(
+    "📋 Simulator has:", visibleIndicators.length,
+    "→ IDs:", visibleIndicators.map(i => i.indicator_id)
   );
+}, [visibleNodes, visibleIndicators]);
 
-  const visibleIndicators = useMemo(() => {
-    return visibleNodes
-      .map(node => indicators.find(ind => ind.indicator_id === node.id))
-      .filter((ind): ind is Indicator => Boolean(ind))
-  }, [visibleNodes, indicators])
+ useEffect(() => {
+     console.log('DetailView: visibleIndicators updated', visibleIndicators);
+   }, [visibleIndicators]);
 
-  const [isFixedMode, setIsFixedMode] = useState<boolean>(false);
-  const [simulationModal, setSimulationModal] = useState<{ isOpen: boolean; targetId: string | null }>({
-      isOpen: false,
-      targetId: null
-    });
-
+  // Load core indicator and prepare data
   useEffect(() => {
     console.log('DetailView useEffect:', { indicatorId, loading, indicatorsCount: indicators.length });
     if (!indicatorId || loading || indicators.length === 0) return;
@@ -103,17 +140,22 @@ const DetailView: React.FC = () => {
     const loadIndicatorData = async () => {
       setIsLoading(true);
       try {
+        // Try to find the indicator in the already loaded indicators
         let indicator = indicators.find(ind => ind.indicator_id === indicatorId);
         
+        // If not found, try to fetch it directly
         if (!indicator) {
           indicator = await getIndicatorById(indicatorId);
         }
         
         if (indicator) {
           setCoreIndicator(indicator);
+          
+          // Reset simulation state when changing core indicator
           setLocalIndicators(indicators);
           setSimulationChanges([]);
           
+          // Get prediction data
           setIsPredicting(true);
           try {
             const prediction = await predictTrend(indicator.indicator_id);
@@ -124,6 +166,7 @@ const DetailView: React.FC = () => {
             setIsPredicting(false);
           }
           
+          // Get top drivers
           const drivers = getTopDrivers(
             indicator.indicator_id,
             indicators,
@@ -131,8 +174,9 @@ const DetailView: React.FC = () => {
             userSettings.topDriversCount
           );
           setTopDrivers(drivers);
-          setSimulationDrivers(drivers);
 
+          setSimulationDrivers(drivers);
+          // Compute breadcrumbs from relationships, skipping self-links
           const path: Array<{ id: string; name: string }> = [];
           const visited = new Set<string>();
           let currentIdTemp = indicator.indicator_id;
@@ -141,6 +185,7 @@ const DetailView: React.FC = () => {
             const indItem = indicators.find(i => i.indicator_id === currentIdTemp);
             if (!indItem) break;
             path.unshift({ id: indItem.indicator_id, name: indItem.name });
+            // find a parent link that is not a self-link
             const parentRel = relationships.find(rel =>
               rel.child_id === currentIdTemp && rel.parent_id !== currentIdTemp
             );
@@ -160,13 +205,24 @@ const DetailView: React.FC = () => {
       }
     };
     
+    
     loadIndicatorData();
   }, [indicatorId, indicators, relationships, loading, userSettings.topDriversCount]);
+
+  // (Removed: Set visible nodes from sunburst data. Now handled by SunburstChart callback)
+
+  
+
+  useEffect(() => {
+    console.log('Breadcrumbs updated:', breadcrumbs);
+  }, [breadcrumbs]);
 
   useEffect(() => {
     if (!currentCoreId) return;
 
+    console.log('STEP ③2 ▶️ fetching prediction for', currentCoreId);
     setIsPredicting(true);
+
     predictTrend(currentCoreId)
       .then(setPredictionData)
       .catch(err => {
@@ -187,20 +243,22 @@ const DetailView: React.FC = () => {
     setTopDrivers(drivers);
     setSimulationDrivers(drivers);
   }, [coreIndicator, indicators, relationships, userSettings.topDriversCount]);
+
   
   const handleIndicatorSelect = (selectedId: string) => {
     if (selectedId === indicatorId) return;
     navigate(`/detail/${selectedId}`);
   };
   
-  const handleSunburstNodeClick = (nodeId: string) => {
+    const handleSunburstNodeClick = (nodeId: string) => {
     if (isFixedMode) {
+      // In fixed mode, show simulation instead of drilling down
       setSimulationModal({ isOpen: true, targetId: nodeId });
     } else {
+      // Normal drill-down behavior
       navigate(`/detail/${nodeId}`);
     }
   };
-
   const handleBreadcrumbClick = (selectedId: string) => {
     navigate(`/detail/${selectedId}`);
   };
@@ -208,6 +266,7 @@ const DetailView: React.FC = () => {
   const handleSimulate = (changedIndicatorId: string, newValue: number) => {
     if (!coreIndicator) return;
     
+    // Perform simulation
     const { updatedIndicators, changes } = simulateChanges(
       changedIndicatorId,
       newValue,
@@ -218,6 +277,7 @@ const DetailView: React.FC = () => {
     setLocalIndicators(updatedIndicators);
     setSimulationChanges(changes);
     
+    // Update simulation drivers
     const updatedCore = updatedIndicators.find(ind => ind.indicator_id === coreIndicator.indicator_id);
     if (updatedCore) {
       const drivers = getTopDrivers(
@@ -230,6 +290,16 @@ const DetailView: React.FC = () => {
     }
   };
   
+  // const handleSunburstNodeClick = (nodeId: string) => {
+  //   if (isFixedMode) {
+  //     // In fixed mode, show simulation instead of drilling downAdd commentMore actions
+  //     // For now, navigate to research page
+  //     navigate(`/research/${nodeId}`);
+  //   } else {
+  //     // Normal drill-down behavior
+  //     navigate(`/detail/${nodeId}`);
+  //   }
+  // };
   const handleSaveSimulation = async (name: string, description: string) => {
     if (simulationChanges.length === 0) {
       toast({
@@ -246,6 +316,7 @@ const DetailView: React.FC = () => {
         description: `Simulation "${name}" has been saved successfully.`
       });
       
+      // Reset simulation state
       await refreshData();
       setLocalIndicators(indicators);
       setSimulationChanges([]);
@@ -253,11 +324,19 @@ const DetailView: React.FC = () => {
       console.error('Error saving simulation:', err);
       toast({
         title: "Error Saving Simulation",
-        description: "There was a problem saving your simulation.",
+        description: "There was a problem saving your sim<suulation.",
         variant: "destructive"
       });
     }
   };
+  
+  // Prepare sunburst data
+  const sunburstData = React.useMemo(() => {
+    if (coreIndicator && localIndicators.length > 0 && relationships.length > 0) {
+      return transformToSunburstData(localIndicators, relationships);
+    }
+    return { nodes: [], links: [] };
+  }, [coreIndicator, localIndicators, relationships]);
   
   const canDiveDeeper = coreIndicator && breadcrumbs.length < userSettings.maxDrillDepth;
   
@@ -278,12 +357,17 @@ const DetailView: React.FC = () => {
     );
   };
 
+  
+  console.log('DetailView render, breadcrumbs:', breadcrumbs);
+  
   const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
 
   return (
+    // right before JSX
+    console.log('DetailView render, breadcrumbs:', breadcrumbs),
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-        <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div className="p-6 bg-gradient-to-r from-gray-600 to-gray-800 text-white">
           <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
           <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
               <SettingsDialog 
@@ -325,10 +409,14 @@ const DetailView: React.FC = () => {
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl relative">
                       <SunburstChart
-                        indicators={localIndicators}
-                        relationships={relationships}
+                        nodes={sunburstData.nodes}
+                        links={sunburstData.links}
                         onSelect={handleIndicatorSelect}
+                        onBreadcrumbsChange={setBreadcrumbs}
+                        onVisibleNodesChange={setVisibleNodes}
+                        onCoreChange={handleCoreChange}
                       />
+                      
                     </div>
                   </div>
                   
@@ -367,7 +455,7 @@ const DetailView: React.FC = () => {
                       <h2 className="text-lg font-semibold text-gray-800 mb-4">Historical & Predicted Trends</h2>
                       <div className="h-64 flex items-center justify-center">
                         <div className="text-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-500 mx-auto"></div>
                           <p className="mt-4 text-gray-500">Generating prediction...</p>
                         </div>
                       </div>
@@ -375,17 +463,16 @@ const DetailView: React.FC = () => {
                   ) : (
                     predictionData && (
                       <TrendGraph 
-                        predictionData={predictionData}
+                        predictionData={predictionData} 
                         title={coreIndicator.name}
-                        locationName="St Neots"
-                        unitLabel="%"
-                        indicatorId={coreIndicator.indicator_id}
-                      />
+                        locationName={userLocation?.name ?? ''}
+                        unitLabel="%"/>
                     )
                   )}
                 </TabsContent>
 
                 <TabsContent value="simulation" className="pt-4">
+                  {/* Sunburst Fix Mode Toggle */}
                   <div className="flex justify-center">
                     <SunburstFixModeToggle 
                       fixMode={isFixedMode}
@@ -395,11 +482,14 @@ const DetailView: React.FC = () => {
                   <div className="flex justify-center mb-8">
                     <div className="w-full max-w-3xl">
                       <SunburstChart
-                        indicators={localIndicators}
-                        relationships={relationships}
+                        nodes={sunburstData.nodes}
+                        links={sunburstData.links}
+                        onCoreChange={handleCoreChange}
+                        onVisibleNodesChange={setVisibleNodes}
                       />
                     </div>
                   </div>
+              
 
                   <Simulator
                     key={visibleIndicators.length}
@@ -424,7 +514,8 @@ const DetailView: React.FC = () => {
               >
                 Return to Overview
               </Button>
-             <SimulationModal
+             {/* Simulation Modal */}
+            <SimulationModal
               isOpen={simulationModal.isOpen}
               onClose={() => setSimulationModal({ isOpen: false, targetId: null })}
               targetIndicatorId={simulationModal.targetId || ''}

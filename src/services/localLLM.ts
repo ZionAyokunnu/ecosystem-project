@@ -12,30 +12,32 @@ interface LLMRequest {
 
 export const queryLocalLLM = async (
   prompt: string,
-  mode: 'business' | 'community' = 'business'
+  mode: 'business' | 'community' = 'community'
 ): Promise<string> => {
   try {
     // Build context-aware prompt
     const contextualPrompt = `${contextText}
 
-  [Context: Respond as a ${mode} stakeholder perspective]
+  [Context: Provide brief, eloquent, clear, simple, actionable, motivating analysis tailored to the ${mode} domain. Adopt a tone that blends strategic consulting, urgency, encouraging mentorship, and values-driven advocacy. Avoid passive observation—recommend meaningful direction.]
 
   ${prompt}`;
-
 
     const request: LLMRequest = {
       model: "local-llm",
       prompt: contextualPrompt
     };
-
-    // Simulate API call to local LLM (replace with actual endpoint)
-    const response = await fetch('/api/local-llm', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: 'tinyllama:1.1b', prompt: contextualPrompt })
-    });
+    console.log("🔍 Sending prompt to LLM:", prompt);
+    console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
+    // Always use "/local-llm" (not "/api/local-llm")
+    const response = await fetch(
+      
+      import.meta.env.VITE_LLM_API_URL || "/local-llm",
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: contextualPrompt }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`LLM API error: ${response.status}`);

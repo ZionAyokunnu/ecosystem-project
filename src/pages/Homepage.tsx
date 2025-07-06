@@ -25,7 +25,7 @@ const Homepage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-5xl font-bold text-gray-900 mb-6">
@@ -71,7 +71,7 @@ const Homepage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="text-center">
             <CardHeader>
-              <BarChart3 className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+              <BarChart3 className="w-12 h-12 mx-auto text-gray-600 mb-4" />
               <CardTitle>Data Visualization</CardTitle>
             </CardHeader>
             <CardContent>
@@ -107,7 +107,7 @@ const Homepage: React.FC = () => {
 
           <Card className="text-center">
             <CardHeader>
-              <TrendingUp className="w-12 h-12 mx-auto text-purple-600 mb-4" />
+              <TrendingUp className="w-12 h-12 mx-auto text-gray-600 mb-4" />
               <CardTitle>Research Insights</CardTitle>
             </CardHeader>
             <CardContent>
@@ -121,7 +121,7 @@ const Homepage: React.FC = () => {
 
       {/* Call to Action */}
       {!user && (
-        <section className="bg-blue-600 text-white py-16">
+        <section className="bg-gray-600 text-white py-16">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-4">Ready to Join Your Community?</h2>
             <p className="text-xl mb-8">

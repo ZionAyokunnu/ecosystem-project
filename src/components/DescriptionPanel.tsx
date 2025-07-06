@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Indicator, SunburstNode, Relationship } from '@/types';
 import { useDriverComputation } from '@/hooks/useDriverComputation';
@@ -168,7 +167,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsExpanded(!isExpanded)}
-                      className="mt-2 text-blue-600 hover:text-blue-800"
+                      className="mt-2 text-gray-600 hover:text-gray-800"
                     >
                       {isExpanded ? (
                         <>
@@ -184,6 +183,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                     </Button>
                   )}
                   <p className="text-xs text-gray-400 mt-2">
+
                     Perspective: {llmMode === 'business' ? 'Business Stakeholder' : 'Community Member'}
                   </p>
                 </div>
@@ -215,7 +215,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
                   }`}
                   style={{ transitionDelay: `${(index + 3) * 100}ms` }}
                 >
-                  <span className="text-blue-600 font-medium">•</span>
+                  <span className="text-gray-600 font-medium">•</span>
                   <span className="flex-1">{rec}</span>
                   <Tooltip>
                     <TooltipTrigger>
@@ -237,11 +237,11 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
             <ul className="space-y-2">
               {actions.map((action, index) => (
                 <li key={index} className="flex items-start gap-2">
-                  <span className="text-blue-600 font-medium">•</span>
+                  <span className="text-gray-600 font-medium">•</span>
                   {action.link ? (
                     <a 
                       href={action.link} 
-                      className="text-blue-600 hover:text-blue-800 underline"
+                      className="text-gray-600 hover:text-gray-800 underline"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -255,6 +255,7 @@ const DescriptionPanel: React.FC<DescriptionPanelProps> = ({
             </ul>
           </div>
         )}
+        
       </div>
     </TooltipProvider>
   );

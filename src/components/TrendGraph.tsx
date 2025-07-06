@@ -11,6 +11,7 @@ interface TrendGraphProps {
   locationName: string;
   unitLabel: string;
   indicatorId?: string;
+  // optimalBenchmark?: number;   // optional drill‑down handler
 }
 
 const TrendGraph: React.FC<TrendGraphProps> = ({ 
@@ -21,6 +22,7 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
   unitLabel,
   indicatorId
 }) => {
+
   const [benchmark, setBenchmark] = useState<Benchmark | null>(null);
 
   useEffect(() => {
@@ -30,8 +32,8 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
   }, [indicatorId]);
 
   if (!predictionData || !predictionData.years || !predictionData.values) return null;
-  
   const { years, values } = predictionData;
+
   const optimalBenchmark = benchmark?.target_value;
 
   // Build one record per year with separate keys so Recharts can draw two distinct lines
@@ -56,14 +58,13 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
           {title} in {locationName} ({unitLabel})
         </p>
         {benchmark && (
-          <p className="text-xs text-blue-600 mt-1">
+          <p className="text-xs text-gray-600 mt-1">
             Benchmark: {benchmark.target_value}{unitLabel} | 
             You are at {currentValue}% vs UN target of {benchmark.target_value}% 
             ({gap}% gap)
           </p>
         )}
       </div>
-
       <div className="h-64 relative">
         {/* Directional overlay */}
         <div 
@@ -71,12 +72,12 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
           style={{ backgroundColor: overlayColor }}
           aria-hidden="true"
         />
-        
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             onClick={(e) => {
+              
               if (e && typeof e.activeLabel === 'number' && onYearClick) {
                 onYearClick(e.activeLabel);
               }
@@ -136,20 +137,22 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
       </div>
 
       {/* Mini-legend for directional overlay */}
-      <div className="mt-2 flex items-center gap-4 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
-          <span>■ Green = Improvement</span>
+      {optimalBenchmark && (
+        <div className="mt-2 flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+            <span>■ Green = Improvement</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
+            <span>■ Red = Decline</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-          <span>■ Red = Decline</span>
-        </div>
-      </div>
+      )}
 
-      <div className="mt-4 p-3 bg-blue-50 rounded-md">
-        <h3 className="font-medium text-blue-800 mb-1">Trend Analysis</h3>
-        <p className="text-blue-600">{predictionData.summary}</p>
+      <div className="mt-4 p-3 bg-gray-50 rounded-md">
+        <h3 className="font-medium text-gray-800 mb-1">Trend Analysis</h3>
+        <p className="text-gray-600">{predictionData.summary}</p>
       </div>
     </div>
   );

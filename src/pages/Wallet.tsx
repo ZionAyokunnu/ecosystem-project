@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 
 const Wallet = () => {
   const { userProfile } = useUser();
-  console.log('Wallet render, userProfile:', userProfile);
   const [points, setPoints] = useState({ total_points: 0, recent_activities: [] });
   const [badges, setBadges] = useState([]);
   const [vouchers, setVouchers] = useState([]);
@@ -24,19 +23,17 @@ const Wallet = () => {
     const fetchWalletData = async () => {
       try {
         setLoading(true);
-        console.log('Wallet: Starting fetchWalletData for userId=', userId);
         const [pointsData, badgesData, vouchersData] = await Promise.all([
           getUserPoints(userId!),
           getUserBadges(userId!),
           getUserVouchers(userId!)
         ]);
-        console.log('Wallet: fetch results', { pointsData, badgesData, vouchersData });
+        
         setPoints(pointsData);
         setBadges(badgesData);
         setVouchers(vouchersData);
       } catch (error) {
         console.error('Error fetching wallet data:', error);
-        console.log('Wallet: fetchWalletData encountered error', error);
         toast.error('Failed to load wallet data');
       } finally {
         setLoading(false);
@@ -46,7 +43,6 @@ const Wallet = () => {
     if (userId) {
       fetchWalletData();
     } else {
-      // no user, stop loading
       setLoading(false);
     }
   }, [userId]);
@@ -67,13 +63,13 @@ const Wallet = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-100 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Community Wallet</h1>
@@ -87,9 +83,9 @@ const Wallet = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Points</p>
-                  <p className="text-2xl font-bold text-blue-600">{points.total_points}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{points.total_points}</p>
                 </div>
-                <Coins className="w-8 h-8 text-blue-500" />
+                <Coins className="w-8 h-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>
@@ -138,9 +134,9 @@ const Wallet = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                  <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                     <span className="font-medium">Total Points Earned</span>
-                    <span className="text-2xl font-bold text-blue-600">{points.total_points}</span>
+                    <span className="text-2xl font-bold text-yellow-600">{points.total_points}</span>
                   </div>
                   <div className="text-sm text-gray-600">
                     <p>• Survey completion: 10 points each</p>

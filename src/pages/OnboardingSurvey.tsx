@@ -303,8 +303,8 @@ const OnboardingSurvey = () => {
         return (
           <div className="text-center space-y-8 animate-fade-in">
             <div className="flex justify-center">
-              <div className="p-4 bg-blue-100 rounded-full">
-                <StepIcon className="w-12 h-12 text-blue-600" />
+              <div className="p-4 bg-gray-100 rounded-full">
+                <StepIcon className="w-12 h-12 text-gray-600" />
               </div>
             </div>
             <h2 className="text-3xl font-bold text-gray-800">{step.title}</h2>
@@ -331,7 +331,7 @@ const OnboardingSurvey = () => {
                   variant={responses.role === role.value ? 'default' : 'outline'}
                   onClick={() => setResponses({ ...responses, role: role.value })}
                   className={`p-6 h-auto text-left transition-all duration-200 hover:scale-105 ${
-                    responses.role === role.value ? 'ring-2 ring-blue-500' : ''
+                    responses.role === role.value ? 'ring-2 ring-gray-500' : ''
                   }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
@@ -446,7 +446,7 @@ const OnboardingSurvey = () => {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50">
       <div className="max-w-6xl mx-auto">
         {/* Progress bar */}
         <div className="mb-8">
