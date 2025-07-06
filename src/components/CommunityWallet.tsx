@@ -2,12 +2,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useUser } from '@/context/UserContext';
+import { getUserPoints } from '@/services/gamificationApi';
+import { toast } from 'sonner';
 
 export const CommunityWallet = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [animatedPoints, setAnimatedPoints] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const targetPoints = 2847;
+  const { userProfile } = useUser();
+  const [points, setPoints] = useState({ total_points: 0, recent_activities: [] });
+  const [loading, setLoading] = useState(true);
+  const userId = userProfile?.id;
+
+   useEffect(() => {
+    const fetchWalletData = async () => {
+      try {
+        setLoading(true);
+        const [pointsData] = await Promise.all([
+          getUserPoints(userId!),
+        ]);
+        
+        setPoints(pointsData);
+      } catch (error) {
+        console.error('Error fetching wallet data:', error);
+        toast.error('Failed to load wallet data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (userId) {
+      fetchWalletData();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -25,6 +55,8 @@ export const CommunityWallet = () => {
 
     return () => observer.disconnect();
   }, []);
+  
+ const targetPoints = points.total_points;
 
   useEffect(() => {
     if (isVisible) {
@@ -46,6 +78,8 @@ export const CommunityWallet = () => {
       return () => clearInterval(timer);
     }
   }, [isVisible, targetPoints]);
+
+
 
   const badges = [
     { name: 'Data Pioneer', color: 'bg-black', earned: true },
@@ -143,13 +177,13 @@ export const CommunityWallet = () => {
         {/* Progress indicator */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>Next milestone: 3,000 points</span>
-            <span>{Math.round((animatedPoints / 3000) * 100)}% complete</span>
+            <span>Next milestone: 500 points</span>
+            <span>{Math.round((animatedPoints / 500) * 100)}% complete</span>
           </div>
           <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
             <div 
               className="bg-black h-2 rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${Math.min((animatedPoints / 3000) * 100, 100)}%` }}
+              style={{ width: `${Math.min((animatedPoints / 500) * 100, 100)}%` }}
             />
           </div>
         </div>

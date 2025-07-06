@@ -97,7 +97,7 @@ export const VideoInsightCard: React.FC<VideoInsightCardProps> = ({
         <p className="text-gray-600 mb-4 text-sm leading-relaxed">
           {description}
         </p>
-        <Button 
+        <Button //to link to detailview of selected indicator
           variant="outline" 
           size="sm"
           className="border-black text-black hover:bg-black hover:text-white transition-all duration-300"

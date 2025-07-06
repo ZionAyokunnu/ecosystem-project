@@ -32,7 +32,7 @@ export const AnimatedMetrics = () => {
     },
     {
       icon: Globe,
-      number: "5",
+      number: "100%",
       text: "Aligned with UN & WHO, UK GOV targets",
       animation: "globe-to-icons"
     },

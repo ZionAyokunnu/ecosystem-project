@@ -132,15 +132,16 @@ useEffect(() => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Community Wellbeing Overview
+            
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Explore how different aspects of wellbeing connect and influence each other in your community.
+            Our platform helps you understand how domains interact and 
+                influence overall community health and happiness.
           </p>
         </div>
 
@@ -152,7 +153,7 @@ useEffect(() => {
         <div className="mb-16">
           <Card className="max-w-4xl mx-auto">
             <CardHeader>
-              <CardTitle className="text-center text-2xl">What is Community Wellbeing?</CardTitle>
+              <CardTitle className="text-center text-2xl">Our Happiness?</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-lg text-gray-700 mb-6">
@@ -177,12 +178,12 @@ useEffect(() => {
                       disabled={!hasMatchingIndicator}
                       className={`p-3 rounded-lg transition-colors ${
                         hasMatchingIndicator
-                          ? 'bg-blue-50 hover:bg-blue-100 cursor-pointer border border-blue-200'
+                          ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer border border-gray-200'
                           : 'bg-gray-50 cursor-not-allowed border border-gray-200'
                       }`}
                     >
                       <span className={`text-sm font-medium ${
-                        hasMatchingIndicator ? 'text-blue-900' : 'text-gray-400'
+                        hasMatchingIndicator ? 'text-gray-900' : 'text-gray-400'
                       }`}>
                         {domain}
                       </span>
@@ -193,8 +194,7 @@ useEffect(() => {
               </div>
 
               <p className="text-gray-600">
-                Our platform helps you understand how these domains interact and 
-                influence overall community health and happiness.
+                
               </p>
             </CardContent>
           </Card>
@@ -243,7 +243,7 @@ useEffect(() => {
 
         </div>
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Community Stories</h3>
+          <h3 className="text-lg font-semibold mb-4 text-gray-800"></h3>
           <CommunityStories />
         </div>
 
@@ -256,7 +256,7 @@ useEffect(() => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-900">Data Sources</h3>
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900">Data Sources</h3>
                   <ul className="text-left space-y-2 text-gray-700">
                     <li>• Government statistics and census data</li>
                     <li>• Community surveys and feedback</li>
@@ -266,7 +266,7 @@ useEffect(() => {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-3 text-blue-900">Your Role</h3>
+                  <h3 className="text-lg font-semibold mb-3 text-gray-900">Your Role</h3>
                   <ul className="text-left space-y-2 text-gray-700">
                     <li>• Share your community stories</li>
                     <li>• Participate in local surveys</li>
@@ -280,7 +280,7 @@ useEffect(() => {
               <div className="mt-8 pt-6 border-t">
 
                 <p className="text-gray-600">
-                  Our platform is built on the belief that community-driven data can lead to better decision-making and improved wellbeing for all.
+                  Explore how different aspects of wellbeing connect and influence each other in your community.
                 </p>
 
               </div>

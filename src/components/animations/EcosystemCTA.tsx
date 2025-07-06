@@ -122,7 +122,7 @@ export const EcosystemCTA = () => {
           <Button 
             variant="outline" 
             size="lg"
-            className="border-white text-white hover:bg-white hover:text-black px-12 py-6 text-xl font-light tracking-wide transition-all duration-300 hover:scale-105"
+            className="border-white text-black hover:bg-white hover:text-black px-12 py-6 text-xl font-light tracking-wide transition-all duration-300 hover:scale-105"
           >
             Explore the Data
           </Button>

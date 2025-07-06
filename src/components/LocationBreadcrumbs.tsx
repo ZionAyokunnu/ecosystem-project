@@ -58,7 +58,7 @@ const LocationBreadcrumbs: React.FC = () => {
         variant="ghost"
         size="sm"
         onClick={() => handleBreadcrumbClick(null)}
-        className="px-2 py-1 h-auto text-blue-600 hover:text-blue-800"
+        className="px-2 py-1 h-auto text-gray-600 hover:text-gray-800"
       >
         <Globe className="w-4 h-4 mr-1" />
         Global
@@ -74,7 +74,7 @@ const LocationBreadcrumbs: React.FC = () => {
             className={`px-2 py-1 h-auto ${
               index === breadcrumbPath.length - 1
                 ? 'text-gray-900 font-medium cursor-default'
-                : 'text-blue-600 hover:text-blue-800'
+                : 'text-gray-600 hover:text-gray-800'
             }`}
             disabled={index === breadcrumbPath.length - 1}
           >

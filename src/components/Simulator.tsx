@@ -79,7 +79,7 @@ const Simulator: React.FC<SimulatorProps> = ({
           id="indicator-select"
           value={selectedIndicator}
           onChange={(e) => setSelectedIndicator(e.target.value)}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
         >
           <option value="">-- Select Indicator --</option>
           {indicators
@@ -205,7 +205,7 @@ const Simulator: React.FC<SimulatorProps> = ({
                   value={simulationName}
                   onChange={(e) => setSimulationName(e.target.value)}
                   placeholder="Enter a name for this simulation"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               
@@ -219,13 +219,13 @@ const Simulator: React.FC<SimulatorProps> = ({
                   onChange={(e) => setSimulationDesc(e.target.value)}
                   placeholder="Brief description of the scenario"
                   rows={3}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
                 />
               </div>
               
               <button
                 onClick={handleSave}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
                 Save Simulation
               </button>

@@ -58,7 +58,7 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
           {title} in {locationName} ({unitLabel})
         </p>
         {benchmark && (
-          <p className="text-xs text-blue-600 mt-1">
+          <p className="text-xs text-gray-600 mt-1">
             Benchmark: {benchmark.target_value}{unitLabel} | 
             You are at {currentValue}% vs UN target of {benchmark.target_value}% 
             ({gap}% gap)
@@ -150,9 +150,9 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
         </div>
       )}
 
-      <div className="mt-4 p-3 bg-blue-50 rounded-md">
-        <h3 className="font-medium text-blue-800 mb-1">Trend Analysis</h3>
-        <p className="text-blue-600">{predictionData.summary}</p>
+      <div className="mt-4 p-3 bg-gray-50 rounded-md">
+        <h3 className="font-medium text-gray-800 mb-1">Trend Analysis</h3>
+        <p className="text-gray-600">{predictionData.summary}</p>
       </div>
     </div>
   );

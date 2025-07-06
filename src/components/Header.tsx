@@ -59,16 +59,16 @@ const Header: React.FC = () => {
           </Link>
           
           {/*<nav className="hidden md:flex space-x-6">
-             <Link to="/" className="text-gray-600 hover:text-blue-600">
+             <Link to="/" className="text-gray-600 hover:text-gray-600">
               Initial Home
             </Link>
-            <Link to="/home" className="text-gray-600 hover:text-blue-600">
+            <Link to="/home" className="text-gray-600 hover:text-gray-600">
               New Landing
             </Link>
-            <Link to="/stories" className="text-gray-600 hover:text-blue-600">
+            <Link to="/stories" className="text-gray-600 hover:text-gray-600">
               Stories & Calls
             </Link>
-            <Link to="/detail" className="text-gray-600 hover:text-blue-600">
+            <Link to="/detail" className="text-gray-600 hover:text-gray-600">
               Data & Insights
             </Link> */}
 
@@ -81,7 +81,7 @@ const Header: React.FC = () => {
                   to={item.path}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive(item.path)
-                      ? 'text-blue-600 bg-blue-50'
+                      ? 'text-gray-600 bg-gray-50'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >

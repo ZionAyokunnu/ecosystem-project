@@ -83,7 +83,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
       >
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4 text-blue-600" />
+            <MessageCircle className="w-4 h-4 text-gray-600" />
             <span>Community Stories</span>
           </div>
           <Button variant="ghost" size="sm" className="p-0 h-auto">
@@ -126,7 +126,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
                 <p>{new Date(latestStory.created_at).toLocaleDateString()}</p>
               </div>
               {stories.length > 1 && (
-                <p className="text-xs text-blue-600">
+                <p className="text-xs text-gray-600">
                   +{stories.length - 1} more stories
                 </p>
               )}
@@ -136,7 +136,7 @@ const QualitativeStoryBox: React.FC<QualitativeStoryBoxProps> = ({
               <p className="text-sm text-gray-500 mb-2">
                 No stories yet for this relationship.
               </p>
-              <Button variant="link" size="sm" className="text-blue-600 p-0 h-auto">
+              <Button variant="link" size="sm" className="text-gray-600 p-0 h-auto">
                 Be the first to share a story
               </Button>
             </div>

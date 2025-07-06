@@ -122,7 +122,7 @@ const SmartSearchBox: React.FC<SmartSearchBoxProps> = ({ onSelect }) => {
             setQuery(e.target.value);
             setIsExpanded(!!e.target.value);
           }}
-          className="pl-12 pr-4 py-6 text-lg rounded-xl border-2 border-gray-200 focus:border-blue-500"
+          className="pl-12 pr-4 py-6 text-lg rounded-xl border-2 border-gray-200 focus:border-gray-500"
           onFocus={() => setIsExpanded(!!query)}
           onBlur={() => setTimeout(() => setIsExpanded(false), 200)}
         />
@@ -144,7 +144,7 @@ const SmartSearchBox: React.FC<SmartSearchBoxProps> = ({ onSelect }) => {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1">
-                      <div className="mt-1 text-blue-600">
+                      <div className="mt-1 text-gray-600">
                         {getResultIcon(result.type)}
                       </div>
                       <div className="flex-1">

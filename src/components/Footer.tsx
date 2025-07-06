@@ -1,13 +1,16 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 
-const Footer: React.FC = () => {
+const Footer: React.FC = () => { 
   return (
     <footer className="bg-gray-800 text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
-            <h3 className="text-lg font-semibold">Ecosystem Project</h3>
+            <Link to="/home-alone">
+             <h3 className="text-lg font-semibold">Ecosystem Project</h3>
+            </Link>
             <p className="text-sm text-gray-300">
               Exploring socio-economic indicators and their relationships
             </p>

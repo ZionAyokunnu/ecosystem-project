@@ -30,6 +30,7 @@ import Leaderboard from "@/pages/Leaderboard";
 import About from "./pages/About";
 import Home from "./pages/Home";
 import "./App.css"
+import SurveysPage from "./pages/SurveysPage";
 
 const queryClient = new QueryClient();
 
@@ -47,9 +48,10 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
 
                   <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Homepage />} />
+                    <Route index element={<Home />} />
 
                     <Route path="home" element={<Home />} />
+                    <Route path="home-alone" element={<Homepage />} />
                     
                     <Route path="dashboard" element={
                       <ProtectedRoute>
@@ -137,6 +139,7 @@ const App = () => (
                       </ProtectedRoute>
                     } />
                   </Route>
+                  <Route path="/surveys" element={<SurveysPage />} />
                   
                   <Route path="/about" element={<MainLayout />}>
                     <Route index element={<About />} />

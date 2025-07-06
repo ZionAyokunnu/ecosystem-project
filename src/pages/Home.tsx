@@ -1,16 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { IntroAnimation } from '@/components/animations/IntroAnimation';
-import { HeroSection } from '@/components/animations/HeroSection';
-import { VideoInsightCard } from '@/components/animations/VideoInsightCard';
+import { HeroSection } from '@/components/HeroSection';
+import { VideoInsightCard } from '@/components/VideoInsightCard';
 import { AnimatedMetrics } from '@/components/animations/AnimatedMetrics';
-import { CommunityWallet } from '@/components/animations/CommunityWallet';
+import { CommunityWallet } from '@/components/CommunityWallet';
 import { EcosystemCTA } from '@/components/animations/EcosystemCTA';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { BarChart3, Users, Award, TrendingUp } from 'lucide-react';
+import SmartSearchBox from '@/components/SmartSearchBox';
+import WellbeingStatusCard from '@/components/WellbeingStatusCard';
 
 const Home = () => {
   const [showIntro, setShowIntro] = useState(true);
+  const navigate = useNavigate();
+    const { user, profile } = useAuth();
+  
+    const handleGetStarted = () => {
+      if (user && profile) {
+        if (!profile.has_completed_onboarding) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/auth');
+      }
+    };
+  
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -22,12 +42,12 @@ const Home = () => {
 
   const insightCards = [
     {
-      title: "Happiness is falling in St Neots",
+      title: "Altruism is improving in St Neots",
       description: "Community wellbeing metrics show declining trends",
       videoId: "happiness-decline"
     },
     {
-      title: "Employment growth slowing in Durham",
+      title: "Employment growth slowing in Cambridge",
       description: "Economic indicators reveal workforce challenges",
       videoId: "employment-trends"
     },
@@ -44,9 +64,10 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white text-black overflow-hidden">
+     
       {/* Hero Section */}
       <HeroSection />
-      
+       
       {/* Video Insight Cards */}
       <section className="py-20 px-4 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

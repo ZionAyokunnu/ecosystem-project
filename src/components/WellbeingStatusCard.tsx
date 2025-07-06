@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useEcosystem } from '@/context/EcosystemContext';
 import { usePrediction } from '@/hooks/usePrediction';
+import { Badge } from '@/components/ui/badge';
 
 const WellbeingStatusCard: React.FC = () => {
   const { indicators } = useEcosystem();
@@ -73,8 +74,11 @@ const WellbeingStatusCard: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto mb-12">
-      <Card className="bg-gradient-to-r from-purple-600 to-indigo-600 border-none shadow-lg">
-        <CardContent className="p-8 md:p-12">
+      <Card className="relative bg-gradient-to-r from-gray-600 to-gray-500 border-none shadow-lg">
+          <Badge variant="destructive" className="absolute top-4 left-4 uppercase text-xs font-semibold px-2 py-1 rounded-full mb-1">
+            Live
+          </Badge>
+          <CardContent className="p-8 md:p-12">
           <p className="text-white text-2xl md:text-3xl lg:text-4xl font-bold text-center leading-relaxed">
             {statusText}
           </p>

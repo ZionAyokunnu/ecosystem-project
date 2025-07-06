@@ -52,10 +52,10 @@ const PointsTracker: React.FC<PointsTrackerProps> = ({ userId: propUserId }) => 
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Your Points</p>
-            <p className="text-2xl font-bold text-blue-600">{points.total_points}</p>
+            <p className="text-2xl font-bold text-gray-600">{points.total_points}</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Coins className="w-6 h-6 text-blue-500" />
+            <Coins className="w-6 h-6 text-gray-500" />
             <TrendingUp className="w-4 h-4 text-green-500" />
           </div>
         </div>

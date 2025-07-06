@@ -88,7 +88,7 @@ const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({
                 variant="ghost"
                 size="sm"
                 className={`w-full justify-start h-auto p-2 ${
-                  currentIndicatorId === indicator.indicator_id ? 'bg-blue-50' : ''
+                  currentIndicatorId === indicator.indicator_id ? 'bg-gray-50' : ''
                 }`}
                 onClick={() => handleQuickSelect(indicator.indicator_id)}
               >
@@ -123,7 +123,7 @@ const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({
                 variant="ghost"
                 size="sm"
                 className={`w-full justify-start h-auto p-2 ${
-                  currentIndicatorId === indicator.indicator_id ? 'bg-blue-50' : ''
+                  currentIndicatorId === indicator.indicator_id ? 'bg-gray-50' : ''
                 }`}
                 onClick={() => handleQuickSelect(indicator.indicator_id)}
               >

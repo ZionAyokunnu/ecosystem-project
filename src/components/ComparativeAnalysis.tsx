@@ -86,7 +86,7 @@ const ComparativeAnalysis: React.FC<ComparativeAnalysisProps> = ({
                 <div 
                   key={item.location}
                   className={`flex items-center justify-between p-3 rounded-lg border ${
-                    item.location === selectedLocation ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'
+                    item.location === selectedLocation ? 'bg-gray-50 border-gray-200' : 'bg-gray-50'
                   }`}
                 >
                   <div className="flex items-center gap-3">

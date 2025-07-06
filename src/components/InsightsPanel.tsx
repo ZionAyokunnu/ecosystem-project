@@ -40,7 +40,7 @@ const InsightsPanel: React.FC<AIInsightsPanelProps> = ({
       case 'recommendation':
         return <Lightbulb className="w-5 h-5 text-yellow-600" />;
       case 'prediction':
-        return <TrendingUp className="w-5 h-5 text-blue-600" />;
+        return <TrendingUp className="w-5 h-5 text-gray-600" />;
       case 'correlation':
         return <BarChart3 className="w-5 h-5 text-purple-600" />;
       case 'anomaly':
@@ -68,7 +68,7 @@ const InsightsPanel: React.FC<AIInsightsPanelProps> = ({
       case 'recommendation':
         return 'bg-yellow-100 text-yellow-800';
       case 'prediction':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       case 'correlation':
         return 'bg-purple-100 text-purple-800';
       case 'anomaly':
@@ -82,7 +82,7 @@ const InsightsPanel: React.FC<AIInsightsPanelProps> = ({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Brain className="w-6 h-6 text-blue-600" />
+          <Brain className="w-6 h-6 text-gray-600" />
           <CardTitle>AI-Powered Insights</CardTitle>
         </div>
         <p className="text-sm text-gray-600">

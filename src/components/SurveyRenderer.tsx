@@ -334,7 +334,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
         <span className="ml-2">Loading survey questions...</span>
       </div>
     );
@@ -363,9 +363,9 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Domain Context */}
       {domainPath.length > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-20 p-4 rounded-lg border">
           <h3 className="text-sm font-medium text-gray-700 mb-1">Survey Domain</h3>
-          <div className="text-lg font-semibold text-blue-700">
+          <div className="text-lg font-semibold text-gray-700">
             {domainPath.map(d => d.name).join(' → ')}
           </div>
         </div>
@@ -382,19 +382,19 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
 
       {/* Main Question Card */}
       <Card className="shadow-lg animate-fade-in">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+        <CardHeader className="bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-t-lg">
           <CardTitle className="text-xl">Relationship Assessment</CardTitle>
         </CardHeader>
         <CardContent className="p-8 space-y-8">
           {/* Indicators */}
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-              <h3 className="font-semibold text-blue-900 mb-2">Factor A</h3>
-              <p className="text-blue-700">{currentQuestion.parent_indicator?.name || 'Unknown Indicator'}</p>
+            <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-gray-500">
+              <h3 className="font-semibold text-gray-900 mb-2">Factor A</h3>
+              <p className="text-gray-700">{currentQuestion.parent_indicator?.name || 'Unknown Indicator'}</p>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <h3 className="font-semibold text-green-900 mb-2">Factor B</h3>
-              <p className="text-green-700">{currentQuestion.child_indicator?.name || 'Unknown Indicator'}</p>
+            <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-gray-500">
+              <h3 className="font-semibold text-gray-900 mb-2">Factor B</h3>
+              <p className="text-gray-700">{currentQuestion.child_indicator?.name || 'Unknown Indicator'}</p>
             </div>
           </div>
 
@@ -477,7 +477,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
                 value={newOptionText}
                 onChange={(e) => setNewOptionText(e.target.value)}
                 placeholder="Add another factor..."
-                className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                 onKeyPress={(e) => e.key === 'Enter' && addNewOption()}
               />
               <Button onClick={addNewOption} disabled={!newOptionText.trim()}>

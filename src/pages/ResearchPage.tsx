@@ -221,9 +221,9 @@ const ResearchPage: React.FC = () => {
                 {indicator.description || `${indicator.name} is a key indicator measuring aspects of community wellbeing in the ${indicator.category} domain. This metric helps track progress and identify areas for improvement.`}
               </p>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Current Score</h4>
-                  <p className="text-2xl font-bold text-blue-600">{indicator.current_value.toFixed(1)}</p>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 mb-2">Current Score</h4>
+                  <p className="text-2xl font-bold text-gray-600">{indicator.current_value.toFixed(1)}</p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
                   <h4 className="font-semibold text-green-900 mb-2">Domain</h4>
@@ -398,9 +398,9 @@ const ResearchPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">Key Finding</h4>
-                    <p className="text-blue-800">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-2">Key Finding</h4>
+                    <p className="text-gray-800">
                       Based on correlation analysis, {indicator.name} shows strong positive correlation with {topDrivers.positiveDrivers[0]?.name || 'related indicators'} in the current location context.
                     </p>
                   </div>

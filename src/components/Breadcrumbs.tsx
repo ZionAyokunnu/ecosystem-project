@@ -22,7 +22,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, onNavigate }) => {
               onClick={() => onNavigate(item.id)}
               className={`inline-flex items-center text-sm font-medium ${
                 index === items.length - 1
-                  ? 'text-blue-600 hover:text-blue-800'
+                  ? 'text-gray-600 hover:text-gray-800'
                   : 'text-gray-700 hover:text-gray-900'
               }`}
             >

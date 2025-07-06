@@ -367,7 +367,7 @@ useEffect(() => {
     console.log('DetailView render, breadcrumbs:', breadcrumbs),
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-        <div className="p-6 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div className="p-6 bg-gradient-to-r from-gray-600 to-gray-800 text-white">
           <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
           <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
               <SettingsDialog 
@@ -455,7 +455,7 @@ useEffect(() => {
                       <h2 className="text-lg font-semibold text-gray-800 mb-4">Historical & Predicted Trends</h2>
                       <div className="h-64 flex items-center justify-center">
                         <div className="text-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-500 mx-auto"></div>
                           <p className="mt-4 text-gray-500">Generating prediction...</p>
                         </div>
                       </div>
