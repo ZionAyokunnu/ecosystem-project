@@ -7,11 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, TrendingUp, TrendingDown, Users, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Users, Target, Brain } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Indicator, Relationship } from '@/types';
 import { getTopDrivers } from '@/utils/indicatorUtils';
+import PredictionChart from '@/components/PredictionChart';
+import ComparativeAnalysis from '@/components/ComparativeAnalysis';
+import InsightsPanel from '@/components/InsightsPanel';
 
 const ResearchPage: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
@@ -77,6 +80,103 @@ const ResearchPage: React.FC = () => {
     }))
   ].slice(0, 10);
 
+    // Mock data for advanced analytics
+  const predictionData = Array.from({ length: 15 }, (_, i) => {
+    const year = 2020 + i;
+    const currentYear = new Date().getFullYear();
+    const isPrediction = year > currentYear;
+    const baseValue = indicator.current_value;
+    const trend = Math.sin((i - 5) * 0.3) * 10 + baseValue;
+    
+    return {
+      year,
+      historical: !isPrediction ? trend + (Math.random() - 0.5) * 5 : undefined,
+      predicted: trend + (Math.random() - 0.5) * 3,
+      confidence_low: trend - 8,
+      confidence_high: trend + 8,
+      is_prediction: isPrediction
+    };
+  });
+
+  const comparisonData = [
+    {
+      location: selectedLocation?.name || 'Current Location',
+      current_value: indicator.current_value,
+      benchmark: 75,
+      difference: indicator.current_value - 75,
+      rank: 3
+    },
+    {
+      location: 'Regional Average',
+      current_value: 72,
+      benchmark: 75,
+      difference: -3,
+      rank: 4
+    },
+    {
+      location: 'National Average',
+      current_value: 68,
+      benchmark: 75,
+      difference: -7,
+      rank: 6
+    },
+    {
+      location: 'Best Performing',
+      current_value: 85,
+      benchmark: 75,
+      difference: 10,
+      rank: 1
+    },
+    {
+      location: 'Peer Location A',
+      current_value: 78,
+      benchmark: 75,
+      difference: 3,
+      rank: 2
+    }
+  ];
+
+  const aiInsights = [
+    {
+      type: 'recommendation' as const,
+      title: 'Focus on Infrastructure Development',
+      description: 'Analysis shows that improving local infrastructure could increase this indicator by 12-15% within 18 months.',
+      confidence: 0.87,
+      impact: 'high' as const,
+      timeframe: '18 months',
+      actions: [
+        'Increase public transportation accessibility',
+        'Improve digital infrastructure coverage',
+        'Enhance community facilities'
+      ]
+    },
+    {
+      type: 'prediction' as const,
+      title: 'Positive Trend Expected',
+      description: 'Based on current patterns and planned initiatives, this indicator is likely to improve by 8% over the next 2 years.',
+      confidence: 0.73,
+      impact: 'medium' as const,
+      timeframe: '24 months'
+    },
+    {
+      type: 'correlation' as const,
+      title: 'Strong Link to Education Outcomes',
+      description: 'There is a 0.82 correlation between this indicator and local education quality metrics.',
+      confidence: 0.92,
+      impact: 'high' as const,
+      actions: [
+        'Coordinate with education department',
+        'Implement joint improvement programs'
+      ]
+    }
+  ];
+
+  const prediction = {
+    trend: indicator.current_value > 60 ? 'increasing' as const : 'stable' as const,
+    confidence: 0.78,
+    factors: ['Economic Development', 'Population Growth', 'Policy Changes', 'Infrastructure Investment']
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -102,10 +202,12 @@ const ResearchPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="trends">Historical Trends</TabsTrigger>
-          <TabsTrigger value="drivers">Key Drivers</TabsTrigger>
+          <TabsTrigger value="trends">Historical</TabsTrigger>
+          <TabsTrigger value="drivers">Drivers</TabsTrigger>
+          <TabsTrigger value="predictions">Predictions</TabsTrigger>
+          <TabsTrigger value="comparison">Comparison</TabsTrigger>
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
         </TabsList>
 
@@ -205,6 +307,34 @@ const ResearchPage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="predictions">
+          <PredictionChart
+            data={predictionData}
+            indicatorName={indicator.name}
+            currentValue={indicator.current_value}
+            prediction={prediction}
+          />
+        </TabsContent>
+
+        <TabsContent value="comparison">
+          <ComparativeAnalysis
+            data={comparisonData}
+            indicatorName={indicator.name}
+            selectedLocation={selectedLocation?.name}
+          />
+        </TabsContent>
+
+        <TabsContent value="insights">
+          <InsightsPanel
+            insights={aiInsights}
+            indicatorName={indicator.name}
+            onImplementAction={(action) => {
+              console.log('Implementing action:', action);
+              // Here you would integrate with actual implementation systems
+            }}
+          />
+          </TabsContent>
 
         <TabsContent value="drivers">
           <Card>

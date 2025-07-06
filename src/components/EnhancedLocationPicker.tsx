@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLocation } from '@/context/LocationContext';
 import { getLocationChildren } from '@/services/locationApi';
 import { Location } from '@/types';
-import { ChevronRight, Users, MessageSquare } from 'lucide-react';
+import { ChevronRight, Users, MessageSquare, MapPin, FileText } from 'lucide-react';
 
 interface LocationWithEngagement extends Location {
   survey_responses?: number;
@@ -182,7 +182,10 @@ const EnhancedLocationPicker: React.FC = () => {
 
   const renderLocationOption = (loc: LocationWithEngagement) => (
     <div className="flex items-center justify-between w-full">
-      <span>{loc.name}</span>
+       <span className="flex items-center gap-2">
+        <MapPin className="w-3 h-3 text-gray-400" />
+        {loc.name}
+      </span>
       <div className="flex items-center gap-2">
         {loc.survey_responses != null && (
           <Badge variant="secondary" className="text-xs">
@@ -192,7 +195,7 @@ const EnhancedLocationPicker: React.FC = () => {
         )}
         {loc.story_count != null && (
           <Badge variant="outline" className="text-xs">
-            <MessageSquare className="w-3 h-3 mr-1" />
+            <FileText className="w-3 h-3 mr-1" />
             {loc.story_count}
           </Badge>
         )}
