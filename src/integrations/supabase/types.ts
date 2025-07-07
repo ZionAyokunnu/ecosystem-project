@@ -382,6 +382,7 @@ export type Database = {
           photo: string | null
           story_id: string
           story_text: string
+          vote_count: number | null
         }
         Insert: {
           author: string
@@ -392,6 +393,7 @@ export type Database = {
           photo?: string | null
           story_id?: string
           story_text: string
+          vote_count?: number | null
         }
         Update: {
           author?: string
@@ -402,6 +404,7 @@ export type Database = {
           photo?: string | null
           story_id?: string
           story_text?: string
+          vote_count?: number | null
         }
         Relationships: [
           {
@@ -687,6 +690,38 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      story_votes: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          user_id: string
+          vote_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          user_id: string
+          vote_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_votes_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "qualitative_stories"
+            referencedColumns: ["story_id"]
+          },
+        ]
       }
       survey_control: {
         Row: {

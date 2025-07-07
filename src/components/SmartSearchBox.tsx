@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useEcosystem } from '@/context/EcosystemContext';
+import FriendlyIndicatorName from '@/components/FriendlyIndicatorName';
 import { useNavigate } from 'react-router-dom';
 
 interface SearchResult {
