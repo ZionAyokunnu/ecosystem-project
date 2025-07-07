@@ -110,7 +110,7 @@ const SurveysPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate('/')}>
+        <Button variant="ghost" onClick={() => navigate('/overview')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Overview
         </Button>

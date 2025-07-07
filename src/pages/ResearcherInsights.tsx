@@ -5,8 +5,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { useEcosystem } from '@/context/EcosystemContext';
-import { TrendingUp, Users, FileText, Filter } from 'lucide-react';
+import { TrendingUp, Users, FileText, Filter, FileQuestion } from 'lucide-react';
 import AssociationSummaryCard from '@/components/AssociationSummaryCard';
+import SurveyCreationForm from '@/components/SurveyCreationForm';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface InsightData {
   parent_id: string;
@@ -122,10 +133,36 @@ const ResearcherInsights = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Research Insights Dashboard</h1>
-          <p className="text-gray-600">Analyze community perceptions of indicator relationships</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Research Insights Dashboard</h1>
+          <p className="text-gray-600">Analyse community perceptions of indicator relationships</p>
         </div>
-
+  <Dialog>
+    <DialogTrigger asChild>
+      <Button variant="outline" className="mb-6">
+        <FileQuestion className="mr-2 h-4 w-4" />
+        New Survey
+      </Button>
+    </DialogTrigger>
+    <DialogContent className="sm:max-w-[900px]">
+      <DialogHeader>
+        <DialogTitle>Create New Survey</DialogTitle>
+        <DialogDescription>
+          Fill out the form below to create a new survey.
+        </DialogDescription>
+      </DialogHeader>
+      <SurveyCreationForm
+        onSurveyCreated={function (surveyId: string): void {
+          throw new Error('Function not implemented.');
+        }}
+        indicators={[]}
+      />
+      <DialogClose asChild>
+        <Button variant="ghost" className="mt-4">
+          Close
+        </Button>
+      </DialogClose>
+    </DialogContent>
+  </Dialog>
         {/* Controls */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <div>

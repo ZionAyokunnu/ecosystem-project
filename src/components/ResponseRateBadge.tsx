@@ -16,7 +16,7 @@ const ResponseRateBadge: React.FC<ResponseRateBadgeProps> = ({
   className 
 }) => {
   const [responseCount, setResponseCount] = useState<number>(0);
-  const [populationSize] = useState<number>(500); // Mock population size
+  const [populationSize] = useState<number>(9000); // Mock population size
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@radix-ui/react-dropdown-menu';
 
+
 const AdminDashboard: React.FC = () => {
   const { profile } = useAuth();
   const { indicators: ecoIndicators } = useEcosystem();
@@ -28,6 +29,7 @@ const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [inputYear, setInputYear] = useState('');
   const [inputValue, setInputValue] = useState('');
+  const { loading: ecoLoading, error: ecoError} = useEcosystem();
 
   useEffect(() => {
     fetchIndicators();
@@ -247,8 +249,13 @@ const AdminDashboard: React.FC = () => {
         <div>
           <InfluenceMetricsComputer />
         </div>
+        <div>
 
+        </div>
       </div>
+      <SurveyCreationForm onSurveyCreated={function (surveyId: string): void {
+        throw new Error('Function not implemented.');
+      } } indicators={[]} />
       </div>
   );
 };
