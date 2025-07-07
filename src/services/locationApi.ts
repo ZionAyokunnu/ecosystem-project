@@ -1,71 +1,67 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { Location, LocationPath, IndicatorValue } from "@/types";
+export interface Location {
+  location_id: string;
+  name: string;
+  type: string;
+  parent_id?: string;
+}
 
-export const getLocationChildren = async (parentId?: string): Promise<Location[]> => {
-  let query = supabase.from('locations').select('*');
-  if (parentId) {
-    query = query.eq('parent_id', parentId);
-  } else {
-    query = query.is('parent_id', null);
-  }
-  const { data, error } = await query.order('name');
+export interface LocationPath {
+  location_id: string;
+  name: string;
+  type: string;
+  depth?: number;
+}
 
-  if (error) {
-    console.error('Error fetching location children:', error);
-    throw error;
-  }
-
-  return (data || []).map(item => ({
-    ...item,
-    type: item.type as 'country' | 'region' | 'city' | 'ward'
-  }));
+// Mock location data for now - replace with actual API calls
+export const getLocations = async (): Promise<Location[]> => {
+  return [
+    { location_id: '1', name: 'St Neots', type: 'town', parent_id: undefined },
+    { location_id: '2', name: 'Cambridge', type: 'city', parent_id: '1' },
+    { location_id: '3', name: 'Huntingdon', type: 'town', parent_id: '1' },
+  ];
 };
 
-export const getLocationPath = async (locationId: string): Promise<LocationPath[]> => {
-  const { data, error } = await supabase
-    .rpc('get_location_path', { target_location_id: locationId });
-
-  if (error) {
-    console.error('Error fetching location path:', error);
-    throw error;
-  }
-
-  return data || [];
-};
-
-
-export const getAllLocations = async (): Promise<Location[]> => {
-  const { data, error } = await supabase
-    .from('locations')
-    .select('*')
-    .order('name');
-
-  if (error) {
-    console.error('Error fetching all locations:', error);
-    throw error;
-  }
-
-  return (data || []).map(item => ({
-    ...item,
-    type: item.type as 'country' | 'region' | 'city' | 'ward'
-  }));
+export const getLocationById = async (id: string): Promise<Location | null> => {
+  const locations = await getLocations();
+  return locations.find(loc => loc.location_id === id) || null;
 };
 
 export const getRootLocations = async (): Promise<Location[]> => {
-  const { data, error } = await supabase
-    .from('locations')
-    .select('*')
-    .is('parent_id', null) // root locations have no parent
-    .order('name');
+  const locations = await getLocations();
+  return locations.filter(loc => !loc.parent_id);
+};
 
-  if (error) {
-    console.error('Error fetching root locations:', error);
-    throw error;
+export const getLocationChildren = async (parentId: string | null): Promise<Location[]> => {
+  const locations = await getLocations();
+  if (parentId === null) {
+    return locations.filter(loc => !loc.parent_id);
   }
+  return locations.filter(loc => loc.parent_id === parentId);
+};
 
-  return (data || []).map(item => ({
-    ...item,
-    type: item.type as 'country' | 'region' | 'city' |  'ward'
-  }));
+export const getLocationPath = async (locationId: string): Promise<LocationPath[]> => {
+  const locations = await getLocations();
+  const path: LocationPath[] = [];
+  
+  let currentId = locationId;
+  const visited = new Set<string>();
+  
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId);
+    const location = locations.find(loc => loc.location_id === currentId);
+    if (!location) break;
+    
+    path.unshift({
+      location_id: location.location_id,
+      name: location.name,
+      type: location.type,
+      depth: 0
+    });
+    
+    currentId = location.parent_id || '';
+  }
+  
+  // Add depth to each item
+  return path.map((item, index) => ({ ...item, depth: index }));
 };

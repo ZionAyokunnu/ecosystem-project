@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SurveyQuestion {
   id: string;
@@ -26,6 +27,7 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
   const [title, setTitle] = useState('');
   const [domain, setDomain] = useState('');
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
+  const { user } = useAuth();
   const [newQuestion, setNewQuestion] = useState<Partial<SurveyQuestion>>({
     prompt: '',
     inputType: 'slider',
@@ -33,6 +35,8 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
     childIndicatorId: ''
   });
   const [loading, setLoading] = useState(false);
+
+  const [allIndicators, setAllIndicators] = useState<{ indicator_id: string; name: string; category: string }[]>([]);
 
   const inputTypes = [
     { value: 'slider', label: 'Slider (1-10)' },
@@ -69,6 +73,20 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
   const removeQuestion = (id: string) => {
     setQuestions(questions.filter(q => q.id !== id));
   };
+
+  useEffect(() => {
+    const loadIndicators = async () => {
+      const { data, error } = await supabase
+        .from('indicators')
+        .select('indicator_id, name, category');
+      if (error) {
+        toast.error('Failed to load indicators');
+      } else {
+        setAllIndicators(data);
+      }
+    };
+    loadIndicators();
+  }, []);
 
   const createSurvey = async () => {
     if (!title || !domain || questions.length === 0) {
@@ -229,15 +247,15 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
               
               <div>
                 <label className="block text-sm font-medium mb-2">Parent Indicator</label>
-                <Select 
+                <Select
                   value={newQuestion.parentIndicatorId} 
                   onValueChange={(value) => setNewQuestion({ ...newQuestion, parentIndicatorId: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select indicator" />
                   </SelectTrigger>
                   <SelectContent>
-                    {indicators.map(indicator => (
+                    {allIndicators.map(indicator => (
                       <SelectItem key={indicator.indicator_id} value={indicator.indicator_id}>
                         {indicator.name}
                       </SelectItem>
@@ -252,11 +270,11 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
                   value={newQuestion.childIndicatorId} 
                   onValueChange={(value) => setNewQuestion({ ...newQuestion, childIndicatorId: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select indicator" />
                   </SelectTrigger>
                   <SelectContent>
-                    {indicators.map(indicator => (
+                    {allIndicators.map(indicator => (
                       <SelectItem key={indicator.indicator_id} value={indicator.indicator_id}>
                         {indicator.name}
                       </SelectItem>
