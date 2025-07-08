@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ArrowRight, ArrowLeft, Plus, Target, TrendingUp, TrendingDown, Minus, ArrowUpDown, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ResponseRateBadge from './ResponseRateBadge';
+import Fuse from 'fuse.js';
 
 interface SurveyQuestion {
   question_id: string;
@@ -40,6 +41,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
+  const [allIndicators, setAllIndicators] = useState<{ indicator_id: string; name: string }[]>([]);
   const [currentResponse, setCurrentResponse] = useState({
     direction: '',
     strength: [5],
@@ -48,6 +50,16 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
   });
   const [loading, setLoading] = useState(true);
   const [newOptionText, setNewOptionText] = useState('');
+
+  // load names of similar indicators with fuse once on mount for additional option
+  useEffect(() => {
+    supabase
+      .from('indicators')
+      .select('indicator_id, name')
+      .then(({ data }) => {
+        setAllIndicators(data || []);
+      });
+  }, []);
 
   useEffect(() => {
     if (!domainId) {
@@ -65,8 +77,17 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
     fetchSurveyQuestions();
   }, [domainId, user]);
 
+  // then build your Fuse index
+  const fuse = useMemo(() => {
+    return new Fuse(allIndicators, {
+      keys: ['name'],
+      threshold: 0.3,
+    });
+  }, [allIndicators]);
+
   const fetchSurveyQuestions = async () => {
     try {
+      console.log('➡️ [SurveyRenderer] Loading survey for domain:', domainId);
       setLoading(true);
       console.log("🔍 Fetching survey questions for domain:", domainId);
 
@@ -160,7 +181,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
           parent_indicator_id: pair.relationships.parent_id,
           child_indicator_id: pair.relationships.child_id,
           prompt: `How do these community factors relate to each other?`,
-          input_type: 'relationship',
+          input_type: 'slider',
         }));
 
         const { data: insertedQuestions, error: insertError } = await supabase
@@ -184,7 +205,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
         setQuestions(existingQuestions || []);
       }
     } catch (error) {
-      console.error("💥 SurveyRenderer: failed to load questions", error);
+      console.error("💥 SurveyRenderer: failed to load questions for domain", domainId, error);
       toast.error('Failed to load survey questions');
     } finally {
       setLoading(false);
@@ -261,6 +282,14 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
       console.log("🏁 Submitting all responses:", newResponses);
       try {
         for (const resp of newResponses) {
+          // Convert free-form names into closest indicator IDs
+          const validAdditionalIds = resp.additionalOptions
+            .map(opt => {
+              const result = fuse.search(opt)[0];
+              return result?.item.indicator_id;
+            })
+            .filter((id): id is string => Boolean(id));
+
           console.log("📤 Submitting response:", {
             user_id: resp.user_id,
             parent_id: resp.parent_id,
@@ -269,7 +298,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
             direction: resp.direction,
             strength_score: resp.strength_score,
             notes_file_url: resp.notes || null,
-            additional_indicator_ids: resp.additionalOptions
+            additional_indicator_ids: validAdditionalIds
           });
 
           const { error } = await supabase
@@ -282,7 +311,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
               direction: resp.direction,
               strength_score: resp.strength_score,
               notes_file_url: resp.notes || null,
-              additional_indicator_ids: resp.additionalOptions
+              additional_indicator_ids: validAdditionalIds
             }]);
           
           if (error) {
@@ -357,8 +386,8 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+const currentQuestion = questions[currentQuestionIndex];
+const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

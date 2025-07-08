@@ -1,4 +1,4 @@
-// src/components/EnhancedLocationPicker.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
   Select, SelectContent, SelectItem,
@@ -39,12 +39,13 @@ const EnhancedLocationPicker: React.FC = () => {
     const loadCountries = async () => {
       try {
         const countries = await getLocationChildren(null);
+        console.log('🔍 [EnhancedLocationPicker] Raw root locations:', countries);
         setCountryOptions(countries.map(c => ({
           ...c,
           type: c.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           survey_responses: Math.floor(Math.random() * 500) + 50,
           story_count:      Math.floor(Math.random() * 20)  + 5
-        })));
+        } as LocationWithEngagement)));
       } catch (err) {
         console.error('Error loading countries:', err);
       }
@@ -63,7 +64,7 @@ const EnhancedLocationPicker: React.FC = () => {
           type: n.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           survey_responses: Math.floor(Math.random() * 300) + 30,
           story_count:      Math.floor(Math.random() * 10)  + 2
-        })));
+        } as LocationWithEngagement)));
         setSelectedNation('');
         setRegionOptions([]);
         setCityOptions([]);
@@ -87,7 +88,7 @@ const EnhancedLocationPicker: React.FC = () => {
           type: r.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           survey_responses: Math.floor(Math.random() * 200) + 20,
           story_count:      Math.floor(Math.random() * 15) + 2
-        })));
+        } as LocationWithEngagement)));
         setSelectedRegion('');
         setCityOptions([]);
         setTownOptions([]);
@@ -110,7 +111,7 @@ const EnhancedLocationPicker: React.FC = () => {
           type: c.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           survey_responses: Math.floor(Math.random() * 100) + 10,
           story_count:      Math.floor(Math.random() * 10) + 1
-        })));
+        } as LocationWithEngagement)));
         setSelectedCity('');
         setTownOptions([]);
         setWardOptions([]);
@@ -132,7 +133,7 @@ const EnhancedLocationPicker: React.FC = () => {
           type: t.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           survey_responses: Math.floor(Math.random() * 100) + 10,
           story_count:      Math.floor(Math.random() * 5)  + 1
-        })));
+        } as LocationWithEngagement)));
         setSelectedTown('');
         setWardOptions([]);
       } catch (err) {
@@ -153,7 +154,7 @@ const EnhancedLocationPicker: React.FC = () => {
           type: w.type as 'country' | 'nation' | 'region' | 'city' | 'town' | 'ward',
           survey_responses: Math.floor(Math.random() * 50) + 5,
           story_count:      Math.floor(Math.random() * 5)  + 1
-        })));
+        } as LocationWithEngagement)));
         setSelectedWard('');
       } catch (err) {
         console.error('Error loading wards:', err);
