@@ -9,6 +9,10 @@ import { Plus, Trash2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocation } from '@/context/LocationContext';
+import { Label } from '@/components/ui/label';
+import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
+import { Switch } from '@/components/ui/switch';
 
 interface SurveyQuestion {
   id: string;
@@ -25,9 +29,12 @@ interface SurveyCreationFormProps {
 
 const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated, indicators }) => {
   const [title, setTitle] = useState('');
+  const { profile } = useAuth();
+  const { user } = useAuth();
   const [domain, setDomain] = useState('');
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
-  const { user } = useAuth();
+  const [isCompulsory, setIsCompulsory] = useState<boolean>(false);
+  const { selectedLocation } = useLocation();
   const [newQuestion, setNewQuestion] = useState<Partial<SurveyQuestion>>({
     prompt: '',
     inputType: 'slider',
@@ -35,6 +42,14 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
     childIndicatorId: ''
   });
   const [loading, setLoading] = useState(false);
+
+  const roleOptions = [
+    { value: 'resident',      label: 'Community Resident'       },
+    { value: 'community_rep', label: 'Community Representative' },
+    { value: 'researcher',    label: 'Researcher'               },
+    { value: 'business',      label: 'Business Owner'           }
+  ];
+  const [applicableRoles, setApplicableRoles] = useState<string[]>([]);
 
   const [allIndicators, setAllIndicators] = useState<{ indicator_id: string; name: string; category: string }[]>([]);
 
@@ -94,6 +109,11 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
       return;
     }
 
+    if (!selectedLocation) {
+      toast.error('Please select a target location');
+      return;
+    }
+
     setLoading(true);
     try {
       // Create survey
@@ -102,8 +122,11 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
         .insert([{
           title,
           domain,
-          status: 'pending_approval', // Requires approval before going live
-          applicable_roles: ['resident', 'community_rep', 'business']
+          is_compulsory: isCompulsory,
+          status: 'pending_approval',
+          applicable_roles: applicableRoles,
+          target_location: selectedLocation.location_id,
+          created_by: user!.id
         }])
         .select()
         .single();
@@ -283,6 +306,45 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
                 </Select>
               </div>
             </div>
+            <div className="mt-4">
+              <Label htmlFor="is-compulsory" className="block text-sm font-medium mb-2">
+                Is Compulsory?
+              </Label>
+              <Switch
+                id="is-compulsory"
+                checked={isCompulsory}
+                onCheckedChange={setIsCompulsory}
+              />
+            </div>
+
+            <div className="mt-4">
+              <Label className="block text-sm font-medium mb-2">
+                Applicable Roles
+              </Label>
+              <div className="flex flex-wrap gap-4">
+                {roleOptions.map(role => (
+                  <div key={role.value} className="flex items-center space-x-2">
+                    <Switch
+                      id={`role-${role.value}`}
+                      checked={applicableRoles.includes(role.value)}
+                      onCheckedChange={checked => {
+                        if (checked) {
+                          setApplicableRoles([...applicableRoles, role.value]);
+                        } else {
+                          setApplicableRoles(applicableRoles.filter(r => r !== role.value));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`role-${role.value}`}>
+                      {role.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <label className="block mb-2 font-medium">Target Location</label>
+            <EnhancedLocationPicker />
             
             <Button onClick={addQuestion} className="w-full">
               <Plus className="w-4 h-4 mr-2" />

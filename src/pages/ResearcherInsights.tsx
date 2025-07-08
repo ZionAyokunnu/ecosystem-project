@@ -129,6 +129,12 @@ const ResearcherInsights = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
+  // Replace the stub callback with a real handler
+  const handleSurveyCreated = (surveyId: string) => {
+    console.log('✅ New survey created:', surveyId);
+    // TODO: refresh insights or navigate to the new survey
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
@@ -136,33 +142,28 @@ const ResearcherInsights = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Research Insights Dashboard</h1>
           <p className="text-gray-600">Analyse community perceptions of indicator relationships</p>
         </div>
-  <Dialog>
-    <DialogTrigger asChild>
-      <Button variant="outline" className="mb-6">
-        <FileQuestion className="mr-2 h-4 w-4" />
-        New Survey
-      </Button>
-    </DialogTrigger>
-    <DialogContent className="sm:max-w-[900px]">
-      <DialogHeader>
-        <DialogTitle>Create New Survey</DialogTitle>
-        <DialogDescription>
-          Fill out the form below to create a new survey.
-        </DialogDescription>
-      </DialogHeader>
-      <SurveyCreationForm
-        onSurveyCreated={function (surveyId: string): void {
-          throw new Error('Function not implemented.');
-        }}
-        indicators={[]}
-      />
-      <DialogClose asChild>
-        <Button variant="ghost" className="mt-4">
-          Close
-        </Button>
-      </DialogClose>
-    </DialogContent>
-  </Dialog>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="mb-6">
+              <FileQuestion className="mr-2 h-4 w-4" />
+              New Survey
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>New Survey</DialogTitle>
+            </DialogHeader>
+            <SurveyCreationForm
+              onSurveyCreated={handleSurveyCreated}
+              indicators={[]}
+            />
+            <DialogClose asChild>
+              <Button variant="ghost" className="mt-4">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
         {/* Controls */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <div>
