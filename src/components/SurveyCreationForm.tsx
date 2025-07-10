@@ -34,7 +34,8 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
   const [domain, setDomain] = useState('');
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [isCompulsory, setIsCompulsory] = useState<boolean>(false);
-  const { selectedLocation } = useLocation();
+  const [justification, setJustification] = useState('');
+  const { selectedLocation, targetLocation, setTargetLocation } = useLocation();
   const [newQuestion, setNewQuestion] = useState<Partial<SurveyQuestion>>({
     prompt: '',
     inputType: 'slider',
@@ -345,6 +346,17 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
 
             <label className="block mb-2 font-medium">Target Location</label>
             <EnhancedLocationPicker />
+
+            {/* Explanation / Justification */}
+            <div>
+              <Label>Survey Explanation / Justification</Label>
+              <Textarea
+                placeholder="Why are you running this survey?"
+                value={justification}
+                onChange={e => setJustification(e.target.value)}
+                className="w-full"
+              />
+            </div>
             
             <Button onClick={addQuestion} className="w-full">
               <Plus className="w-4 h-4 mr-2" />

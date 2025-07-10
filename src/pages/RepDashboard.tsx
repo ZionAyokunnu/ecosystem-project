@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, Flag, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { Survey } from '@/types';
 
 interface TownStats {
   total_residents: number;
@@ -23,6 +23,9 @@ interface FlaggedResponse {
 
 const RepDashboard: React.FC = () => {
   const { profile } = useAuth();
+  const [pendingSurveys, setPendingSurveys] = useState<Survey[]>([]);
+  const [locationNames, setLocationNames] = useState<Record<string, string>>({});
+
   const [townStats, setTownStats] = useState<TownStats | null>(null);
   const [flaggedResponses, setFlaggedResponses] = useState<FlaggedResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,42 @@ const RepDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalFlags, setTotalFlags] = useState(0);
   const itemsPerPage = 5;
+
+  useEffect(() => {
+    if (!profile?.location_id) return;
+
+    (async () => {
+      try {
+        // 1) Load the pending surveys for this rep’s location
+        const { data: surveys, error: surveyError } = await supabase
+          .from('surveys')
+          .select('*')
+          .eq('status', 'pending_approval')
+          .eq('target_location', profile.location_id);
+        if (surveyError) throw surveyError;
+        const pending = surveys as Survey[];
+        setPendingSurveys(pending);
+
+        // 2) Fetch each unique location’s name
+        const targetIds = Array.from(
+          new Set(pending.map(s => s.target_location!).filter(Boolean))
+        );
+        if (targetIds.length) {
+          const { data: locs, error: locError } = await supabase
+            .from('locations')
+            .select('location_id, name')
+            .in('location_id', targetIds);
+          if (locError) throw locError;
+          const map: Record<string, string> = {};
+          locs?.forEach(l => (map[l.location_id] = l.name));
+          setLocationNames(map);
+        }
+      } catch (err) {
+        console.error('Error fetching pending surveys:', err);
+        toast.error('Failed to load pending surveys');
+      }
+    })();
+  }, [profile]);
 
   useEffect(() => {
     if (profile?.location_id) {
@@ -162,6 +201,28 @@ const RepDashboard: React.FC = () => {
     );
   }
 
+  const handleApproveSurvey = async (surveyId: string) => {
+    try {
+      await supabase.from('surveys').update({ status: 'active' }).eq('survey_id', surveyId);
+      toast.success('Survey approved');
+      setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
+    } catch (err) {
+      console.error('Error approving survey:', err);
+      toast.error('Failed to approve survey');
+    }
+  };
+
+  const handleRejectSurvey = async (surveyId: string) => {
+    try {
+      await supabase.from('surveys').update({ status: 'archived' }).eq('survey_id', surveyId);
+      toast.success('Survey rejected');
+      setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
+    } catch (err) {
+      console.error('Error rejecting survey:', err);
+      toast.error('Failed to reject survey');
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Community Representative Dashboard</h1>
@@ -208,6 +269,47 @@ const RepDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {pendingSurveys.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Pending Surveys for Approval</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pendingSurveys.map(survey => (
+              <div key={survey.survey_id} className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="font-medium">{survey.title}</p>
+                  <p className="text-sm text-gray-500">Domain: {survey.domain}</p>
+                  <p className="text-sm text-gray-500">Explanation: {survey.description}</p>
+                  {/* <p className="text-sm text-gray-500">
+                    Location: {locationNames[survey.target_location!] || 'Unknown'}
+                  </p> */}
+
+                  <p className="text-sm text-gray-500">
+                    Location:{' '}
+                    {(() => {
+                      const joined = (survey as any).location;
+                      if (joined) {
+                        if (Array.isArray(joined)) return joined[0]?.name || 'Unknown';
+                        if (typeof joined === 'object') return joined.name || 'Unknown';
+                      }
+                      const name = locationNames[survey.target_location!];
+                      if (name) return name;
+                      return survey.target_location || 'Unknown';
+                    })()}
+                  </p>
+
+                </div>
+                <div className="space-x-2">
+                  <Button size="sm" onClick={() => handleApproveSurvey(survey.survey_id)}>Approve</Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleRejectSurvey(survey.survey_id)}>Reject</Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Flagged Responses */}
       <Card>

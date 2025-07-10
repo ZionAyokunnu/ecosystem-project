@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,90 +7,153 @@ import { useLocation } from '@/context/LocationContext';
 import SurveyCard from '@/components/SurveyCard';
 import SurveyModal from '@/components/SurveyModal';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Survey } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+
 
 const SurveysPage: React.FC = () => {
   const navigate = useNavigate();
   const { selectedLocation } = useLocation();
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [completedSurveys, setCompletedSurveys] = useState<Set<string>>(new Set());
+  const { profile } = useAuth();
 
-  // Mock survey data
-  const surveys = [
-    {
-      id: 'community-wellbeing',
-      title: 'Community Wellbeing Assessment',
-      description: 'Help us understand the factors that impact wellbeing in your community.',
-      estimatedTime: '5-7 minutes',
-      participantCount: 284,
-      category: 'Health & Wellbeing',
-      questions: [
-        {
-          id: 'q1',
-          question: 'How would you rate the overall wellbeing in your community?',
-          type: 'rating' as const,
-          required: true
-        },
-        {
-          id: 'q2',
-          question: 'What factors most impact community wellbeing?',
-          type: 'multiple-choice' as const,
-          options: ['Healthcare access', 'Employment opportunities', 'Housing quality', 'Social connections', 'Environmental factors'],
-          required: true
-        },
-        {
-          id: 'q3',
-          question: 'What improvements would you most like to see?',
-          type: 'text' as const,
-          required: false
-        }
-      ]
-    },
-    {
-      id: 'economic-opportunities',
-      title: 'Economic Opportunities Survey',
-      description: 'Share your views on local economic development and job opportunities.',
-      estimatedTime: '4-6 minutes',
-      participantCount: 156,
-      category: 'Economy & Employment',
-      questions: [
-        {
-          id: 'q1',
-          question: 'How satisfied are you with local job opportunities?',
-          type: 'rating' as const,
-          required: true
-        },
-        {
-          id: 'q2',
-          question: 'What type of businesses would you like to see more of?',
-          type: 'text' as const,
-          required: false
-        }
-      ]
-    },
-    {
-      id: 'housing-transport',
-      title: 'Housing & Transport Assessment',
-      description: 'Help us understand housing affordability and transport needs in your area.',
-      estimatedTime: '6-8 minutes',
-      participantCount: 203,
-      category: 'Infrastructure',
-      questions: [
-        {
-          id: 'q1',
-          question: 'How would you rate housing affordability in your area?',
-          type: 'rating' as const,
-          required: true
-        },
-        {
-          id: 'q2',
-          question: 'What transport improvements are most needed?',
-          type: 'multiple-choice' as const,
-          options: ['Better bus services', 'More cycling paths', 'Improved roads', 'Better parking', 'Rail connections'],
-          required: true
-        }
-      ]
-    }
-  ];
+  // // Mock survey data
+  // const surveys = [
+  //   {
+  //     id: 'community-wellbeing',
+  //     title: 'Community Wellbeing Assessment',
+  //     description: 'Help us understand the factors that impact wellbeing in your community.',
+  //     estimatedTime: '5-7 minutes',
+  //     participantCount: 284,
+  //     category: 'Health & Wellbeing',
+  //     questions: [
+  //       {
+  //         id: 'q1',
+  //         question: 'How would you rate the overall wellbeing in your community?',
+  //         type: 'rating' as const,
+  //         required: true
+  //       },
+  //       {
+  //         id: 'q2',
+  //         question: 'What factors most impact community wellbeing?',
+  //         type: 'multiple-choice' as const,
+  //         options: ['Healthcare access', 'Employment opportunities', 'Housing quality', 'Social connections', 'Environmental factors'],
+  //         required: true
+  //       },
+  //       {
+  //         id: 'q3',
+  //         question: 'What improvements would you most like to see?',
+  //         type: 'text' as const,
+  //         required: false
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: 'economic-opportunities',
+  //     title: 'Economic Opportunities Survey',
+  //     description: 'Share your views on local economic development and job opportunities.',
+  //     estimatedTime: '4-6 minutes',
+  //     participantCount: 156,
+  //     category: 'Economy & Employment',
+  //     questions: [
+  //       {
+  //         id: 'q1',
+  //         question: 'How satisfied are you with local job opportunities?',
+  //         type: 'rating' as const,
+  //         required: true
+  //       },
+  //       {
+  //         id: 'q2',
+  //         question: 'What type of businesses would you like to see more of?',
+  //         type: 'text' as const,
+  //         required: false
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     id: 'housing-transport',
+  //     title: 'Housing & Transport Assessment',
+  //     description: 'Help us understand housing affordability and transport needs in your area.',
+  //     estimatedTime: '6-8 minutes',
+  //     participantCount: 203,
+  //     category: 'Infrastructure',
+  //     questions: [
+  //       {
+  //         id: 'q1',
+  //         question: 'How would you rate housing affordability in your area?',
+  //         type: 'rating' as const,
+  //         required: true
+  //       },
+  //       {
+  //         id: 'q2',
+  //         question: 'What transport improvements are most needed?',
+  //         type: 'multiple-choice' as const,
+  //         options: ['Better bus services', 'More cycling paths', 'Improved roads', 'Better parking', 'Rail connections'],
+  //         required: true
+  //       }
+  //     ]
+  //   }
+  // ];
+  
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [questionCounts, setQuestionCounts]       = useState<Record<string,number>>({});
+  const [participantCounts, setParticipantCounts] = useState<Record<string,number>>({});
+
+  useEffect(() => {
+    const locId = selectedLocation?.location_id || profile?.location_id;
+if (!locId) {
+  console.warn('SurveysPage: no location to fetch for');
+  return;
+}
+console.log('📊 Fetching surveys for location:', locId);
+
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('*')
+        .eq('status', 'active')
+        .eq('target_location', locId);
+
+      if (error) {
+        console.error('Error fetching surveys:', error);
+        toast.error('Failed to load surveys');
+      } else {
+        setSurveys(data as Survey[]);
+      }
+    })();
+  }, [selectedLocation, profile]);
+
+  useEffect(() => {
+    if (surveys.length === 0) return;
+
+    (async () => {
+      const qc: Record<string,number> = {};
+      const pc: Record<string,number> = {};
+      for (const s of surveys) {
+        // 1) count how many questions this survey has
+        const { count: qCount } = await supabase
+          .from('survey_questions')
+          .select('*', { head: true, count: 'exact' })
+          .eq('survey_id', s.survey_id);
+        qc[s.survey_id] = qCount || 0;
+
+        // 2) count how many responses have been recorded
+        const { count: rCount } = await supabase
+          .from('survey_responses')
+          .select('*', { head: true, count: 'exact' })
+          .eq('survey_id', s.survey_id);
+        // assume each participant answers every question
+        pc[s.survey_id] = qc[s.survey_id]
+          ? Math.floor((rCount || 0) / qc[s.survey_id])
+          : 0;
+      }
+      setQuestionCounts(qc);
+      setParticipantCounts(pc);
+    })();
+  }, [surveys]);
 
   const handleStartSurvey = (survey: any) => {
     setSelectedSurvey(survey);
@@ -104,8 +166,8 @@ const SurveysPage: React.FC = () => {
     setSelectedSurvey(null);
   };
 
-  const availableSurveys = surveys.filter(survey => !completedSurveys.has(survey.id));
-  const completedSurveysList = surveys.filter(survey => completedSurveys.has(survey.id));
+  const availableSurveys = surveys.filter(survey => !completedSurveys.has(String(survey.id)));
+  const completedSurveysList = surveys.filter(survey => completedSurveys.has(String(survey.id)));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -154,7 +216,10 @@ const SurveysPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {surveys.reduce((acc, survey) => acc + survey.participantCount, 0)}
+             {surveys.reduce(
+              (acc, survey) => acc + (participantCounts[survey.survey_id] || 0),
+               0
+              )}
             </div>
             <p className="text-xs text-muted-foreground">Total responses</p>
           </CardContent>
@@ -168,11 +233,11 @@ const SurveysPage: React.FC = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {availableSurveys.map(survey => (
               <SurveyCard
-                key={survey.id}
+                key={survey.survey_id}
                 title={survey.title}
                 description={survey.description}
-                estimatedTime={survey.estimatedTime}
-                participantCount={survey.participantCount}
+                estimatedTime={`${questionCounts[survey.survey_id] ?? 0} min`}
+                participantCount={participantCounts[survey.survey_id] ?? 0}
                 category={survey.category}
                 onStart={() => handleStartSurvey(survey)}
               />
@@ -188,7 +253,7 @@ const SurveysPage: React.FC = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {completedSurveysList.map(survey => (
               <SurveyCard
-                key={survey.id}
+                key={String(survey.id)}
                 title={survey.title}
                 description={survey.description}
                 estimatedTime={survey.estimatedTime}
