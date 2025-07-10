@@ -27,11 +27,9 @@ export const queryLocalLLM = async (
       prompt: contextualPrompt
     };
     console.log("🔍 Sending prompt to LLM:", prompt);
-    console.log("➡️ LLM API endpoint:", 'https://ecosystem-project-production.up.railway.app/local-llm');
-    // Always use "/local-llm" (not "/api/local-llm")
+    console.log("➡️ LLM API endpoint:", import.meta.env.VITE_LLM_API_URL || "/api/local-llm");
     const response = await fetch(
-      
-      import.meta.env.VITE_LLM_API_URL || "/local-llm",
+      import.meta.env.VITE_LLM_API_URL || "/api/local-llm",
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

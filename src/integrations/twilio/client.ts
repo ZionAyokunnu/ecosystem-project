@@ -1,9 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import Twilio from 'twilio';
 
 // Ensure these env vars are set in your .env (we did this in Step 1)
-const accountSid = import.meta.env.TWILIO_ACCOUNT_SID!;
-const authToken  = import.meta.env.TWILIO_AUTH_TOKEN!;
-const fromNumber = import.meta.env.TWILIO_PHONE_NUMBER!;
+const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+const authToken  = process.env.TWILIO_AUTH_TOKEN!;
+const fromNumber = process.env.TWILIO_PHONE_NUMBER!;
 
 if (!accountSid || !authToken || !fromNumber) {
   throw new Error(

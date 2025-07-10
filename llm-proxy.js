@@ -15,7 +15,7 @@ app.post('/api/local-llm', async (req, res) => {
     body: JSON.stringify({
       model: 'tinyllama:1.1b',       // <-- the model you pulled
       prompt,
-      stream: false             // we just want the full answer
+      stream: false            // we just want the full answer
     })
   });
 
