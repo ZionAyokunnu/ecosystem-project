@@ -152,13 +152,19 @@ export interface UserProfile {
 }
 
 export interface Survey {
+  id(id: any): unknown;
+  participantCount: number;
+  estimatedTime: string;
+  category: string;
   survey_id: string;
   title: string;
   domain: string;
   is_compulsory: boolean;
   applicable_roles: string[];
   created_by: string;
-  status: 'active' | 'archived';
+  description?: string;
+  target_location?: string;
+  status: 'active' | 'archived' | 'pending_approval' | 'draft';
   created_at?: string;
 }
 
