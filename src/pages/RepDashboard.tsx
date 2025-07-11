@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Users, Flag, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Survey } from '@/types';
+import SurveyApprovalCard from '@/components/SurveyApprovalCard';
 
 interface TownStats {
   total_residents: number;
@@ -25,6 +26,8 @@ const RepDashboard: React.FC = () => {
   const { profile } = useAuth();
   const [pendingSurveys, setPendingSurveys] = useState<Survey[]>([]);
   const [locationNames, setLocationNames] = useState<Record<string, string>>({});
+  const [surveyQuestionCounts, setSurveyQuestionCounts] = useState<Record<string, number>>({});
+  const [surveyTargetCounts, setSurveyTargetCounts] = useState<Record<string, number>>({});
 
   const [townStats, setTownStats] = useState<TownStats | null>(null);
   const [flaggedResponses, setFlaggedResponses] = useState<FlaggedResponse[]>([]);
@@ -203,23 +206,41 @@ const RepDashboard: React.FC = () => {
 
   const handleApproveSurvey = async (surveyId: string) => {
     try {
-      await supabase.from('surveys').update({ status: 'active' }).eq('survey_id', surveyId);
-      toast.success('Survey approved');
+      await supabase
+        .from('surveys')
+        .update({ 
+          status: 'active',
+          approved_by_rep: profile?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('survey_id', surveyId);
+      
+      toast.success('Survey approved and will go live!');
       setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
+      
+      // TODO: Trigger voice call scheduling if voice-enabled
     } catch (err) {
       console.error('Error approving survey:', err);
       toast.error('Failed to approve survey');
     }
   };
 
-  const handleRejectSurvey = async (surveyId: string) => {
+  const handleDeclineSurvey = async (surveyId: string, reason: string) => {
     try {
-      await supabase.from('surveys').update({ status: 'archived' }).eq('survey_id', surveyId);
-      toast.success('Survey rejected');
+      await supabase
+        .from('surveys')
+        .update({ 
+          status: 'declined',
+          approved_by_rep: profile?.id,
+          declined_reason: reason
+        })
+        .eq('survey_id', surveyId);
+      
+      toast.success('Survey declined');
       setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
     } catch (err) {
-      console.error('Error rejecting survey:', err);
-      toast.error('Failed to reject survey');
+      console.error('Error declining survey:', err);
+      toast.error('Failed to decline survey');
     }
   };
 
@@ -271,44 +292,22 @@ const RepDashboard: React.FC = () => {
       </div>
 
       {pendingSurveys.length > 0 && (
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Pending Surveys for Approval</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Pending Surveys for Approval</h2>
+          <div className="space-y-6">
             {pendingSurveys.map(survey => (
-              <div key={survey.survey_id} className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="font-medium">{survey.title}</p>
-                  <p className="text-sm text-gray-500">Domain: {survey.domain}</p>
-                  <p className="text-sm text-gray-500">Explanation: {survey.description}</p>
-                  {/* <p className="text-sm text-gray-500">
-                    Location: {locationNames[survey.target_location!] || 'Unknown'}
-                  </p> */}
-
-                  <p className="text-sm text-gray-500">
-                    Location:{' '}
-                    {(() => {
-                      const joined = (survey as any).location;
-                      if (joined) {
-                        if (Array.isArray(joined)) return joined[0]?.name || 'Unknown';
-                        if (typeof joined === 'object') return joined.name || 'Unknown';
-                      }
-                      const name = locationNames[survey.target_location!];
-                      if (name) return name;
-                      return survey.target_location || 'Unknown';
-                    })()}
-                  </p>
-
-                </div>
-                <div className="space-x-2">
-                  <Button size="sm" onClick={() => handleApproveSurvey(survey.survey_id)}>Approve</Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleRejectSurvey(survey.survey_id)}>Reject</Button>
-                </div>
-              </div>
+              <SurveyApprovalCard
+                key={survey.survey_id}
+                survey={survey}
+                onApprove={handleApproveSurvey}
+                onDecline={handleDeclineSurvey}
+                questionCount={surveyQuestionCounts[survey.survey_id] || 0}
+                estimatedTime={survey.estimated_duration_minutes || 5}
+                targetUsers={surveyTargetCounts[survey.survey_id] || 0}
+              />
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Flagged Responses */}

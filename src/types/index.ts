@@ -148,24 +148,40 @@ export interface UserProfile {
   name: string;
   role: 'resident' | 'community_rep' | 'admin' | 'researcher' | 'business';
   location_id: string;
+  phoneNumber?: string;
+  gender?: string;
+  ageGroup?: string;
   hasCompletedOnboarding: boolean;
 }
 
 export interface Survey {
-  id(id: any): unknown;
-  participantCount: number;
-  estimatedTime: string;
-  category: string;
+  id?: string;
   survey_id: string;
   title: string;
   domain: string;
+  description?: string;
   is_compulsory: boolean;
+  is_voice_enabled?: boolean;
+  justification?: string;
+  demographic_filters?: {
+    genders: string[];
+    age_groups: string[];
+  };
+  estimated_duration_minutes?: number;
+  approved_by_rep?: string;
+  approved_at?: string;
+  declined_reason?: string;
   applicable_roles: string[];
   created_by: string;
-  description?: string;
   target_location?: string;
-  status: 'active' | 'archived' | 'pending_approval' | 'draft';
+  status: 'active' | 'archived' | 'pending_approval' | 'draft' | 'declined' | 'completed';
   created_at?: string;
+  updated_at?: string;
+  
+  // Legacy/computed fields for compatibility
+  participantCount?: number;
+  estimatedTime?: string;
+  category?: string;
 }
 
 export interface SurveyQuestion {

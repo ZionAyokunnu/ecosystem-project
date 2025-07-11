@@ -335,9 +335,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_group: string | null
           created_at: string | null
           email: string
           first_name: string
+          gender: string | null
           has_completed_onboarding: boolean | null
           id: string
           location_id: string | null
@@ -347,9 +349,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          age_group?: string | null
           created_at?: string | null
           email: string
           first_name: string
+          gender?: string | null
           has_completed_onboarding?: boolean | null
           id: string
           location_id?: string | null
@@ -359,9 +363,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          age_group?: string | null
           created_at?: string | null
           email?: string
           first_name?: string
+          gender?: string | null
           has_completed_onboarding?: boolean | null
           id?: string
           location_id?: string | null
@@ -779,6 +785,51 @@ export type Database = {
           },
         ]
       }
+      survey_notifications: {
+        Row: {
+          delivery_status: string | null
+          id: string
+          message_content: string | null
+          notification_type: string
+          sent_at: string | null
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          delivery_status?: string | null
+          id?: string
+          message_content?: string | null
+          notification_type: string
+          sent_at?: string | null
+          survey_id: string
+          user_id: string
+        }
+        Update: {
+          delivery_status?: string | null
+          id?: string
+          message_content?: string | null
+          notification_type?: string
+          sent_at?: string | null
+          survey_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_notifications_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["survey_id"]
+          },
+          {
+            foreignKeyName: "survey_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       survey_questions: {
         Row: {
           allow_additional_indicator: boolean | null
@@ -843,16 +894,83 @@ export type Database = {
           },
         ]
       }
+      survey_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          phone_number: string | null
+          qualitative_text: string | null
+          quantitative_value: number | null
+          question_id: string
+          raw_transcript: string | null
+          response_type: string | null
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          phone_number?: string | null
+          qualitative_text?: string | null
+          quantitative_value?: number | null
+          question_id: string
+          raw_transcript?: string | null
+          response_type?: string | null
+          survey_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          phone_number?: string | null
+          qualitative_text?: string | null
+          quantitative_value?: number | null
+          question_id?: string
+          raw_transcript?: string | null
+          response_type?: string | null
+          survey_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["question_id"]
+          },
+          {
+            foreignKeyName: "survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["survey_id"]
+          },
+          {
+            foreignKeyName: "survey_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       surveys: {
         Row: {
           applicable_roles: string[] | null
           approved_at: string | null
           approved_by: string | null
+          approved_by_rep: string | null
           created_at: string | null
           created_by: string | null
+          declined_reason: string | null
+          demographic_filters: Json | null
           description: string | null
           domain: string
+          estimated_duration_minutes: number | null
           is_compulsory: boolean | null
+          is_voice_enabled: boolean | null
+          justification: string | null
           status: string | null
           survey_id: string
           target_location: string
@@ -862,11 +980,17 @@ export type Database = {
           applicable_roles?: string[] | null
           approved_at?: string | null
           approved_by?: string | null
+          approved_by_rep?: string | null
           created_at?: string | null
           created_by?: string | null
+          declined_reason?: string | null
+          demographic_filters?: Json | null
           description?: string | null
           domain: string
+          estimated_duration_minutes?: number | null
           is_compulsory?: boolean | null
+          is_voice_enabled?: boolean | null
+          justification?: string | null
           status?: string | null
           survey_id?: string
           target_location: string
@@ -876,17 +1000,31 @@ export type Database = {
           applicable_roles?: string[] | null
           approved_at?: string | null
           approved_by?: string | null
+          approved_by_rep?: string | null
           created_at?: string | null
           created_by?: string | null
+          declined_reason?: string | null
+          demographic_filters?: Json | null
           description?: string | null
           domain?: string
+          estimated_duration_minutes?: number | null
           is_compulsory?: boolean | null
+          is_voice_enabled?: boolean | null
+          justification?: string | null
           status?: string | null
           survey_id?: string
           target_location?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "surveys_approved_by_rep_fkey"
+            columns: ["approved_by_rep"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_badges: {
         Row: {
@@ -969,11 +1107,78 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_call_attempts: {
+        Row: {
+          attempted_at: string | null
+          call_duration_seconds: number | null
+          completed_at: string | null
+          created_at: string | null
+          failure_reason: string | null
+          id: string
+          phone_number: string
+          reschedule_requested_at: string | null
+          scheduled_at: string
+          status: string | null
+          survey_id: string
+          twilio_call_sid: string | null
+          user_id: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          call_duration_seconds?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          phone_number: string
+          reschedule_requested_at?: string | null
+          scheduled_at: string
+          status?: string | null
+          survey_id: string
+          twilio_call_sid?: string | null
+          user_id: string
+        }
+        Update: {
+          attempted_at?: string | null
+          call_duration_seconds?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          phone_number?: string
+          reschedule_requested_at?: string | null
+          scheduled_at?: string
+          status?: string | null
+          survey_id?: string
+          twilio_call_sid?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_call_attempts_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["survey_id"]
+          },
+          {
+            foreignKeyName: "voice_call_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      calculate_survey_duration: {
+        Args: { survey_id_param: string }
+        Returns: number
+      }
       get_location_children: {
         Args: { parent_location_id?: string }
         Returns: {
@@ -990,6 +1195,15 @@ export type Database = {
           name: string
           type: string
           depth: number
+        }[]
+      }
+      get_survey_target_users: {
+        Args: { survey_id_param: string; location_id_param: string }
+        Returns: {
+          user_id: string
+          phone_number: string
+          gender: string
+          age_group: string
         }[]
       }
     }

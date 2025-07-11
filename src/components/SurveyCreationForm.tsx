@@ -34,7 +34,10 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
   const [domain, setDomain] = useState('');
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [isCompulsory, setIsCompulsory] = useState<boolean>(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState<boolean>(false);
   const [justification, setJustification] = useState('');
+  const [targetGenders, setTargetGenders] = useState<string[]>([]);
+  const [targetAgeGroups, setTargetAgeGroups] = useState<string[]>([]);
   const { selectedLocation, targetLocation, setTargetLocation } = useLocation();
   const [newQuestion, setNewQuestion] = useState<Partial<SurveyQuestion>>({
     prompt: '',
@@ -50,6 +53,9 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
     { value: 'researcher',    label: 'Researcher'               },
     { value: 'business',      label: 'Business Owner'           }
   ];
+
+  const genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  const ageGroupOptions = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
   const [applicableRoles, setApplicableRoles] = useState<string[]>([]);
 
   const [allIndicators, setAllIndicators] = useState<{ indicator_id: string; name: string; category: string }[]>([]);
@@ -123,7 +129,14 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
         .insert([{
           title,
           domain,
+          description: justification,
           is_compulsory: isCompulsory,
+          is_voice_enabled: isVoiceEnabled,
+          justification,
+          demographic_filters: {
+            genders: targetGenders,
+            age_groups: targetAgeGroups
+          },
           status: 'pending_approval',
           applicable_roles: applicableRoles,
           target_location: selectedLocation.location_id,
@@ -157,6 +170,11 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
       setTitle('');
       setDomain('');
       setQuestions([]);
+      setIsCompulsory(false);
+      setIsVoiceEnabled(false);
+      setJustification('');
+      setTargetGenders([]);
+      setTargetAgeGroups([]);
     } catch (error) {
       console.error('Error creating survey:', error);
       toast.error('Failed to create survey');
@@ -317,6 +335,75 @@ const SurveyCreationForm: React.FC<SurveyCreationFormProps> = ({ onSurveyCreated
                 onCheckedChange={setIsCompulsory}
               />
             </div>
+
+            <div className="mt-4">
+              <Label htmlFor="is-voice-enabled" className="block text-sm font-medium mb-2">
+                Enable Voice Calls?
+              </Label>
+              <Switch
+                id="is-voice-enabled"
+                checked={isVoiceEnabled}
+                onCheckedChange={setIsVoiceEnabled}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {isVoiceEnabled 
+                  ? "Survey will be conducted via automated phone calls using Twilio" 
+                  : "Survey will only be available via web interface"
+                }
+              </p>
+            </div>
+
+            {isVoiceEnabled && (
+              <>
+                <div className="mt-4">
+                  <Label className="block text-sm font-medium mb-2">
+                    Target Gender (Optional)
+                  </Label>
+                  <div className="flex flex-wrap gap-4">
+                    {genderOptions.map(gender => (
+                      <div key={gender} className="flex items-center space-x-2">
+                        <Switch
+                          id={`gender-${gender}`}
+                          checked={targetGenders.includes(gender)}
+                          onCheckedChange={checked => {
+                            if (checked) {
+                              setTargetGenders([...targetGenders, gender]);
+                            } else {
+                              setTargetGenders(targetGenders.filter(g => g !== gender));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`gender-${gender}`}>{gender}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label className="block text-sm font-medium mb-2">
+                    Target Age Groups (Optional)
+                  </Label>
+                  <div className="flex flex-wrap gap-4">
+                    {ageGroupOptions.map(ageGroup => (
+                      <div key={ageGroup} className="flex items-center space-x-2">
+                        <Switch
+                          id={`age-${ageGroup}`}
+                          checked={targetAgeGroups.includes(ageGroup)}
+                          onCheckedChange={checked => {
+                            if (checked) {
+                              setTargetAgeGroups([...targetAgeGroups, ageGroup]);
+                            } else {
+                              setTargetAgeGroups(targetAgeGroups.filter(a => a !== ageGroup));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`age-${ageGroup}`}>{ageGroup}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="mt-4">
               <Label className="block text-sm font-medium mb-2">

@@ -37,7 +37,7 @@ interface SurveyRendererProps {
 }
 
 const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, domainPath = [] }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
@@ -141,7 +141,10 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
           .insert([{ 
             domain: domainId, 
             status: 'active', 
-            title: `${domainName} Relationship Survey`
+            title: `${domainName} Relationship Survey`,
+            target_location: profile?.location_id || 'default',
+            applicable_roles: ['resident', 'community_rep', 'researcher', 'business'],
+            created_by: profile?.id || 'system'
           }])
           .select()
           .single();

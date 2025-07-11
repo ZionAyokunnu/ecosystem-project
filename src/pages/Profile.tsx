@@ -47,6 +47,18 @@ const Profile: React.FC = () => {
             </div>
 
             <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={userProfile.phoneNumber || ''}
+                onChange={(e) => updateProfile({ phoneNumber: e.target.value })}
+                placeholder="+1234567890"
+              />
+              <p className="text-xs text-gray-500 mt-1">Required for voice surveys (E.164 format)</p>
+            </div>
+
+            <div>
               <Label htmlFor="role">Role</Label>
               <Select 
                 value={userProfile.role} 
@@ -61,6 +73,44 @@ const Profile: React.FC = () => {
                   <SelectItem value="admin">Administrator</SelectItem>
                   <SelectItem value="researcher">Researcher</SelectItem>
                   <SelectItem value="business">Business Owner</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="gender">Gender</Label>
+              <Select 
+                value={userProfile.gender || ''} 
+                onValueChange={(value: any) => updateProfile({ gender: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="age">Age Group</Label>
+              <Select 
+                value={userProfile.ageGroup || ''} 
+                onValueChange={(value: any) => updateProfile({ ageGroup: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select age group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="18-24">18-24</SelectItem>
+                  <SelectItem value="25-34">25-34</SelectItem>
+                  <SelectItem value="35-44">35-44</SelectItem>
+                  <SelectItem value="45-54">45-54</SelectItem>
+                  <SelectItem value="55-64">55-64</SelectItem>
+                  <SelectItem value="65+">65+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -94,6 +144,15 @@ const Profile: React.FC = () => {
               </div>
               <div>
                 <span className="font-medium">Role:</span> {userProfile.role}
+              </div>
+              <div>
+                <span className="font-medium">Phone:</span> {userProfile.phoneNumber || 'Not set'}
+              </div>
+              <div>
+                <span className="font-medium">Gender:</span> {userProfile.gender || 'Not set'}
+              </div>
+              <div>
+                <span className="font-medium">Age Group:</span> {userProfile.ageGroup || 'Not set'}
               </div>
               <div>
                 <span className="font-medium">Onboarding:</span> {userProfile.hasCompletedOnboarding ? 'Complete' : 'Pending'}
