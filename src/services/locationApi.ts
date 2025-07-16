@@ -67,3 +67,23 @@ export const getTowns = (cityId: string) =>
 export const getWards = (townId: string) =>
   getLocationChildren(townId)
     .then(list => list.filter(loc => loc.type === 'ward'));
+
+// Additional exports needed for components
+export const getRootLocations = () => getCountries();
+
+export const getAllLocations = async (): Promise<Location[]> => {
+  const { data, error } = await supabase
+    .from('locations')
+    .select('location_id, name, type, parent_id')
+    .order('name', { ascending: true });
+  
+  if (error) {
+    console.error('Error fetching all locations:', error);
+    throw error;
+  }
+
+  return (data || []).map(item => ({
+    ...item,
+    type: item.type as LocationType
+  }));
+};

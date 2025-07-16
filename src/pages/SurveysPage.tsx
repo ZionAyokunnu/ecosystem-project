@@ -121,7 +121,10 @@ console.log('📊 Fetching surveys for location:', locId);
         console.error('Error fetching surveys:', error);
         toast.error('Failed to load surveys');
       } else {
-        setSurveys(data as Survey[]);
+        setSurveys(data.map(survey => ({
+          ...survey,
+          demographic_filters: survey.demographic_filters as { genders: string[]; age_groups: string[]; }
+        })) as Survey[]);
       }
     })();
   }, [selectedLocation, profile]);

@@ -49,7 +49,10 @@ const RepDashboard: React.FC = () => {
           .eq('status', 'pending_approval')
           .eq('target_location', profile.location_id);
         if (surveyError) throw surveyError;
-        const pending = surveys as Survey[];
+        const pending = surveys.map(survey => ({
+          ...survey,
+          demographic_filters: survey.demographic_filters as { genders: string[]; age_groups: string[]; }
+        })) as Survey[];
         setPendingSurveys(pending);
 
         // 2) Fetch each unique location’s name
