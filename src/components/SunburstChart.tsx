@@ -58,6 +58,23 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     if (!svgRef.current || nodes.length === 0) return;
     console.clear();
     
+    // Perfect utility function
+    const norm = (v: unknown, fallback = 0) => {
+      const n = v === null || v === undefined ? NaN : Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    
+    // Smart field mapping + type coercion
+    const linksN = links.map(l => ({
+      parent_id: l.parent_id,
+      child_id: l.child_id,
+      weight: norm((l as any).child_to_parent_weight ?? (l as any).influence_weight, 0),
+      score: norm((l as any).influence_score ?? (l as any).correlation, 0.1)
+    }));
+    
+    console.log("🔎 normalized links sample:", linksN.slice(0, 5));
+    
+
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
     const svg = d3.select(svgRef.current)
@@ -157,11 +174,166 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       return;
     }
 
-    // Determine root data: pivoted or full forest (treat 'root' as no pivot)
-    const hierarchyData = pivotId !== null && pivotId !== 'root'
-      ? nodeMap.get(pivotId)!
-      : { id: 'root', name: 'Root', children: rootNodes };
+    //location 1
+    // INSERT GRAVITY CALCULATION HERE *** (see function below)
+    // *** GRAVITY MODEL ADDITION - Phase 1 ***
+    function addGravityMetadata() {
+      console.log("🧪 GRAVITY MODEL: Adding gravity metadata to nodes");
+      
+      const AUTHORITY_DECAY_FACTOR = 1;
+      
+      // Step 1: Add gravity metadata to all nodes
+      nodeMap.forEach((node, id) => {
+        node.gravityPoints = new Map();
+        node.totalGravity = 0;
+        node.authorityLevel = 0;
+        node.equilibriumAngle = 0;
+      });
+      
+      // Step 2: Calculate authority levels (starting from current root)
+      const rootId = hierarchyData.id;
+      function calculateAuthority(nodeId: string, authority = 1.0, depth = 0) {
+        const node = nodeMap.get(nodeId);
+        if (!node || depth > 10) return;
+        
+        console.log(`🔍 calculateAuthority: ${nodeId}, authority: ${authority}, depth: ${depth}`);
+        console.log(`   node.children.length: ${node.children?.length || 0}`);
+        
+        node.authorityLevel = authority;
+        
+        if (node.children && node.children.length > 0) {
+          const totalChildInfluence = node.children.reduce((sum: number, child: any) => {
+            return sum + (typeof child.weight === 'number' ? child.weight : 0);
+          }, 0);
+          const safeTotal = totalChildInfluence > 0 ? totalChildInfluence : 1;
+          
+          console.log(`   totalChildInfluence: ${totalChildInfluence}, safeTotal: ${safeTotal}`);
+
+          node.children.forEach((childRef: any) => {
+            const childWeight = typeof childRef.weight === 'number' ? childRef.weight : 0;
+            const childAuthority = authority * AUTHORITY_DECAY_FACTOR * (childWeight / safeTotal);
+            console.log(`   → child ${childRef.id}: weight=${childWeight}, newAuthority=${childAuthority}`);
+            calculateAuthority(childRef.id, childAuthority, depth + 1);
+          });
+        }
+      }
+      
+      // ✅ CORRECT - handles both pivoted and non-pivoted modes
+      if (pivotId && pivotId !== 'root') {
+        // Pivoted mode — single seed
+        calculateAuthority(pivotId, 1.0, 0);
+      } else {
+        // Not pivoted — seed all real roots
+        rootNodes.forEach((rootNode: any) => {
+          calculateAuthority(rootNode.id, 1.0, 0);
+        });
+      }
+
+      // After calculating authority, sanity-check all nodes for valid authorityLevel
+      console.log(`\n📊 AUTHORITY CALCULATION SUMMARY:`);
+      const authorityResults: Array<{id: string; authority: number; hasChildren: boolean; childCount: number}> = [];
+      nodeMap.forEach((node, id) => {
+        console.assert(
+          typeof node.authorityLevel === 'number' && !Number.isNaN(node.authorityLevel),
+          'Bad authority', node.id, node.authorityLevel
+        );
+        authorityResults.push({
+          id: node.id,
+          authority: node.authorityLevel,
+          hasChildren: !!(node.children && node.children.length > 0),
+          childCount: node.children?.length || 0
+        });
+      });
+      // Sort by authority descending and show top 20
+      authorityResults.sort((a, b) => b.authority - a.authority);
+      console.log(`Authority levels calculated for ${authorityResults.length} nodes:`);
+      authorityResults.slice(0, 20).forEach(r => {
+        console.log(`  ${r.id}: authority=${r.authority.toFixed(3)}, children=${r.childCount}${r.hasChildren ? ' (has children)' : ''}`);
+      });
+      if (authorityResults.length > 20) {
+        console.log(`  ... and ${authorityResults.length - 20} more`);
+      }
+      console.log(``);
+
+      // Step 3: Distribute gravity points
+      nodeMap.forEach((node, parentId) => {
+        if (!node.children || node.children.length === 0) return;
+        
+        // ✅ CORRECT - sum outgoing link weights
+        const parentGravityBudget = (() => {
+          const sumWeights = (node.children || []).reduce((s: number, c: any) => {
+            return s + (typeof c.weight === 'number' ? c.weight : 0);
+          }, 0);
+          return sumWeights > 0 ? sumWeights : 1; // fallback to prevent 0 budget
+        })();
+        // ✅ SAFE - guards division
+        const totalChildInfluenceScore = node.children.reduce((sum: number, child: any) => {
+          return sum + (typeof child.correlation === 'number' ? child.correlation : 0.1);
+        }, 0);
+        const safeScore = totalChildInfluenceScore > 0 ? totalChildInfluenceScore : 1;
+
+        node.children.forEach((childRef: any) => {
+          const childNode = nodeMap.get(childRef.id);
+          if (!childNode) return;
+          
+          const childCorrelation = typeof childRef.correlation === 'number' ? childRef.correlation : 0.1;
+          const gravityPointsFromThisParent = (childCorrelation / safeScore) * parentGravityBudget;
+          const finalGravityValue = gravityPointsFromThisParent * node.authorityLevel;
+          
+          childNode.gravityPoints.set(parentId, finalGravityValue);
+        });
+        
+        node.children.forEach(childRef => {
+          const childNode = nodeMap.get(childRef.id);
+          if (!childNode) return;
+          
+          const gravityPointsFromThisParent = ((childRef.correlation || 0.1) / totalChildInfluenceScore) * parentGravityBudget;
+          const finalGravityValue = gravityPointsFromThisParent * node.authorityLevel;
+          
+          childNode.gravityPoints.set(parentId, finalGravityValue);
+        });
+      });
+      
+      // Step 4: Calculate total gravity for each node
+      nodeMap.forEach((node, id) => {
+        // Step 4: Calculate total gravity for each node (EXTRA SAFE)
+        nodeMap.forEach((node, id) => {
+          node.totalGravity = Array.from(node.gravityPoints.values()).reduce((sum: number, gravity: unknown) => {
+            return sum + (typeof gravity === 'number' ? gravity : 0);
+          }, 0);
+        });
+      });
+      
+      console.log("🧪 GRAVITY MODEL: Metadata calculation complete");
+    }
     
+
+
+    // Determine root data: pivoted or full forest (treat 'root' as no pivot)
+  //   const hierarchyData = pivotId !== null && pivotId !== 'root'
+  // ? nodeMap.get(pivotId)!
+  // : { 
+  //     id: 'root', 
+  //     name: 'Root', 
+  //     children: rootNodes.map(node => ({
+  //       id: node.id,
+  //       weight: 1, // Give synthetic root children equal weight
+  //       correlation: 1 // Reasonable default
+  //     }))
+  //   };
+
+    const hierarchyData = pivotId && pivotId !== 'root'
+    ? nodeMap.get(pivotId)!
+    : {
+        id: 'root',
+        name: 'Root', 
+        children: rootNodes.map(n => nodeMap.get(n.id)!) // Real nodes with .children
+      };
+    
+      
+    // Call the gravity calculation
+    addGravityMetadata();
+
     console.log('PivotId:', pivotId);
     console.log('Hierarchy Data:', hierarchyData);
 
@@ -207,11 +379,53 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       x0: d.x0, x1: d.x1,
       y0: d.y0, y1: d.y1
     })));
+
+
+    //location 2
+    // *** INSERT GRAVITY INSPECTION HERE *** (see console.log below)
+    // *** GRAVITY MODEL INSPECTION ***
+    console.log("🔍 GRAVITY MODEL: Inspecting calculated values");
+    console.log("Current pivot:", pivotId);
+
+    // Show gravity distribution for visible nodes
+    const visibleNodeIds = root.descendants()
+      .filter((d: any) => d.depth >= (pivotId ? 0 : 1) && d.depth <= layers)
+      .map((d: any) => d.data.id);
+
+    console.log("Visible nodes with gravity data:");
+    visibleNodeIds.forEach(nodeId => {
+      const node = nodeMap.get(nodeId);
+      if (node) {
+        console.log(`${nodeId}:`, {
+          totalGravity: node.totalGravity?.toFixed(3) || 0,
+          authority: node.authorityLevel?.toFixed(3) || 0,
+          gravityFromParents: node.gravityPoints ? Object.fromEntries(
+            Array.from(node.gravityPoints.entries()).map(([parentId, gravity]) => [parentId, gravity.toFixed(3)])
+          ) : {}
+        });
+      }
+    });
+
+    // Show multi-parent children specifically
+    const multiParentChildren = visibleNodeIds.filter(nodeId => {
+      const node = nodeMap.get(nodeId);
+      return node && node.gravityPoints && node.gravityPoints.size > 1;
+    });
+
+    if (multiParentChildren.length > 0) {
+      console.log("🌟 Multi-parent children detected:", multiParentChildren);
+      multiParentChildren.forEach(nodeId => {
+        const node = nodeMap.get(nodeId);
+        console.log(`${nodeId} gravity sources:`, Array.from(node.gravityPoints.entries()).map(([parentId, gravity]) => `${parentId}:${gravity.toFixed(3)}`));
+      });
+    }
+
+
     // Initialize current positions for transitions
     root.each((d: any) => (d.current = d));
     
     // Include depth 0 when we have pivoted; otherwise skip the synthetic "Root"
-    const minDepth = pivotId ? 0 : 2;
+    const minDepth = pivotId ? 0 : 1;
     const allNodes = root.descendants().filter((d: any) => d.depth >= minDepth && d.depth <= layers);
     const visibleNodes = allNodes.filter((d, i, arr) =>
       arr.findIndex(
