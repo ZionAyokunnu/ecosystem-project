@@ -499,8 +499,129 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
 
     //location 2
-    // *** INSERT GRAVITY INSPECTION HERE *** (see console.log below)
-    // *** GRAVITY MODEL INSPECTION ***
+    // *** INSERT GRAVITY INSPECTION HERE// *** PHASE 2: EQUILIBRIUM POSITIONING ***
+    console.log("🌌 PHASE 2: Calculating Equilibrium Positions");
+
+    function calculateEquilibriumPositions() {
+      // Step 1: Organize visible nodes by generation
+      const generations = new Map<number, string[]>();
+      visibleNodeIds.forEach(nodeId => {
+        const node = nodeMap.get(nodeId);
+        if (!node) return;
+        
+        // Calculate depth from pivot/root
+        let depth = 0;
+        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+        if (hierarchyNode) {
+          depth = hierarchyNode.depth;
+        }
+        
+        if (!generations.has(depth)) {
+          generations.set(depth, []);
+        }
+        generations.get(depth)!.push(nodeId);
+      });
+      
+      console.log("📊 Generations:", Object.fromEntries(generations));
+      
+      // Step 2: Calculate equilibrium positions
+      const equilibriumPositions = new Map<string, {angle: number, radius: number}>();
+      
+      // Generation 0 (root/pivot) - center
+      const gen0 = generations.get(0) || [];
+      gen0.forEach(nodeId => {
+        equilibriumPositions.set(nodeId, { angle: 0, radius: 0 });
+      });
+      
+      // Generation 1+ - calculate weighted positions
+      for (let depth = 1; depth <= Math.max(...generations.keys()); depth++) {
+        const genNodes = generations.get(depth) || [];
+        if (genNodes.length === 0) continue;
+        
+        console.log(`\n⚖️ Calculating equilibrium for Generation ${depth}:`);
+        
+        genNodes.forEach(nodeId => {
+          const node = nodeMap.get(nodeId);
+          if (!node || !node.gravityPoints || node.gravityPoints.size === 0) return;
+          
+          let totalWeightedX = 0;
+          let totalWeightedY = 0;
+          let totalWeight = 0;
+          
+          console.log(`  ${nodeId} pulls from:`)
+          
+          // Calculate weighted average from all parents
+          node.gravityPoints.forEach((gravityValue: number, parentId: string) => {
+            const parentPos = equilibriumPositions.get(parentId);
+            if (!parentPos) return;
+            
+            // Convert parent position to cartesian
+            const angleRad = (parentPos.angle * Math.PI) / 180;
+            const parentX = Math.cos(angleRad) * parentPos.radius;
+            const parentY = Math.sin(angleRad) * parentPos.radius;
+            
+            // Weight by gravity received
+            totalWeightedX += parentX * gravityValue;
+            totalWeightedY += parentY * gravityValue;
+            totalWeight += gravityValue;
+            
+            console.log(`    ${parentId}: gravity=${gravityValue.toFixed(3)}, at (${parentX.toFixed(1)}, ${parentY.toFixed(1)})`);
+          });
+          
+          if (totalWeight === 0) {
+            // Fallback for nodes without gravity - evenly distribute in generation
+            const genIndex = genNodes.indexOf(nodeId);
+            const angle = (genIndex / genNodes.length) * 360;
+            equilibriumPositions.set(nodeId, { angle, radius: depth * ringWidth });
+            console.log(`    → Fallback position: ${angle.toFixed(1)}°`);
+            return;
+          }
+          
+          // Calculate weighted average position
+          const avgX = totalWeightedX / totalWeight;
+          const avgY = totalWeightedY / totalWeight;
+          
+          // Convert back to polar
+          const avgAngle = (Math.atan2(avgY, avgX) * 180) / Math.PI;
+          const normalizedAngle = avgAngle < 0 ? avgAngle + 360 : avgAngle;
+          const equilibriumRadius = depth * ringWidth;
+          
+          equilibriumPositions.set(nodeId, { 
+            angle: normalizedAngle, 
+            radius: equilibriumRadius 
+          });
+          
+          console.log(`    → Equilibrium: ${normalizedAngle.toFixed(1)}° (weighted avg of ${totalWeight.toFixed(3)} gravity)`);
+        });
+      }
+      
+      return equilibriumPositions;
+    }
+
+    const equilibriumPositions = calculateEquilibriumPositions();
+
+    // Step 3: Compare D3 vs Equilibrium positions
+    console.log("\n🔍 PHASE 2: D3 vs Equilibrium Position Comparison");
+    visibleNodeIds.forEach(nodeId => {
+      const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+      const equilibrium = equilibriumPositions.get(nodeId);
+      
+      if (hierarchyNode && equilibrium) {
+        // Convert D3 partition angles to degrees
+        const d3StartAngle = (hierarchyNode.x0 * 180) / Math.PI;
+        const d3EndAngle = (hierarchyNode.x1 * 180) / Math.PI;
+        const d3CenterAngle = (d3StartAngle + d3EndAngle) / 2;
+        
+        console.log(`${nodeId}:`);
+        console.log(`  D3:          center=${d3CenterAngle.toFixed(1)}°, span=[${d3StartAngle.toFixed(1)}° to ${d3EndAngle.toFixed(1)}°]`);
+        console.log(`  Equilibrium: center=${equilibrium.angle.toFixed(1)}°`);
+        console.log(`  Difference:  ${Math.abs(d3CenterAngle - equilibrium.angle).toFixed(1)}°`);
+      }
+    });
+
+    console.log("🎯 PHASE 2 Complete - Equilibrium positions calculated alongside D3");
+
+
     console.log("🔍 GRAVITY MODEL: Inspecting calculated values");
     console.log("Current pivot:", pivotId);
 
