@@ -741,6 +741,30 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     }
 
     function resolveCollisions(equilibriumPositions: Map<string, {angle: number, radius: number}>) {
+
+      // Step 2: Detect and resolve collisions by generation
+      const finalPositions = new Map(equilibriumPositions); // Copy initial positions
+      const generations = new Map<number, string[]>();
+      
+      // Organize by generation for collision resolution
+      visibleNodeIds.forEach(nodeId => {
+        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+        if (hierarchyNode) {
+          const depth = hierarchyNode.depth;
+          if (!generations.has(depth)) {
+            generations.set(depth, []);
+          }
+          generations.get(depth)!.push(nodeId);
+        }
+      });
+
+      // Calculate proportional widths per generation
+      const allWidths = new Map<string, number>();
+      generations.forEach((nodes, depth) => {
+        if (depth === 0) return; // Skip root
+        const widths = calculateProportionalWidths(nodes);
+        widths.forEach((width, nodeId) => allWidths.set(nodeId, width));
+      });
       
       // NEW: Efficient proportional width calculator
       function calculateProportionalWidths(generationNodes: string[]) {
@@ -778,30 +802,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           endAngle: pos.angle + (territoryWidth / 2)
         });
       });
-      
-      // Step 2: Detect and resolve collisions by generation
-      const finalPositions = new Map(equilibriumPositions); // Copy initial positions
-      const generations = new Map<number, string[]>();
-      
-      // Organize by generation for collision resolution
-      visibleNodeIds.forEach(nodeId => {
-        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
-        if (hierarchyNode) {
-          const depth = hierarchyNode.depth;
-          if (!generations.has(depth)) {
-            generations.set(depth, []);
-          }
-          generations.get(depth)!.push(nodeId);
-        }
-      });
 
-      // Calculate proportional widths per generation
-      const allWidths = new Map<string, number>();
-      generations.forEach((nodes, depth) => {
-        const widths = calculateProportionalWidths(nodes);
-        widths.forEach((width, nodeId) => allWidths.set(nodeId, width));
-      });
-      
       // Resolve collisions generation by generation
       generations.forEach((nodes, depth) => {
         if (depth === 0 || nodes.length <= 1) return; // Skip root and single-node generations
@@ -1176,14 +1177,109 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       }
     }
 
-    // Define arc generator
-    const arc = d3.arc<any>()
-      .startAngle(d => d.x0)
-      .endAngle(d => d.x1)
-      .innerRadius(d => d.y0 * ringWidth)
-      .outerRadius(d => d.y1 * ringWidth * 1.01) // Slightly larger outer radius for better visibility
-      .padAngle(0);
+    // // Define arc generator
+    // const arc = d3.arc<any>()
+    //   .startAngle(d => d.x0)
+    //   .endAngle(d => d.x1)
+    //   .innerRadius(d => d.y0 * ringWidth)
+    //   .outerRadius(d => d.y1 * ringWidth * 1.01) // Slightly larger outer radius for better visibility
+    //   .padAngle(0);
     
+
+    // *** PHASE 4: FIELD MODEL ARC GENERATOR ***
+    console.log("🎨 PHASE 4: Creating Field Model Arcs");
+
+    // Calculate field-based arc data for each visible node
+    const fieldArcData = visibleNodes.map(d => {
+      const nodeId = d.data.id;
+      const fieldPos = collisionResolvedPositions.get(nodeId);
+      const hierarchyNode = root.descendants().find(h => h.data.id === nodeId);
+      
+      if (!fieldPos || !hierarchyNode) {
+        // Fallback to D3 positioning if field position not available
+        return {
+          ...d,
+          fieldX0: d.x0,
+          fieldX1: d.x1,
+          fieldY0: d.y0,
+          fieldY1: d.y1,
+          isFieldPositioned: false
+        };
+      }
+      
+      // Calculate angular width based on gravity (proportional territory)
+      const generationNodes = visibleNodes.filter(n => {
+        const nHierarchy = root.descendants().find(h => h.data.id === n.data.id);
+        return nHierarchy && nHierarchy.depth === hierarchyNode.depth;
+      });
+      
+      const nodeGravity = nodeMap.get(nodeId)?.totalGravity || 0;
+      const totalGenerationGravity = generationNodes.reduce((sum, n) => {
+        const nGravity = nodeMap.get(n.data.id)?.totalGravity || 0;
+        return sum + nGravity;
+      }, 0);
+      
+      // Calculate proportional width
+      let angularWidth: number;
+      if (totalGenerationGravity > 0 && nodeGravity > 0) {
+        angularWidth = (360 * nodeGravity / totalGenerationGravity) * (Math.PI / 180); // Convert to radians
+      } else {
+        // Fallback: equal distribution
+        angularWidth = (360 / generationNodes.length) * (Math.PI / 180);
+      }
+      
+      // Maximum width constraint only (no minimum to prevent >360° totals)
+      const maxWidth = (120 * Math.PI / 180); // 120 degrees maximum
+      angularWidth = Math.min(maxWidth, angularWidth);
+      
+      // Convert field position to radians and create arc bounds
+      const centerAngleRad = (fieldPos.angle * Math.PI) / 180;
+      const halfWidth = angularWidth / 2;
+      
+      const fieldX0 = centerAngleRad - halfWidth;
+      const fieldX1 = centerAngleRad + halfWidth;
+      const fieldY0 = hierarchyNode.depth; // Keep depth-based radius
+      const fieldY1 = hierarchyNode.depth + 1;
+      
+      // Precompute title while we still have the real hierarchy node
+      const format = d3.format(",d");
+      const names = d.ancestors()
+        .map(node => node.data.name)
+        .reverse()
+        .filter((name, idx, arr) => name !== 'Root' && (idx === 0 || name !== arr[idx - 1]));
+      const titleText = `${names.join(' > ')}\n${format(d.value)}`;
+
+      return {
+        ...d,
+        fieldX0,
+        fieldX1,
+        fieldY0,
+        fieldY1,
+        isFieldPositioned: true,
+        gravityMass: nodeGravity,
+        fieldAngleDeg: fieldPos.angle,
+        angularWidthDeg: angularWidth * 180 / Math.PI,
+        titleText
+      };
+    });
+
+    console.log("🎨 Field arc data sample:", fieldArcData.slice(0, 5).map(d => ({
+      id: d.data.id,
+      fieldAngle: d.fieldAngleDeg?.toFixed(1),
+      width: d.angularWidthDeg?.toFixed(1),
+      isField: d.isFieldPositioned
+    })));
+
+    // Field-aware arc generator
+    const arc = d3.arc<any>()
+      .startAngle(d => d.isFieldPositioned ? d.fieldX0 : d.x0)
+      .endAngle(d => d.isFieldPositioned ? d.fieldX1 : d.x1)
+      .innerRadius(d => (d.isFieldPositioned ? d.fieldY0 : d.y0) * ringWidth)
+      .outerRadius(d => (d.isFieldPositioned ? d.fieldY1 : d.y1) * ringWidth * 1.01)
+      .padAngle(0.002); // Small padding for visual separation
+
+
+
     // Create tooltip
     const tooltip = d3.select("body")
       .append("div")
@@ -1197,7 +1293,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)");
     
     const path = svg.selectAll("path")
-      .data(visibleNodes, (d: any) => `${d.data.id}-${d.depth}`)
+      .data(fieldArcData, (d: any) => `${d.data.id}-${d.depth}`)
       .enter()
       .append("path")
       .attr("d", arc as any)
@@ -1213,6 +1309,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .style("cursor", (d: any) => (d.children?.length ? "pointer" : "default"))
       .attr("pointer-events", "all")
       .on("click", function(event: any, d: any) {
+
 
             // remember which wedge was just clicked so we can highlight it
         setSelectedId(d.data.id);
@@ -1301,27 +1398,52 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .duration(500)
       .style("opacity", 0.9);
 
-    // Add titles (deduped, without synthetic root)
-    const format = d3.format(",d");
-    path.append("title").text(d => {
-      // Build ancestor name list, reverse to root-first
-      const names = d.ancestors()
-        .map(node => node.data.name)
-        .reverse()
-        // Exclude the synthetic 'Root' and dedupe consecutive duplicates
-        .filter((name, idx, arr) =>
-          name !== 'Root' && (idx === 0 || name !== arr[idx - 1])
-        );
-      return `${names.join(' > ')}\n${format(d.value)}`;
-    });
+      // *** PHASE 4: Field Integration Complete ***
+      console.log("🎨 PHASE 4: Field Model Visual Integration Complete!");
 
-    // removed since WE’ve moved the centre‐click logic onto the main <g> container
-    // const parent = svg.append("circle")
-    //   .datum(root)
-    //   .attr("r", ringWidth)
-    //   .attr("fill", "none")
-    //   .attr("pointer-events", "none")
-    //   .on("click", clicked);
+      // Field vs D3 visual comparison
+      const fieldVisualStats = {
+        totalArcs: fieldArcData.length,
+        fieldPositioned: fieldArcData.filter(d => d.isFieldPositioned).length,
+        d3Fallback: fieldArcData.filter(d => !d.isFieldPositioned).length
+      };
+
+      console.log("Visual integration stats:", fieldVisualStats);
+
+      // Show angular distribution of field-positioned arcs
+      const fieldAngles = fieldArcData
+        .filter(d => d.isFieldPositioned && d.fieldAngleDeg !== undefined)
+        .map(d => d.fieldAngleDeg!)
+        .sort((a, b) => a - b);
+
+      if (fieldAngles.length > 0) {
+        console.log("Field angle distribution:", {
+          min: fieldAngles[0].toFixed(1),
+          max: fieldAngles[fieldAngles.length - 1].toFixed(1),
+          count: fieldAngles.length,
+          sample: fieldAngles.slice(0, 8).map(a => a.toFixed(1))
+        });
+        
+        // Check for clustering (multiple nodes within 30° of each other)
+        let clusters = 0;
+        for (let i = 0; i < fieldAngles.length - 1; i++) {
+          if (fieldAngles[i + 1] - fieldAngles[i] < 30) clusters++;
+        }
+        console.log(`Angular clustering: ${clusters} adjacent pairs within 30°`);
+      }
+
+      // Territory coverage analysis
+      const totalAngularCoverage = fieldArcData
+        .filter(d => d.isFieldPositioned && d.angularWidthDeg !== undefined)
+        .reduce((sum, d) => sum + d.angularWidthDeg!, 0);
+
+      console.log(`Total angular coverage: ${totalAngularCoverage.toFixed(1)}° (${(totalAngularCoverage/360*100).toFixed(1)}% of circle)`);
+
+
+    // Add titles (using precomputed titleText)
+    path.append("title").text((d: any) => d.titleText ?? d.data?.name ?? "");
+
+
 
     let label: any;
     if (showLabels) {
@@ -1330,7 +1452,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         .attr("text-anchor", "middle")
         .style("user-select", "none")
         .selectAll("text")
-        .data(visibleNodes, (d: any) => `${d.data.id}-${d.depth}`)
+        .data(fieldArcData, (d: any) => `${d.data.id}-${d.depth}`)
         .enter()
         .append("text")
         .attr("dy", "0.35em")
