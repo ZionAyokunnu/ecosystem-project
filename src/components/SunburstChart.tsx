@@ -498,9 +498,47 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     })));
 
 
+    // *** PHASE 2: EQUILIBRIUM POSITIONING ***
+    console.log("🌌 PHASE 2: Calculating Equilibrium Positions");
+
+    // Field-consistent utility functions
+    function fnv1a32(str: string): number {
+      let h = 0x811c9dc5;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+      }
+      return h >>> 0;
+    }
+
+    function stableHashToMinus1to1(id: string): number {
+      return (fnv1a32(id) / 0xFFFFFFFF) * 2 - 1; // [-1,1]
+    }
+
+    function microJitterDeg(id: string, magDeg = 0.25): number {
+      return stableHashToMinus1to1(id) * magDeg;
+    }
+
+    function massWeightedCircularMean(sources: Array<{angleDeg: number, mass: number}>): number | null {
+      let sx = 0, sy = 0, wsum = 0;
+      for (const s of sources) {
+        const rad = s.angleDeg * Math.PI / 180;
+        sx += Math.cos(rad) * s.mass;
+        sy += Math.sin(rad) * s.mass;
+        wsum += s.mass;
+      }
+      if (wsum <= 0 || (sx === 0 && sy === 0)) return null; // zero vector
+      let deg = Math.atan2(sy, sx) * 180 / Math.PI;
+      if (deg < 0) deg += 360;
+      return deg;
+    }
+
+
+
     //location 2
     // *** INSERT GRAVITY INSPECTION HERE// *** PHASE 2: EQUILIBRIUM POSITIONING ***
     console.log("🌌 PHASE 2: Calculating Equilibrium Positions");
+
 
     function calculateEquilibriumPositions() {
       // Step 1: Organize visible nodes by generation
@@ -531,67 +569,121 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       const gen0 = generations.get(0) || [];
       gen0.forEach(nodeId => {
         equilibriumPositions.set(nodeId, { angle: 0, radius: 0 });
+        console.log(`Gen-0 ${nodeId}: center (0°, 0)`);
       });
       
-      // Generation 1+ - calculate weighted positions
-      for (let depth = 1; depth <= Math.max(...generations.keys()); depth++) {
+      // Generation 1 - Mass-proportional placement around ring
+      const gen1 = generations.get(1) || [];
+      if (gen1.length > 0) {
+        console.log(`\n⚖️ Gen-1 Mass-Proportional Placement (${gen1.length} nodes):`);
+        
+        // Calculate mass shares for each child
+        const massShares = gen1.map(nodeId => {
+          const node = nodeMap.get(nodeId);
+          const mass = node?.totalGravity || 0;
+          return { nodeId, mass };
+        });
+        
+        const totalMass = massShares.reduce((sum, item) => sum + item.mass, 0);
+        
+        if (totalMass > 0) {
+          let cumulativeMass = 0;
+          massShares.forEach(item => {
+            const massShare = item.mass / totalMass;
+            const sectorCenter = 360 * (cumulativeMass + massShare / 2);
+            const jitter = microJitterDeg(item.nodeId, 0.3);
+            const finalAngle = (sectorCenter + jitter) % 360;
+            
+            equilibriumPositions.set(item.nodeId, { 
+              angle: finalAngle, 
+              radius: 1 * ringWidth 
+            });
+            
+            console.log(`  ${item.nodeId}: mass=${item.mass.toFixed(3)} (${(massShare*100).toFixed(1)}%) → ${sectorCenter.toFixed(1)}° + jitter=${jitter.toFixed(2)}° → ${finalAngle.toFixed(1)}°`);
+            
+            cumulativeMass += massShare;
+          });
+        } else {
+          // Fallback for zero-mass case - equal spacing with jitter
+          gen1.forEach((nodeId, index) => {
+            const baseAngle = (index / gen1.length) * 360;
+            const jitter = microJitterDeg(nodeId, 0.5);
+            const finalAngle = (baseAngle + jitter) % 360;
+            
+            equilibriumPositions.set(nodeId, { 
+              angle: finalAngle, 
+              radius: 1 * ringWidth 
+            });
+            
+            console.log(`  ${nodeId}: zero-mass fallback → ${finalAngle.toFixed(1)}°`);
+          });
+        }
+      }
+      
+      // Generation 2+ - Mass-weighted circular mean from parents
+      for (let depth = 2; depth <= Math.max(...generations.keys()); depth++) {
         const genNodes = generations.get(depth) || [];
         if (genNodes.length === 0) continue;
         
-        console.log(`\n⚖️ Calculating equilibrium for Generation ${depth}:`);
+        console.log(`\n⚖️ Gen-${depth} Field-Derived Positions (${genNodes.length} nodes):`);
         
         genNodes.forEach(nodeId => {
           const node = nodeMap.get(nodeId);
-          if (!node || !node.gravityPoints || node.gravityPoints.size === 0) return;
-          
-          let totalWeightedX = 0;
-          let totalWeightedY = 0;
-          let totalWeight = 0;
-          
-          console.log(`  ${nodeId} pulls from:`)
-          
-          // Calculate weighted average from all parents
-          node.gravityPoints.forEach((gravityValue: number, parentId: string) => {
-            const parentPos = equilibriumPositions.get(parentId);
-            if (!parentPos) return;
-            
-            // Convert parent position to cartesian
-            const angleRad = (parentPos.angle * Math.PI) / 180;
-            const parentX = Math.cos(angleRad) * parentPos.radius;
-            const parentY = Math.sin(angleRad) * parentPos.radius;
-            
-            // Weight by gravity received
-            totalWeightedX += parentX * gravityValue;
-            totalWeightedY += parentY * gravityValue;
-            totalWeight += gravityValue;
-            
-            console.log(`    ${parentId}: gravity=${gravityValue.toFixed(3)}, at (${parentX.toFixed(1)}, ${parentY.toFixed(1)})`);
-          });
-          
-          if (totalWeight === 0) {
-            // Fallback for nodes without gravity - evenly distribute in generation
-            const genIndex = genNodes.indexOf(nodeId);
-            const angle = (genIndex / genNodes.length) * 360;
-            equilibriumPositions.set(nodeId, { angle, radius: depth * ringWidth });
-            console.log(`    → Fallback position: ${angle.toFixed(1)}°`);
+          if (!node || !node.gravityPoints || node.gravityPoints.size === 0) {
+            // No gravity sources - use jitter only
+            const jitter = microJitterDeg(nodeId, 1.0);
+            equilibriumPositions.set(nodeId, { 
+              angle: jitter < 0 ? jitter + 360 : jitter, 
+              radius: depth * ringWidth 
+            });
+            console.log(`  ${nodeId}: no gravity sources → jitter-only ${jitter.toFixed(1)}°`);
             return;
           }
           
-          // Calculate weighted average position
-          const avgX = totalWeightedX / totalWeight;
-          const avgY = totalWeightedY / totalWeight;
-          
-          // Convert back to polar
-          const avgAngle = (Math.atan2(avgY, avgX) * 180) / Math.PI;
-          const normalizedAngle = avgAngle < 0 ? avgAngle + 360 : avgAngle;
-          const equilibriumRadius = depth * ringWidth;
-          
-          equilibriumPositions.set(nodeId, { 
-            angle: normalizedAngle, 
-            radius: equilibriumRadius 
+          // Build parent angle/mass pairs
+          const parentSources: Array<{angleDeg: number, mass: number}> = [];
+          node.gravityPoints.forEach((gravityValue: number, parentId: string) => {
+            const parentPos = equilibriumPositions.get(parentId);
+            if (parentPos && gravityValue > 0) {
+              parentSources.push({
+                angleDeg: parentPos.angle,
+                mass: gravityValue
+              });
+            }
           });
           
-          console.log(`    → Equilibrium: ${normalizedAngle.toFixed(1)}° (weighted avg of ${totalWeight.toFixed(3)} gravity)`);
+          console.log(`  ${nodeId} parents:`, parentSources.map(p => `${p.angleDeg.toFixed(1)}°(${p.mass.toFixed(2)})`));
+          
+          let finalAngle: number;
+          
+          if (parentSources.length === 0) {
+            // No valid parents
+            finalAngle = microJitterDeg(nodeId, 1.0);
+            console.log(`    → No valid parents, jitter-only: ${finalAngle.toFixed(1)}°`);
+          } else {
+            // Try mass-weighted circular mean
+            const weightedMean = massWeightedCircularMean(parentSources);
+            
+            if (weightedMean !== null) {
+              // Normal case - weighted direction exists
+              const jitter = microJitterDeg(nodeId, 0.15);
+              finalAngle = (weightedMean + jitter) % 360;
+              console.log(`    → Weighted mean: ${weightedMean.toFixed(1)}° + jitter: ${jitter.toFixed(2)}° = ${finalAngle.toFixed(1)}°`);
+            } else {
+              // Perfect cancellation - use simple mean of parent angles
+              const simpleMean = parentSources.reduce((sum, p) => sum + p.angleDeg, 0) / parentSources.length;
+              const jitter = microJitterDeg(nodeId, 0.3);
+              finalAngle = (simpleMean + jitter) % 360;
+              console.log(`    → Perfect cancellation, simple mean: ${simpleMean.toFixed(1)}° + jitter: ${jitter.toFixed(2)}° = ${finalAngle.toFixed(1)}°`);
+            }
+          }
+          
+          if (finalAngle < 0) finalAngle += 360;
+          
+          equilibriumPositions.set(nodeId, { 
+            angle: finalAngle, 
+            radius: depth * ringWidth 
+          });
         });
       }
       
@@ -600,26 +692,421 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     const equilibriumPositions = calculateEquilibriumPositions();
 
-    // Step 3: Compare D3 vs Equilibrium positions
-    console.log("\n🔍 PHASE 2: D3 vs Equilibrium Position Comparison");
+    // Step 3: Field vs D3 Comparison (Educational)
+    console.log("\n🔍 PHASE 2: Field-Derived vs D3 Partition Comparison");
+    console.log("(Field positions should now avoid 0° pile-ups)");
+
+    let gen1Spread = 0;
     visibleNodeIds.forEach(nodeId => {
       const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
-      const equilibrium = equilibriumPositions.get(nodeId);
+      const fieldPos = equilibriumPositions.get(nodeId);
       
-      if (hierarchyNode && equilibrium) {
-        // Convert D3 partition angles to degrees
-        const d3StartAngle = (hierarchyNode.x0 * 180) / Math.PI;
-        const d3EndAngle = (hierarchyNode.x1 * 180) / Math.PI;
-        const d3CenterAngle = (d3StartAngle + d3EndAngle) / 2;
+      if (hierarchyNode && fieldPos && hierarchyNode.depth === 1) {
+        const d3CenterAngle = ((hierarchyNode.x0 + hierarchyNode.x1) / 2 * 180) / Math.PI;
+        const fieldAngle = fieldPos.angle;
         
-        console.log(`${nodeId}:`);
-        console.log(`  D3:          center=${d3CenterAngle.toFixed(1)}°, span=[${d3StartAngle.toFixed(1)}° to ${d3EndAngle.toFixed(1)}°]`);
-        console.log(`  Equilibrium: center=${equilibrium.angle.toFixed(1)}°`);
-        console.log(`  Difference:  ${Math.abs(d3CenterAngle - equilibrium.angle).toFixed(1)}°`);
+        console.log(`${nodeId}: D3=${d3CenterAngle.toFixed(1)}°, Field=${fieldAngle.toFixed(1)}° (spread: ${Math.abs(d3CenterAngle - fieldAngle).toFixed(1)}°)`);
+        gen1Spread += Math.abs(d3CenterAngle - fieldAngle);
       }
     });
 
-    console.log("🎯 PHASE 2 Complete - Equilibrium positions calculated alongside D3");
+    console.log(`Gen-1 total divergence from D3: ${gen1Spread.toFixed(1)}° (shows field independence)`);
+    console.log("🎯 PHASE 2 Complete - Field-consistent positioning calculated");
+
+
+    // *** PHASE 3: COLLISION RESOLUTION ***
+    console.log("💥 PHASE 3: Collision Resolution");
+
+    // Efficient proportional width calculator
+    function calculateProportionalWidths(generationNodes: string[]) {
+      const widths = new Map<string, number>();
+      
+      const totalGravityInGeneration = generationNodes.reduce((sum, nodeId) => {
+        const node = nodeMap.get(nodeId);
+        return sum + (node?.totalGravity || 0);
+      }, 0);
+      
+      generationNodes.forEach(nodeId => {
+        const node = nodeMap.get(nodeId);
+        const nodeGravity = node?.totalGravity || 0;
+        
+        if (totalGravityInGeneration > 0) {
+          widths.set(nodeId, 360 * (nodeGravity / totalGravityInGeneration));
+        } else {
+          widths.set(nodeId, 360 / generationNodes.length);
+        }
+      });
+      
+      return widths;
+    }
+
+    function resolveCollisions(equilibriumPositions: Map<string, {angle: number, radius: number}>) {
+      
+      // NEW: Efficient proportional width calculator
+      function calculateProportionalWidths(generationNodes: string[]) {
+        const widths = new Map<string, number>();
+        
+        const totalGravityInGeneration = generationNodes.reduce((sum, nodeId) => {
+          const node = nodeMap.get(nodeId);
+          return sum + (node?.totalGravity || 0);
+        }, 0);
+        
+        generationNodes.forEach(nodeId => {
+          const node = nodeMap.get(nodeId);
+          const nodeGravity = node?.totalGravity || 0;
+          
+          if (totalGravityInGeneration > 0) {
+            widths.set(nodeId, 360 * (nodeGravity / totalGravityInGeneration));
+          } else {
+            widths.set(nodeId, 360 / generationNodes.length);
+          }
+        });
+        
+        return widths;
+      }
+
+      // Step 1: Calculate territories using pre-calculated widths
+      const territories = new Map<string, {centerAngle: number, width: number, startAngle: number, endAngle: number}>();
+      
+      equilibriumPositions.forEach((pos, nodeId) => {
+        const territoryWidth = allWidths.get(nodeId) ?? 30; // fallback
+        
+        territories.set(nodeId, {
+          centerAngle: pos.angle,
+          width: territoryWidth,
+          startAngle: pos.angle - (territoryWidth / 2),
+          endAngle: pos.angle + (territoryWidth / 2)
+        });
+      });
+      
+      // Step 2: Detect and resolve collisions by generation
+      const finalPositions = new Map(equilibriumPositions); // Copy initial positions
+      const generations = new Map<number, string[]>();
+      
+      // Organize by generation for collision resolution
+      visibleNodeIds.forEach(nodeId => {
+        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+        if (hierarchyNode) {
+          const depth = hierarchyNode.depth;
+          if (!generations.has(depth)) {
+            generations.set(depth, []);
+          }
+          generations.get(depth)!.push(nodeId);
+        }
+      });
+
+      // Calculate proportional widths per generation
+      const allWidths = new Map<string, number>();
+      generations.forEach((nodes, depth) => {
+        const widths = calculateProportionalWidths(nodes);
+        widths.forEach((width, nodeId) => allWidths.set(nodeId, width));
+      });
+      
+      // Resolve collisions generation by generation
+      generations.forEach((nodes, depth) => {
+        if (depth === 0 || nodes.length <= 1) return; // Skip root and single-node generations
+        
+        console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
+        
+        const MAX_ITERATIONS = 10;
+        const PUSH_DAMPENING = 0.4; // Prevent oscillation
+        
+        for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+          let hasCollisions = false;
+          const pushForces = new Map<string, number>(); // nodeId -> cumulative push angle
+          
+          // Detect overlaps in this generation
+          for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+              const nodeA = nodes[i];
+              const nodeB = nodes[j];
+              
+              const posA = finalPositions.get(nodeA)!;
+              const posB = finalPositions.get(nodeB)!;
+              const territoryA = territories.get(nodeA)!;
+              const territoryB = territories.get(nodeB)!;
+              
+              // Recalculate territories based on current positions
+              const startA = posA.angle - (territoryA.width / 2);
+              const endA = posA.angle + (territoryA.width / 2);
+              const startB = posB.angle - (territoryB.width / 2);
+              const endB = posB.angle + (territoryB.width / 2);
+              
+              // Calculate overlap (simple linear overlap for now)
+              const overlapStart = Math.max(startA, startB);
+              const overlapEnd = Math.min(endA, endB);
+              const overlapAmount = Math.max(0, overlapEnd - overlapStart);
+              
+              if (overlapAmount > 0.1) { // Minimum overlap threshold
+                hasCollisions = true;
+                
+                const gravityA = nodeMap.get(nodeA)!.totalGravity;
+                const gravityB = nodeMap.get(nodeB)!.totalGravity;
+                
+                // Determine stronger/weaker node
+                const stronger = gravityA > gravityB ? nodeA : nodeB;
+                const weaker = gravityA > gravityB ? nodeB : nodeA;
+                const strongerPos = gravityA > gravityB ? posA : posB;
+                const weakerPos = gravityA > gravityB ? posB : posA;
+                
+                // Calculate push direction (away from stronger node)
+                let pushDirection = weakerPos.angle - strongerPos.angle;
+                
+                // Handle circular boundary
+                if (pushDirection > 180) pushDirection -= 360;
+                if (pushDirection < -180) pushDirection += 360;
+                
+                // Calculate push force (linear: overlap × mass differential)
+                const massDifferential = Math.abs(gravityA - gravityB);
+                const pushForce = overlapAmount * (1 + massDifferential * 0.1);
+                const pushSign = pushDirection >= 0 ? 1 : -1;
+                const actualPush = pushForce * pushSign * PUSH_DAMPENING;
+                
+                // Accumulate push force on weaker node
+                if (!pushForces.has(weaker)) {
+                  pushForces.set(weaker, 0);
+                }
+                pushForces.set(weaker, pushForces.get(weaker)! + actualPush);
+                
+                if (iteration === 0) { // Only log first iteration details
+                  console.log(`  ${stronger}→${weaker}: ${overlapAmount.toFixed(1)}° overlap, push=${actualPush.toFixed(2)}°`);
+                }
+              }
+            }
+          }
+          
+          if (!hasCollisions) {
+            console.log(`  ✅ Converged in ${iteration} iterations`);
+            break;
+          }
+          
+          // Apply push forces
+          pushForces.forEach((totalPush, nodeId) => {
+            const currentPos = finalPositions.get(nodeId)!;
+            let newAngle = currentPos.angle + totalPush;
+            
+            // Normalize angle
+            if (newAngle < 0) newAngle += 360;
+            if (newAngle >= 360) newAngle -= 360;
+            
+            finalPositions.set(nodeId, { ...currentPos, angle: newAngle });
+            
+            if (iteration === MAX_ITERATIONS - 1) {
+              console.log(`  ${nodeId}: ${currentPos.angle.toFixed(1)}° → ${newAngle.toFixed(1)}° (final push: ${totalPush.toFixed(2)}°)`);
+            }
+          });
+          
+          if (iteration === MAX_ITERATIONS - 1) {
+            console.log(`  ⚠️ Reached max iterations with remaining collisions`);
+          }
+        }
+      });
+      
+      return finalPositions;
+    }
+
+    const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
+
+    // Step 3: Final comparison - D3 vs Equilibrium vs Collision-Resolved
+    console.log("\n🎯 PHASE 3: Final Position Comparison");
+    visibleNodeIds.forEach(nodeId => {
+      const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+      const equilibrium = equilibriumPositions.get(nodeId);
+      const resolved = collisionResolvedPositions.get(nodeId);
+      
+      if (hierarchyNode && equilibrium && resolved) {
+        const d3CenterAngle = ((hierarchyNode.x0 + hierarchyNode.x1) / 2 * 180) / Math.PI;
+        
+        console.log(`${nodeId}:`);
+        console.log(`  D3:        ${d3CenterAngle.toFixed(1)}°`);
+        console.log(`  Equilib:   ${equilibrium.angle.toFixed(1)}°`);
+        console.log(`  Resolved:  ${resolved.angle.toFixed(1)}° (moved ${Math.abs(resolved.angle - equilibrium.angle).toFixed(1)}°)`);
+      }
+    });
+
+    // Store resolved positions for next phase
+    (window as any).__fieldPositions__ = collisionResolvedPositions;
+    console.log("🎯 PHASE 3 Complete - Collision resolution done! Positions stored in window.__fieldPositions__");
+
+    // *** INVESTIGATION: Let's see what's really happening ***
+    console.log("\n🔍 FIELD MODEL INVESTIGATION");
+    console.log("==========================================");
+
+    // Investigation 1: Gen-1 Angle Distribution
+    console.log("\n📊 Investigation 1: Gen-1 Angle Distribution");
+    (() => {
+      const gen1Nodes = Array.from(visibleNodeIds).filter(nodeId => {
+        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+        return hierarchyNode && hierarchyNode.depth === 1;
+      });
+      
+      const gen1Data = gen1Nodes.map(nodeId => {
+        const equilibrium = equilibriumPositions.get(nodeId);
+        const resolved = collisionResolvedPositions.get(nodeId);
+        const mass = nodeMap.get(nodeId)?.totalGravity || 0;
+        return {
+          id: nodeId,
+          mass: mass,
+          equilibriumAngle: equilibrium?.angle || 0,
+          resolvedAngle: resolved?.angle || 0
+        };
+      }).sort((a, b) => a.equilibriumAngle - b.equilibriumAngle);
+      
+      console.log(`Gen-1 nodes: ${gen1Data.length}`);
+      console.log("Equilibrium angles:", gen1Data.map(d => d.equilibriumAngle.toFixed(1)));
+      console.log("Mass distribution:", gen1Data.map(d => d.mass.toFixed(2)));
+      
+      // Check if clustering near 0°/360°
+      const near0 = gen1Data.filter(d => d.equilibriumAngle < 30 || d.equilibriumAngle > 330).length;
+      const mid = gen1Data.filter(d => d.equilibriumAngle >= 30 && d.equilibriumAngle <= 330).length;
+      console.log(`Clustering analysis: ${near0} nodes near 0°/360°, ${mid} nodes in middle range`);
+      
+      // Mass variance
+      const masses = gen1Data.map(d => d.mass);
+      const avgMass = masses.reduce((s, m) => s + m, 0) / masses.length;
+      const massVariance = masses.reduce((s, m) => s + Math.pow(m - avgMass, 2), 0) / masses.length;
+      console.log(`Mass stats: avg=${avgMass.toFixed(3)}, variance=${massVariance.toFixed(3)}, range=[${Math.min(...masses).toFixed(3)}, ${Math.max(...masses).toFixed(3)}]`);
+    })();
+
+    // Investigation 2: Territory Density Analysis
+    console.log("\n📏 Investigation 2: Territory Density by Ring");
+    (() => {
+      const generations = new Map<number, string[]>();
+      visibleNodeIds.forEach(nodeId => {
+        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+        if (hierarchyNode) {
+          const depth = hierarchyNode.depth;
+          if (!generations.has(depth)) generations.set(depth, []);
+          generations.get(depth)!.push(nodeId);
+        }
+      });
+      
+      generations.forEach((nodes, depth) => {
+        if (depth === 0) return; // Skip root
+        
+        const baseWidth = 1;
+        const gravityMultiplier = 1;
+        
+        const territoryData = nodes.map(nodeId => {
+          const node = nodeMap.get(nodeId);
+          const gravity = node?.totalGravity || 0;
+          const territoryWidth = baseWidth + (gravity * gravityMultiplier);
+          return { nodeId, gravity, territoryWidth };
+        });
+        
+        const totalTerritoryWidth = territoryData.reduce((sum, t) => sum + t.territoryWidth, 0);
+        const averageTerritory = totalTerritoryWidth / nodes.length;
+        const densityRatio = totalTerritoryWidth / 360;
+        
+        console.log(`Ring ${depth}: ${nodes.length} nodes`);
+        console.log(`  Total claimed: ${totalTerritoryWidth.toFixed(1)}° vs 360° available`);
+        console.log(`  Density ratio: ${densityRatio.toFixed(2)}x (>1.0 = guaranteed overlaps)`);
+        console.log(`  Avg territory: ${averageTerritory.toFixed(1)}°`);
+        console.log(`  Territory range: [${Math.min(...territoryData.map(t => t.territoryWidth)).toFixed(1)}°, ${Math.max(...territoryData.map(t => t.territoryWidth)).toFixed(1)}°]`);
+      });
+    })();
+
+    // Investigation 3: Parent Angle Distribution for Gen-2+
+    console.log("\n🎯 Investigation 3: Parent Angle Distribution");
+    (() => {
+      [2, 3].forEach(targetDepth => {
+        const genNodes = Array.from(visibleNodeIds).filter(nodeId => {
+          const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+          return hierarchyNode && hierarchyNode.depth === targetDepth;
+        });
+        
+        if (genNodes.length === 0) return;
+        
+        console.log(`\nGen-${targetDepth} parent angle analysis:`);
+        
+        genNodes.slice(0, 5).forEach(nodeId => { // Show first 5 for readability
+          const node = nodeMap.get(nodeId);
+          if (!node || !node.gravityPoints) return;
+          
+          const parentData = Array.from(node.gravityPoints.entries()).map(([parentId, gravity]) => {
+            const parentPos = collisionResolvedPositions.get(parentId);
+            return {
+              parentId,
+              gravity,
+              angle: parentPos?.angle || 0
+            };
+          }).sort((a, b) => a.angle - b.angle);
+          
+          const childPos = collisionResolvedPositions.get(nodeId);
+          console.log(`  ${nodeId} (final: ${childPos?.angle.toFixed(1)}°):`);
+          console.log(`    Parents: ${parentData.map(p => `${p.parentId}@${p.angle.toFixed(1)}°(${p.gravity.toFixed(2)})`).join(', ')}`);
+          
+          // Check if parents span wide angle range
+          if (parentData.length > 1) {
+            const angleSpread = Math.max(...parentData.map(p => p.angle)) - Math.min(...parentData.map(p => p.angle));
+            const wraparoundSpread = 360 - angleSpread;
+            const realSpread = Math.min(angleSpread, wraparoundSpread);
+            console.log(`    Parent spread: ${realSpread.toFixed(1)}° (${realSpread > 180 ? 'wraparound' : 'normal'})`);
+          }
+        });
+      });
+    })();
+
+    // Investigation 4: Collision Move Analysis (Circular Distance)
+    console.log("\n💥 Investigation 4: Actual Collision Moves (Circular Distance)");
+    (() => {
+      function circularDistance(angle1: number, angle2: number): number {
+        let diff = Math.abs(angle1 - angle2);
+        return Math.min(diff, 360 - diff);
+      }
+      
+      const moveData: Array<{nodeId: string, equilibrium: number, resolved: number, circularMove: number}> = [];
+      
+      visibleNodeIds.forEach(nodeId => {
+        const equilibrium = equilibriumPositions.get(nodeId);
+        const resolved = collisionResolvedPositions.get(nodeId);
+        
+        if (equilibrium && resolved) {
+          const circularMove = circularDistance(equilibrium.angle, resolved.angle);
+          moveData.push({
+            nodeId,
+            equilibrium: equilibrium.angle,
+            resolved: resolved.angle,
+            circularMove
+          });
+        }
+      });
+      
+      // Sort by largest moves
+      moveData.sort((a, b) => b.circularMove - a.circularMove);
+      
+      console.log("Largest collision moves (circular distance):");
+      moveData.slice(0, 10).forEach(move => {
+        console.log(`  ${move.nodeId}: ${move.equilibrium.toFixed(1)}° → ${move.resolved.toFixed(1)}° (moved ${move.circularMove.toFixed(1)}°)`);
+      });
+      
+      const avgMove = moveData.reduce((sum, m) => sum + m.circularMove, 0) / moveData.length;
+      const largeMovesCount = moveData.filter(m => m.circularMove > 30).length;
+      
+      console.log(`Move statistics: avg=${avgMove.toFixed(1)}°, large moves (>30°): ${largeMovesCount}/${moveData.length}`);
+    })();
+
+    // Investigation 5: Success/Failure Summary
+    console.log("\n📈 Investigation 5: Field Model Health Check");
+    (() => {
+      const multiParentCount = Array.from(visibleNodeIds).filter(nodeId => {
+        const node = nodeMap.get(nodeId);
+        return node && node.gravityPoints && node.gravityPoints.size > 1;
+      }).length;
+      
+      console.log(`✅ Multi-parent nodes detected: ${multiParentCount}`);
+      console.log(`✅ Visible nodes processed: ${visibleNodeIds.size}`);
+      console.log(`✅ Field positions calculated: ${collisionResolvedPositions.size}`);
+      
+      // Check if any nodes are still at exactly 0°
+      const at0Degrees = Array.from(collisionResolvedPositions.values()).filter(pos => 
+        Math.abs(pos.angle) < 0.01 || Math.abs(pos.angle - 360) < 0.01
+      ).length;
+      
+      console.log(`${at0Degrees > 0 ? '⚠️' : '✅'} Nodes at exactly 0°: ${at0Degrees}`);
+    })();
+
+    console.log("\n🔬 Investigation complete - check results above before making changes!");
 
 
     console.log("🔍 GRAVITY MODEL: Inspecting calculated values");
