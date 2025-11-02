@@ -407,10 +407,12 @@ useEffect(() => {
                 
                 <TabsContent value="analysis" className="pt-4">
                   <div className="flex justify-center mb-8">
-                    <div className="w-full max-w-3xl relative">
+                    <div className="w-full max-w-7xl relative">
                       <SunburstChart
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
+                        width={100}
+                        height={100}
                         onSelect={handleIndicatorSelect}
                         onBreadcrumbsChange={setBreadcrumbs}
                         onVisibleNodesChange={setVisibleNodes}

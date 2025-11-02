@@ -23,7 +23,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   width = 600,
   height = 600,
   onSelect, 
-  maxLayers = 2,
+  maxLayers = 5,
   showLabels = false,
   onBreadcrumbsChange,
   onVisibleNodesChange,
@@ -188,7 +188,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     
     console.log("🔍 Weight distribution:", weightStats);
     console.log("Sample weights:", linksN.slice(0, 10).map(l => l.weight));
-
+    
     // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
     const svg = d3.select(svgRef.current)
@@ -277,7 +277,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     // Determine root data: pivoted or full forest (treat 'root' as no pivot)
     const hierarchyData = pivotId && pivotId !== 'root'
-    ? nodeMap.get(pivotId)!
+      ? nodeMap.get(pivotId)!
     : {
         id: 'root',
         name: 'Root', 
@@ -450,12 +450,12 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     // Call the gravity calculation
     addGravityMetadata();
-
+    
     console.log('PivotId:', pivotId);
     console.log('Hierarchy Data:', hierarchyData);
 
 
-    // Create a lookup of influence_score for parent→child links
+        // Create a lookup of influence_score for parent→child links
     const influenceScoreMap = new Map(
       linksN.map(link => [`${link.parent_id}_${link.child_id}`, link.score])
     );
@@ -1249,18 +1249,18 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         .filter((name, idx, arr) => name !== 'Root' && (idx === 0 || name !== arr[idx - 1]));
       const titleText = `${names.join(' > ')}\n${format(d.value)}`;
 
-      return {
-        ...d,
-        fieldX0,
-        fieldX1,
-        fieldY0,
-        fieldY1,
-        isFieldPositioned: true,
-        gravityMass: nodeGravity,
-        fieldAngleDeg: fieldPos.angle,
-        angularWidthDeg: angularWidth * 180 / Math.PI,
-        titleText
-      };
+      // Preserve D3 hierarchy node prototype (keeps .ancestors() method)
+      const item = Object.assign(Object.create(Object.getPrototypeOf(d)), d);
+      item.fieldX0 = fieldX0;
+      item.fieldX1 = fieldX1;
+      item.fieldY0 = fieldY0;
+      item.fieldY1 = fieldY1;
+      item.isFieldPositioned = true;
+      item.gravityMass = nodeGravity;
+      item.fieldAngleDeg = fieldPos.angle;
+      item.angularWidthDeg = angularWidth * 180 / Math.PI;
+      item.titleText = titleText;
+      return item;
     });
 
     console.log("🎨 Field arc data sample:", fieldArcData.slice(0, 5).map(d => ({
@@ -1269,6 +1269,16 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       width: d.angularWidthDeg?.toFixed(1),
       isField: d.isFieldPositioned
     })));
+
+    // Per-ring coverage analysis (more accurate than total)
+    const byDepth = new Map<number, number>();
+    fieldArcData.forEach(d => {
+      const depth = d.fieldY0; // hierarchyNode.depth
+      byDepth.set(depth, (byDepth.get(depth) ?? 0) + (d.angularWidthDeg ?? 0));
+    });
+    byDepth.forEach((sum, depth) => {
+      console.log(`Ring ${depth} coverage: ${sum.toFixed(1)}° (${(sum/360*100).toFixed(1)}%)`);
+    });
 
     // Field-aware arc generator
     const arc = d3.arc<any>()
@@ -1279,7 +1289,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .padAngle(0.002); // Small padding for visual separation
 
 
-
+    
     // Create tooltip
     const tooltip = d3.select("body")
       .append("div")
@@ -1546,7 +1556,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   }, [nodes, links, width, height, onSelect, maxLayers, pivotId, selectedId, showLabels, onBreadcrumbsChange]);
   
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center w-full max-w-[600px] mx-auto">
       {pivotId && (
         <button
           className="mb-2 px-4 py-1 bg-gray-200 rounded hover:bg-gray-300"
@@ -1555,6 +1565,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           Reset
         </button>
       )}
+      <div className="w-full aspect-square max-w-full">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -1562,6 +1573,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         height="100%"
         preserveAspectRatio="xMidYMid meet"
       />
+      </div>
     </div>
   );
 };

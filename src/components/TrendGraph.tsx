@@ -51,7 +51,7 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
   const gap = optimalBenchmark ? Math.abs(currentValue - optimalBenchmark).toFixed(1) : null;
 
   return (
-    <div className="bg-white shadow rounded-lg p-6" role="img" aria-label={`${title} trend chart for ${locationName}`}>
+    <div className="bg-white shadow rounded-lg p-6 w-full max-w-full overflow-hidden" role="img" aria-label={`${title} trend chart for ${locationName}`}>
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
         <p className="text-sm text-gray-600 subtitle">
@@ -65,7 +65,7 @@ const TrendGraph: React.FC<TrendGraphProps> = ({
           </p>
         )}
       </div>
-      <div className="h-64 relative">
+      <div className="h-64 w-full max-w-full overflow-hidden relative">
         {/* Directional overlay */}
         <div 
           className="absolute inset-0 rounded"

@@ -98,6 +98,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Make all SVGs responsive by default */
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 /* Custom animations for the cinematic experience */
