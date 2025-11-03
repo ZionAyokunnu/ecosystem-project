@@ -17,7 +17,7 @@ import {
   buildIndicatorTree
 } from '@/utils/indicatorUtils';
 import { getIndicatorById, predictTrend, createSimulation } from '@/services/api';
-import { Indicator, SimulationChange, PredictionResult, SunburstNode } from '@/types';
+import { Indicator, Relationship, SimulationChange, PredictionResult, SunburstNode } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import SunburstCenterCircle from '@/components/SunburstCenterCircle';
@@ -29,7 +29,7 @@ import LLMContextToggle from '@/components/LLMContextToggle';
 import { Settings } from 'lucide-react';
 
 import { useLocation } from '@/context/LocationContext';
-
+import { USE_MOCK_DATA, createMockData } from '@/data/mockData';
 
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();
@@ -70,12 +70,25 @@ const handleCoreChange = useCallback(
   (newId: string | null) => {
     if (!newId) return;            // synthetic root; ignore
     setCurrentCoreId(newId);       // drives TrendGraph
-    const found = indicators.find(ind => ind.indicator_id === newId);
+    // const found = indicators.find(ind => ind.indicator_id === newId);
+    
+    // MOCK DATA: Use mock data if flag is enabled
+    const dataIndicators = USE_MOCK_DATA ? createMockData().indicators : indicators;
+    // ORIGINAL DB CODE:
+    // const found = indicators.find(ind => ind.indicator_id === newId);
+    const found = dataIndicators.find(ind => ind.indicator_id === newId);
+    
     if (found) {
       setCoreIndicator(found);     // drives DescriptionPanel header & value
 
       // Find parent-child relationship for qualitative stories
-      const parentRelationship = relationships.find(r => r.child_id === newId);
+      // const parentRelationship = relationships.find(r => r.child_id === newId);
+      // MOCK DATA: Use mock data if flag is enabled
+      const dataRelationships = USE_MOCK_DATA ? createMockData().relationships : relationships;
+      // ORIGINAL DB CODE:
+      // const parentRelationship = relationships.find(r => r.child_id === newId);
+      const parentRelationship = dataRelationships.find(r => r.child_id === newId);
+      
       if (parentRelationship) {
         setCurrentParentId(parentRelationship.parent_id);
         setCurrentChildId(newId);
@@ -86,7 +99,7 @@ const handleCoreChange = useCallback(
       }                 
     }
   },
-  [indicators]
+  [indicators, relationships]
 );
 
 // IDs of wedges currently shown
@@ -95,19 +108,21 @@ const visibleIds = useMemo(
   [visibleNodes]
 );
 
-// // Actual Indicator objects that match those IDs
-// const visibleIndicators = useMemo(
-//   () => localIndicators.filter(ind => visibleIds.includes(ind.indicator_id)),
-//   [localIndicators, visibleIds]
-// );
 
 const visibleIndicators = useMemo(() => {
+  // MOCK DATA: Use mock data if flag is enabled
+  const dataSource = USE_MOCK_DATA ? createMockData().indicators : indicators;
+  // ORIGINAL DB CODE:
+  // return visibleNodes
+  //   .map(node => indicators.find(ind => ind.indicator_id === node.id))
+  //   .filter((ind): ind is Indicator => Boolean(ind))
+  
   return visibleNodes
-    // //  ❌ drop the synthetic root (depth 0), if you don’t want it
+    // //  ❌ drop the synthetic root (depth 0), if you don't want it
     // .filter(node => node.depth > 0)
     //  ✅ map each wedge back to the full Indicator
-    .map(node => indicators.find(ind => ind.indicator_id === node.id))
-    //  🚨 drop any that somehow didn’t resolve (shouldn’t happen)
+    .map(node => dataSource.find(ind => ind.indicator_id === node.id))
+    //  🚨 drop any that somehow didn't resolve (shouldn't happen)
     .filter((ind): ind is Indicator => Boolean(ind))
 }, [visibleNodes, indicators])
 
@@ -152,12 +167,21 @@ useEffect(() => {
           setCoreIndicator(indicator);
           
           // Reset simulation state when changing core indicator
-          setLocalIndicators(indicators);
+          // MOCK DATA: Use mock data if flag is enabled
+          if (USE_MOCK_DATA) {
+            const mockData = createMockData();
+            setLocalIndicators(mockData.indicators);
+          } else {
+            // ORIGINAL DB CODE (uncomment when USE_MOCK_DATA = false):
+            setLocalIndicators(indicators);
+            // ORIGINAL DB CODE END
+          }
           setSimulationChanges([]);
           
           // Get prediction data
           setIsPredicting(true);
           try {
+            // ORIGINAL DB CODE: Still uses DB for predictions
             const prediction = await predictTrend(indicator.indicator_id);
             setPredictionData(prediction);
           } catch (err) {
@@ -166,27 +190,46 @@ useEffect(() => {
             setIsPredicting(false);
           }
           
+          // MOCK DATA: Use mock data if flag is enabled
+          const dataIndicators = USE_MOCK_DATA ? createMockData().indicators : indicators;
+          const dataRelationships = USE_MOCK_DATA ? createMockData().relationships : relationships;
+          // ORIGINAL DB CODE:
+          // const drivers = getTopDrivers(
+          //   indicator.indicator_id,
+          //   indicators,
+          //   relationships,
+          //   userSettings.topDriversCount
+          // );
+          
           // Get top drivers
           const drivers = getTopDrivers(
             indicator.indicator_id,
-            indicators,
-            relationships,
+            dataIndicators,
+            dataRelationships,
             userSettings.topDriversCount
           );
           setTopDrivers(drivers);
 
           setSimulationDrivers(drivers);
+          
           // Compute breadcrumbs from relationships, skipping self-links
+          // MOCK DATA: Use mock data if flag is enabled
           const path: Array<{ id: string; name: string }> = [];
           const visited = new Set<string>();
           let currentIdTemp = indicator.indicator_id;
           while (currentIdTemp && !visited.has(currentIdTemp)) {
             visited.add(currentIdTemp);
-            const indItem = indicators.find(i => i.indicator_id === currentIdTemp);
+            // ORIGINAL DB CODE:
+            // const indItem = indicators.find(i => i.indicator_id === currentIdTemp);
+            const indItem = dataIndicators.find(i => i.indicator_id === currentIdTemp);
             if (!indItem) break;
             path.unshift({ id: indItem.indicator_id, name: indItem.name });
             // find a parent link that is not a self-link
-            const parentRel = relationships.find(rel =>
+            // ORIGINAL DB CODE:
+            // const parentRel = relationships.find(rel =>
+            //   rel.child_id === currentIdTemp && rel.parent_id !== currentIdTemp
+            // );
+            const parentRel = dataRelationships.find(rel =>
               rel.child_id === currentIdTemp && rel.parent_id !== currentIdTemp
             );
             currentIdTemp = parentRel?.parent_id ?? '';
@@ -234,10 +277,21 @@ useEffect(() => {
 
   useEffect(() => {
     if (!coreIndicator) return;
+    // MOCK DATA: Use mock data if flag is enabled
+    const dataIndicators = USE_MOCK_DATA ? createMockData().indicators : indicators;
+    const dataRelationships = USE_MOCK_DATA ? createMockData().relationships : relationships;
+    // ORIGINAL DB CODE:
+    // const drivers = getTopDrivers(
+    //   coreIndicator.indicator_id,
+    //   indicators,
+    //   relationships,
+    //   userSettings.topDriversCount
+    // );
+    
     const drivers = getTopDrivers(
       coreIndicator.indicator_id,
-      indicators,
-      relationships,
+      dataIndicators,
+      dataRelationships,
       userSettings.topDriversCount
     );
     setTopDrivers(drivers);
@@ -266,29 +320,47 @@ useEffect(() => {
   const handleSimulate = (changedIndicatorId: string, newValue: number) => {
     if (!coreIndicator) return;
     
+    // MOCK DATA: Use mock data if flag is enabled
+    const dataIndicators = USE_MOCK_DATA ? createMockData().indicators : localIndicators;
+    const dataRelationships = USE_MOCK_DATA ? createMockData().relationships : relationships;
+    // ORIGINAL DB CODE:
+    // const { updatedIndicators, changes } = simulateChanges(
+    //   changedIndicatorId,
+    //   newValue,
+    //   localIndicators,
+    //   relationships
+    // );
+    
     // Perform simulation
     const { updatedIndicators, changes } = simulateChanges(
       changedIndicatorId,
       newValue,
-      localIndicators,
-      relationships
+      dataIndicators,
+      dataRelationships
     );
     
     setLocalIndicators(updatedIndicators);
     setSimulationChanges(changes);
     
     // Update simulation drivers
-    const updatedCore = updatedIndicators.find(ind => ind.indicator_id === coreIndicator.indicator_id);
-    if (updatedCore) {
-      const drivers = getTopDrivers(
-        updatedCore.indicator_id,
-        updatedIndicators,
-        relationships,
-        userSettings.topDriversCount
-      );
-      setSimulationDrivers(drivers);
-    }
-  };
+      const updatedCore = updatedIndicators.find(ind => ind.indicator_id === coreIndicator.indicator_id);
+      if (updatedCore) {
+        // ORIGINAL DB CODE:
+        // const drivers = getTopDrivers(
+        //   updatedCore.indicator_id,
+        //   updatedIndicators,
+        //   relationships,
+        //   userSettings.topDriversCount
+        // );
+        const drivers = getTopDrivers(
+          updatedCore.indicator_id,
+          updatedIndicators,
+          dataRelationships,
+          userSettings.topDriversCount
+        );
+        setSimulationDrivers(drivers);
+      }
+    };
   
   // const handleSunburstNodeClick = (nodeId: string) => {
   //   if (isFixedMode) {
@@ -332,10 +404,25 @@ useEffect(() => {
   
   // Prepare sunburst data
   const sunburstData = React.useMemo(() => {
+    // MOCK DATA: Use mock data if flag is enabled
+    if (USE_MOCK_DATA) {
+      const mockData = createMockData();
+      // Set coreIndicator to 'core' (root) for mock data
+      if (!coreIndicator) {
+        const mockCore = mockData.indicators.find(i => i.indicator_id === 'core');
+        if (mockCore) {
+          setCoreIndicator(mockCore);
+        }
+      }
+      return transformToSunburstData(mockData.indicators, mockData.relationships);
+    }
+    
+    // ORIGINAL DB CODE (uncomment when USE_MOCK_DATA = false):
     if (coreIndicator && localIndicators.length > 0 && relationships.length > 0) {
       return transformToSunburstData(localIndicators, relationships);
     }
     return { nodes: [], links: [] };
+    // ORIGINAL DB CODE END
   }, [coreIndicator, localIndicators, relationships]);
   
   const canDiveDeeper = coreIndicator && breadcrumbs.length < userSettings.maxDrillDepth;
@@ -363,63 +450,61 @@ useEffect(() => {
   const [llmMode, setLlmMode] = useState<'business' | 'community'>('business');
 
   return (
-    // right before JSX
-    console.log('DetailView render, breadcrumbs:', breadcrumbs),
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-        <div className="p-6 bg-gradient-to-r from-gray-600 to-gray-800 text-white">
-          <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
-          <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
-              <SettingsDialog 
-                trigger={
-                  <Button className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    Adjust Drill
-                  </Button>
-                } 
-              />
-              <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
-        </div>
-        
-        <div className="p-6">
-          {isLoading ? (
-            <div className="space-y-8">
-              <div className="flex justify-center">
-                <Skeleton className="h-[600px] w-[600px] rounded-full" />
+    <>
+      <div className="location-picker-fixed">
+        <EnhancedLocationPicker />
+      </div>
+      
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
+          <div className="p-6 bg-gradient-to-r from-gray-600 to-gray-800 text-white">
+            <h1 className="text-3xl font-bold">{coreIndicator?.name || 'Indicator Detail'}</h1>
+            <p className="mt-2">{coreIndicator?.category ? `Category: ${coreIndicator.category}` : 'Loading indicator details...'}</p>
+                <SettingsDialog 
+                  trigger={
+                    <Button className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      Adjust Drill
+                    </Button>
+                  } 
+                />
+                <LLMContextToggle mode={llmMode} onModeChange={setLlmMode} />
+          </div>
+          
+          <div className="p-6 bg-white relative z-10">
+            {isLoading ? (
+              <div className="space-y-8">
+                <div className="flex justify-center">
+                  <Skeleton className="h-[600px] w-[600px] rounded-full" />
+                </div>
+                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-64 w-full rounded-md" />
+                <Skeleton className="h-64 w-full rounded-md" />
               </div>
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-64 w-full rounded-md" />
-              <Skeleton className="h-64 w-full rounded-md" />
-            </div>
-          ) : coreIndicator ? (
-            <>
-              <div className="relative z-50">
-                <EnhancedLocationPicker />
-              </div>
+            ) : coreIndicator ? (
+              <>
               <Breadcrumbs
                     items={(breadcrumbs.length > 0) ? breadcrumbs : [{ id: coreIndicator?.indicator_id || '', name: coreIndicator?.name || '' }]}
                     onNavigate={id => navigate(`/detail/${id}`)} depth={3}  />
-              <Tabs defaultValue="analysis" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                  <TabsTrigger value="simulation">Simulation</TabsTrigger>
+              <Tabs defaultValue="analysis" className="w-full mt-6">
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100">
+                  <TabsTrigger value="analysis" className="data-[state=active]:bg-white">Analysis</TabsTrigger>
+                  <TabsTrigger value="simulation" className="data-[state=active]:bg-white">Simulation</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="analysis" className="pt-4">
-                  <div className="flex justify-center mb-8">
-                    <div className="w-full max-w-7xl relative">
-                      <SunburstChart
-                        nodes={sunburstData.nodes}
-                        links={sunburstData.links}
-                        width={100}
-                        height={100}
-                        onSelect={handleIndicatorSelect}
-                        onBreadcrumbsChange={setBreadcrumbs}
-                        onVisibleNodesChange={setVisibleNodes}
-                        onCoreChange={handleCoreChange}
-                      />
-                      
-                    </div>
+                <TabsContent value="analysis" className="mt-0 space-y-8 min-h-[800px]">
+                  <div className="w-full max-w-4xl mx-auto">
+                    <SunburstChart
+                      nodes={sunburstData.nodes}
+                      links={sunburstData.links}
+                      width={600}
+                      height={600}
+                      onSelect={handleIndicatorSelect}
+                      onBreadcrumbsChange={setBreadcrumbs}
+                      onVisibleNodesChange={setVisibleNodes}
+                      onCoreChange={handleCoreChange}
+                    />
                   </div>
                   
                   {canDiveDeeper && (
@@ -446,8 +531,12 @@ useEffect(() => {
                   
                   <DescriptionPanel
                     coreIndicator={coreIndicator}
-                    indicators={indicators}
-                    relationships={relationships}
+                    // MOCK DATA: Use mock data if flag is enabled
+                    indicators={USE_MOCK_DATA ? createMockData().indicators : indicators}
+                    relationships={USE_MOCK_DATA ? createMockData().relationships : relationships}
+                    // ORIGINAL DB CODE:
+                    // indicators={indicators}
+                    // relationships={relationships}
                     visibleNodes={visibleNodes}
                     llmMode={llmMode}
                   />
@@ -473,7 +562,7 @@ useEffect(() => {
                   )}
                 </TabsContent>
 
-                <TabsContent value="simulation" className="pt-4">
+                <TabsContent value="simulation" className="mt-0 space-y-8 min-h-[800px]">
                   {/* Sunburst Fix Mode Toggle */}
                   <div className="flex justify-center">
                     <SunburstFixModeToggle 
@@ -481,11 +570,13 @@ useEffect(() => {
                       onToggle={() => setIsFixedMode(prev => !prev)}
                     />
                   </div>
-                  <div className="flex justify-center mb-8">
-                    <div className="w-full max-w-3xl">
+                  <div className="sunburst-container flex justify-center">
+                    <div className="w-full max-w-4xl mx-auto">
                       <SunburstChart
                         nodes={sunburstData.nodes}
                         links={sunburstData.links}
+                        width={600}
+                        height={600}
                         onCoreChange={handleCoreChange}
                         onVisibleNodesChange={setVisibleNodes}
                       />
@@ -517,16 +608,18 @@ useEffect(() => {
                 Return to Overview
               </Button>
              {/* Simulation Modal */}
-            <SimulationModal
-              isOpen={simulationModal.isOpen}
-              onClose={() => setSimulationModal({ isOpen: false, targetId: null })}
-              targetIndicatorId={simulationModal.targetId || ''}
-            />
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
+    <SimulationModal
+      isOpen={simulationModal.isOpen}
+      onClose={() => setSimulationModal({ isOpen: false, targetId: null })}
+      targetIndicatorId={simulationModal.targetId || ''}
+    />
+    </>
   );
 };
 

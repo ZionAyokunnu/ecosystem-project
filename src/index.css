@@ -216,3 +216,54 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* DetailView layout fixes */
+.sunburst-container {
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+/* Ensure proper stacking for location picker */
+.location-picker {
+  position: fixed !important;
+  top: 1rem !important;
+  right: 1rem !important;
+  z-index: 9999 !important;
+}
+
+/* Prevent content overflow */
+.detail-view {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Tab content spacing */
+.tab-content {
+  min-height: 60vh;
+  padding-bottom: 2rem;
+}
+
+/* Force proper tab styling */
+[data-radix-tabs-content] {
+  background: white !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Ensure no background bleed */
+.bg-white {
+  background-color: white !important;
+}
+
+/* Fix location picker positioning */
+.location-picker-fixed {
+  position: fixed !important;
+  top: 1.5rem !important;
+  right: 1.5rem !important;
+  z-index: 9999 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  padding: 0.5rem !important;
+}

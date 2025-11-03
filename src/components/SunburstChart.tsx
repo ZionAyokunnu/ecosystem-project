@@ -23,7 +23,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   width = 600,
   height = 600,
   onSelect, 
-  maxLayers = 5,
+  maxLayers = 3,
   showLabels = false,
   onBreadcrumbsChange,
   onVisibleNodesChange,
@@ -1556,23 +1556,24 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
   }, [nodes, links, width, height, onSelect, maxLayers, pivotId, selectedId, showLabels, onBreadcrumbsChange]);
   
   return (
-    <div className="flex flex-col items-center w-full max-w-[600px] mx-auto">
+    <div className="flex flex-col items-center w-full max-w-4xl mx-auto">
       {pivotId && (
         <button
-          className="mb-2 px-4 py-1 bg-gray-200 rounded hover:bg-gray-300"
+          className="mb-2 px-4 py-1 bg-gray-200 rounded hover:bg-gray-300 z-10"
           onClick={() => setPivotId(null)}
         >
           Reset
         </button>
       )}
-      <div className="w-full aspect-square max-w-full">
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${width} ${height}`}
-        width="100%"
-        height="100%"
-        preserveAspectRatio="xMidYMid meet"
-      />
+      <div className="w-full h-[400px] flex items-center justify-center">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${width} ${height}`}
+          width="200"
+          height="200"
+          className="max-w-full max-h-full"
+          preserveAspectRatio="xMidYMid meet"
+        />
       </div>
     </div>
   );
