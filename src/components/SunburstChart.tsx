@@ -537,7 +537,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       return (fnv1a32(id) / 0xFFFFFFFF) * 2 - 1; // [-1,1]
     }
 
-    function microJitterDeg(id: string, magDeg = 0.25): number {
+    function microJitterDeg(id: string, magDeg = 1.0): number {
       return stableHashToMinus1to1(id) * magDeg;
     }
 
@@ -917,43 +917,159 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             }
           }
           
-          // Step 2: Hierarchical primary pusher selection
+          // Step 2: Connected Components Analysis (Cluster Detection)
+          console.log(`🐛 DEBUG: hasCollisions = ${hasCollisions}, allOverlaps.length = ${allOverlaps.length}`);
+
           if (hasCollisions) {
-            // Find primary pusher (highest gravity node involved in overlaps)
-            const involvedNodes = new Set<string>();
+            console.log(`🐛 DEBUG: Inside hasCollisions block`);
+            
+            // Build adjacency map for connected components
+            const adjacencyMap = new Map<string, Set<string>>();
+            nodes.forEach(nodeId => adjacencyMap.set(nodeId, new Set()));
+            
             allOverlaps.forEach(overlap => {
-              involvedNodes.add(overlap.nodeA);
-              involvedNodes.add(overlap.nodeB);
+              adjacencyMap.get(overlap.nodeA)!.add(overlap.nodeB);
+              adjacencyMap.get(overlap.nodeB)!.add(overlap.nodeA);
             });
             
-            let primaryPusher = '';
-            let maxGravity = 0;
-            involvedNodes.forEach(nodeId => {
-              const gravity = nodeMap.get(nodeId)!.totalGravity;
-              if (gravity > maxGravity) {
-                maxGravity = gravity;
-                primaryPusher = nodeId;
+            // Find connected components (clusters)
+            const visited = new Set<string>();
+            const clusters: Array<{nodes: string[], overlaps: typeof allOverlaps}> = [];
+            
+            function dfs(nodeId: string, currentCluster: string[]) {
+              if (visited.has(nodeId)) return;
+              visited.add(nodeId);
+              currentCluster.push(nodeId);
+              
+              adjacencyMap.get(nodeId)!.forEach(neighbor => {
+                dfs(neighbor, currentCluster);
+              });
+            }
+            
+            // Find all clusters
+            nodes.forEach(nodeId => {
+              if (!visited.has(nodeId) && adjacencyMap.get(nodeId)!.size > 0) {
+                const clusterNodes: string[] = [];
+                dfs(nodeId, clusterNodes);
+                
+                // Get overlaps within this cluster
+                const clusterOverlaps = allOverlaps.filter(overlap =>
+                  clusterNodes.includes(overlap.nodeA) && clusterNodes.includes(overlap.nodeB)
+                );
+                
+                clusters.push({ nodes: clusterNodes, overlaps: clusterOverlaps });
+
+                console.log(`🐛 DEBUG: Cluster ${clusters.length} found:`, clusterNodes, `overlaps:`, clusterOverlaps.length);
               }
             });
             
-            // Step 3: Process only Primary-* operations, discard interfering ones
-            const selectedOperations = allOverlaps.filter(overlap => 
-              overlap.nodeA === primaryPusher || overlap.nodeB === primaryPusher
-            );
+            console.log(`🔧 Found ${clusters.length} collision clusters:`, 
+              clusters.map(c => `{${c.nodes.join(',')}}`).join(', '));
             
-            // Apply pushes from primary pusher
-            selectedOperations.forEach(operation => {
-              const { nodeA, nodeB, gravityA, gravityB, pushDistance, pushSign } = operation;
+            // Step 3: Process each cluster independently
+            console.log(`🐛 DEBUG: Processing ${clusters.length} clusters`);
+
+            clusters.forEach((cluster, clusterIndex) => {
+              // Find primary pusher within this cluster
+              let primaryPusher = '';
+              let maxGravity = 0;
+              cluster.nodes.forEach(nodeId => {
+                const gravity = nodeMap.get(nodeId)!.totalGravity;
+                if (gravity > maxGravity) {
+                  maxGravity = gravity;
+                  primaryPusher = nodeId;
+                }
+              });
               
-              const stronger = gravityA > gravityB ? nodeA : nodeB;
-              const weaker = gravityA > gravityB ? nodeB : nodeA;
-              const actualPush = pushDistance * (stronger === nodeA ? pushSign : -pushSign);
+              console.log(`  Cluster ${clusterIndex + 1}: Primary pusher = ${primaryPusher} (gravity: ${maxGravity.toFixed(3)})`);
               
-              if (weaker !== primaryPusher) { // Primary pusher doesn't move
-                pushForces.set(weaker, actualPush);
+              // Step 4: Process only Primary-* operations within this cluster
+              console.log(`🐛 DEBUG: Cluster ${clusterIndex + 1}, primary: ${primaryPusher}, overlaps: ${cluster.overlaps.length}`);
+
+              const selectedOperations = cluster.overlaps.filter(overlap => 
+                overlap.nodeA === primaryPusher || overlap.nodeB === primaryPusher
+              );
+              
+              // Apply pushes from primary pusher
+              // Process operations sequentially, not simultaneously
+              console.log(`🐛 DEBUG: selectedOperations.length = ${selectedOperations.length}`);
+
+              for (const operation of selectedOperations) {
+                console.log(`🐛 DEBUG: Processing operation:`, operation.nodeA, '→', operation.nodeB);
                 
-                if (iteration === 0) {
-                  console.log(`  ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap, push=${actualPush.toFixed(2)}°`);
+                const { nodeA, nodeB, gravityA, gravityB, pushDistance } = operation;
+                
+                const stronger = gravityA > gravityB ? nodeA : nodeB;
+                const weaker = gravityA > gravityB ? nodeB : nodeA;
+                
+                // Get CURRENT positions (updated after each push)
+                const strongerPos = finalPositions.get(stronger)!;
+                const weakerPos = finalPositions.get(weaker)!;
+                
+                // Recalculate masses with current positions
+                const overlapCenter = (strongerPos.angle + weakerPos.angle) / 2;
+                const leftSector = [overlapCenter - 180, overlapCenter];
+                const rightSector = [overlapCenter, overlapCenter + 180];
+                
+                function calculateSectorMass(sector: number[]) {
+                  const [start, end] = sector;
+                  let totalMass = 0;
+                  
+                  cluster.nodes.forEach(nodeId => {
+                    // Include ALL nodes - no exclusions
+                    const nodeAngle = finalPositions.get(nodeId)!.angle;
+                    const mass = nodeMap.get(nodeId)!.totalGravity;
+                    
+                    function isAngleInSector(angle: number, start: number, end: number) {
+                      angle = ((angle % 360) + 360) % 360;
+                      start = ((start % 360) + 360) % 360;
+                      end = ((end % 360) + 360) % 360;
+                      
+                      if (start <= end) {
+                        return angle >= start && angle <= end;
+                      } else {
+                        return angle >= start || angle <= end;
+                      }
+                    }
+                    
+                    if (isAngleInSector(nodeAngle, start, end)) {
+                      totalMass += mass;
+                    }
+                  });
+                  
+                  return totalMass;
+                }
+                
+                const leftMass = calculateSectorMass(leftSector);
+                const rightMass = calculateSectorMass(rightSector);
+                
+                // CORRECTED: Heavy left pushes clockwise
+                const jitterForce = microJitterDeg(weaker, 1.0);
+                const massImbalance = leftMass - rightMass; // FIXED DIRECTION
+                const massForce = massImbalance * 1.0;
+                
+                const totalForce = jitterForce + massForce;
+                const pushSign = totalForce >= 0 ? 1 : -1;
+                
+                const actualPush = pushDistance * pushSign;
+                
+                if (weaker !== primaryPusher) {
+                  // Apply push immediately (sequential)
+                  const currentPos = finalPositions.get(weaker)!;
+                  let newAngle = currentPos.angle + actualPush;
+                  
+                  // Normalize angle
+                  if (newAngle < 0) newAngle += 360;
+                  if (newAngle >= 360) newAngle -= 360;
+                  
+                  finalPositions.set(weaker, { ...currentPos, angle: newAngle });
+                  
+                  if (iteration === 0) {
+                    console.log(`    ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap`);
+                    console.log(`      Left mass: ${leftMass.toFixed(2)}, Right mass: ${rightMass.toFixed(2)}`);
+                    console.log(`      Jitter: ${jitterForce.toFixed(2)}°, Mass force: ${massForce.toFixed(2)}°, Total: ${totalForce.toFixed(2)}°`);
+                    console.log(`      Push: ${actualPush.toFixed(2)}° → ${newAngle.toFixed(2)}° (${pushSign > 0 ? 'clockwise' : 'counterclockwise'})`);
+                  }
                 }
               }
             });
@@ -975,21 +1091,21 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             break;
           }
           
-          // Apply push forces
-          pushForces.forEach((totalPush, nodeId) => {
-            const currentPos = finalPositions.get(nodeId)!;
-            let newAngle = currentPos.angle + totalPush;
+          // // Apply push forces
+          // pushForces.forEach((totalPush, nodeId) => {
+          //   const currentPos = finalPositions.get(nodeId)!;
+          //   let newAngle = currentPos.angle + totalPush;
             
-            // Normalize angle
-            if (newAngle < 0) newAngle += 360;
-            if (newAngle >= 360) newAngle -= 360;
+          //   // Normalize angle
+          //   if (newAngle < 0) newAngle += 360;
+          //   if (newAngle >= 360) newAngle -= 360;
             
-            finalPositions.set(nodeId, { ...currentPos, angle: newAngle });
+          //   finalPositions.set(nodeId, { ...currentPos, angle: newAngle });
             
-            if (iteration === MAX_ITERATIONS - 1) {
-              console.log(`  ${nodeId}: ${currentPos.angle.toFixed(1)}° → ${newAngle.toFixed(1)}° (final push: ${totalPush.toFixed(2)}°)`);
-            }
-          });
+          //   if (iteration === MAX_ITERATIONS - 1) {
+          //     console.log(`  ${nodeId}: ${currentPos.angle.toFixed(1)}° → ${newAngle.toFixed(1)}° (final push: ${totalPush.toFixed(2)}°)`);
+          //   }
+          // });
           
           // Log after applying pushes
           if (iteration < DEBUG_MAX_ITERS) {
