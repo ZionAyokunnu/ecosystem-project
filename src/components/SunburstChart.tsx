@@ -270,6 +270,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .map(id => nodeMap.get(id))
       .filter((n): n is any => !!n);
 
+    // ADDED DEBUG: Hierarchy integrity check
+    console.log("🔍 HIERARCHY INTEGRITY CHECK:");
+    console.log("Expected nodes from input:", nodes.map(n => n.id));
+    console.log("Nodes in nodeMap:", Array.from(nodeMap.keys()));
+    console.log("Root candidates:", rootNodes.map(r => r.id));
+    console.log("Nodes with children:", Array.from(nodeMap.values()).filter(n => n.children?.length > 0).map(n => ({ id: n.id, childCount: n.children.length })));
+
     if (rootNodes.length === 0) {
       console.error("No root nodes found in the data");
       return;
@@ -349,6 +356,9 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         if (!node || depth > maxLayers) return;
         
         node.authorityLevel = authority;
+        
+        // ADDED DEBUG: Authority calculation tracking
+        console.log(`🧭 Authority: ${nodeId} depth=${depth} authority=${authority.toFixed(4)} visibleChildren=${node.children?.filter((c: any) => visibleNodeIds.has(c.id)).length || 0}`);
         
         if (node.children && node.children.length > 0) {
           // Only process visible children
@@ -450,6 +460,18 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     // Call the gravity calculation
     addGravityMetadata();
+    
+    // ADD RIGHT AFTER: addGravityMetadata();
+    console.log("🔍 INVESTIGATING A & E - Gravity Values:");
+    ['A', 'E'].forEach(search => {
+      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+      if (node) {
+        console.log(`${search} (${node.id}):`);
+        console.log(`  totalGravity: ${node.totalGravity}`);
+        console.log(`  authorityLevel: ${node.authorityLevel}`);
+        console.log(`  gravityPoints:`, Object.fromEntries(node.gravityPoints || new Map()));
+      }
+    });
     
     console.log('PivotId:', pivotId);
     console.log('Hierarchy Data:', hierarchyData);
@@ -586,6 +608,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         const totalMass = massShares.reduce((sum, item) => sum + item.mass, 0);
         
+        // ADDED DEBUG: Gen-1 Mass Calculation Details
+        console.log("🔢 Gen-1 Mass Calculation Details:");
+        massShares.forEach(item => {
+          const node = nodeMap.get(item.nodeId);
+          console.log(`  ${item.nodeId}: gravity=${item.mass.toFixed(4)}, gravityPoints=`, 
+            node?.gravityPoints ? Object.fromEntries(node.gravityPoints) : 'none');
+        });
+        console.log(`  Total mass: ${totalMass.toFixed(4)}`);
+        
         if (totalMass > 0) {
           let cumulativeMass = 0;
           massShares.forEach(item => {
@@ -598,6 +629,10 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               angle: finalAngle, 
               radius: 1 * ringWidth 
             });
+            
+            // ADDED DEBUG: Position set tracking
+            const hierarchyNode = root?.descendants()?.find((d: any) => d.data.id === item.nodeId);
+            console.log(`📍 Position Set: ${item.nodeId} depth=${hierarchyNode?.depth ?? 'unknown'} angle=${finalAngle.toFixed(2)}° radius=${(1 * ringWidth).toFixed(1)}`);
             
             console.log(`  ${item.nodeId}: mass=${item.mass.toFixed(3)} (${(massShare*100).toFixed(1)}%) → ${sectorCenter.toFixed(1)}° + jitter=${jitter.toFixed(2)}° → ${finalAngle.toFixed(1)}°`);
             
@@ -632,11 +667,14 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           if (!node || !node.gravityPoints || node.gravityPoints.size === 0) {
             // No gravity sources - use jitter only
             const jitter = microJitterDeg(nodeId, 1.0);
-            equilibriumPositions.set(nodeId, { 
-              angle: jitter < 0 ? jitter + 360 : jitter, 
-              radius: depth * ringWidth 
-            });
-            console.log(`  ${nodeId}: no gravity sources → jitter-only ${jitter.toFixed(1)}°`);
+          equilibriumPositions.set(nodeId, { 
+            angle: jitter < 0 ? jitter + 360 : jitter, 
+            radius: depth * ringWidth 
+          });
+          // ADDED DEBUG: Position set tracking
+          const hierarchyNode2 = root?.descendants()?.find((d: any) => d.data.id === nodeId);
+          console.log(`📍 Position Set: ${nodeId} depth=${hierarchyNode2?.depth ?? 'unknown'} angle=${(jitter < 0 ? jitter + 360 : jitter).toFixed(2)}° radius=${(depth * ringWidth).toFixed(1)}`);
+          console.log(`  ${nodeId}: no gravity sources → jitter-only ${jitter.toFixed(1)}°`);
             return;
           }
           
@@ -684,6 +722,10 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             angle: finalAngle, 
             radius: depth * ringWidth 
           });
+          
+          // ADDED DEBUG: Position set tracking
+          const hierarchyNode3 = root?.descendants()?.find((d: any) => d.data.id === nodeId);
+          console.log(`📍 Position Set: ${nodeId} depth=${hierarchyNode3?.depth ?? 'unknown'} angle=${finalAngle.toFixed(2)}° radius=${(depth * ringWidth).toFixed(1)}`);
         });
       }
       
@@ -691,6 +733,16 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     }
 
     const equilibriumPositions = calculateEquilibriumPositions();
+    
+    // ADD RIGHT AFTER: const equilibriumPositions = calculateEquilibriumPositions();
+    console.log("🎯 INVESTIGATING A & E - Equilibrium Positions:");
+    ['A', 'E'].forEach(search => {
+      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+      if (node) {
+        const eqPos = equilibriumPositions.get(node.id);
+        console.log(`${search} (${node.id}): equilibrium angle = ${eqPos?.angle.toFixed(3)}°`);
+      }
+    });
 
     // Step 3: Field vs D3 Comparison (Educational)
     console.log("\n🔍 PHASE 2: Field-Derived vs D3 Partition Comparison");
@@ -741,6 +793,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     }
 
     function resolveCollisions(equilibriumPositions: Map<string, {angle: number, radius: number}>) {
+      const DEBUG_NODES = new Set(['A','B','C','D','E']); // limit prints to ring-2
+      const DEBUG_MAX_ITERS = 500;
 
       // Step 2: Detect and resolve collisions by generation
       const finalPositions = new Map(equilibriumPositions); // Copy initial positions
@@ -809,14 +863,24 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 10;
-        const PUSH_DAMPENING = 0.4; // Prevent oscillation
+        const MAX_ITERATIONS = 10000;
+        const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
           let hasCollisions = false;
-          const pushForces = new Map<string, number>(); // nodeId -> cumulative push angle
+          const pushForces = new Map<string, number>();
           
-          // Detect overlaps in this generation
+          // Step 1: Find all overlapping pairs
+          const allOverlaps: Array<{
+            nodeA: string, nodeB: string, 
+            overlapAmount: number, 
+            gravityA: number, gravityB: number,
+            pushDistance: number, pushSign: number
+          }> = [];
+          
+          let overlapPairsCount = 0;
+          let maxOverlap = 0;
+          
           for (let i = 0; i < nodes.length; i++) {
             for (let j = i + 1; j < nodes.length; j++) {
               const nodeA = nodes[i];
@@ -827,53 +891,83 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               const territoryA = territories.get(nodeA)!;
               const territoryB = territories.get(nodeB)!;
               
-              // Recalculate territories based on current positions
-              const startA = posA.angle - (territoryA.width / 2);
-              const endA = posA.angle + (territoryA.width / 2);
-              const startB = posB.angle - (territoryB.width / 2);
-              const endB = posB.angle + (territoryB.width / 2);
+              const requiredSeparation = (territoryA.width + territoryB.width) / 2;
+              const currentSeparation = Math.abs(posB.angle - posA.angle);
+              const overlapAmount = Math.max(0, requiredSeparation - currentSeparation);
               
-              // Calculate overlap (simple linear overlap for now)
-              const overlapStart = Math.max(startA, startB);
-              const overlapEnd = Math.min(endA, endB);
-              const overlapAmount = Math.max(0, overlapEnd - overlapStart);
-              
-              if (overlapAmount > 0.1) { // Minimum overlap threshold
+              if (overlapAmount > 0.1) {
                 hasCollisions = true;
+                overlapPairsCount++;
+                maxOverlap = Math.max(maxOverlap, overlapAmount);
                 
                 const gravityA = nodeMap.get(nodeA)!.totalGravity;
                 const gravityB = nodeMap.get(nodeB)!.totalGravity;
                 
-                // Determine stronger/weaker node
-                const stronger = gravityA > gravityB ? nodeA : nodeB;
-                const weaker = gravityA > gravityB ? nodeB : nodeA;
-                const strongerPos = gravityA > gravityB ? posA : posB;
-                const weakerPos = gravityA > gravityB ? posB : posA;
-                
-                // Calculate push direction (away from stronger node)
-                let pushDirection = weakerPos.angle - strongerPos.angle;
-                
-                // Handle circular boundary
+                let pushDirection = posB.angle - posA.angle;
                 if (pushDirection > 180) pushDirection -= 360;
                 if (pushDirection < -180) pushDirection += 360;
-                
-                // Calculate push force (linear: overlap × mass differential)
-                const massDifferential = Math.abs(gravityA - gravityB);
-                const pushForce = overlapAmount * (1 + massDifferential * 0.1);
                 const pushSign = pushDirection >= 0 ? 1 : -1;
-                const actualPush = pushForce * pushSign * PUSH_DAMPENING;
                 
-                // Accumulate push force on weaker node
-                if (!pushForces.has(weaker)) {
-                  pushForces.set(weaker, 0);
-                }
-                pushForces.set(weaker, pushForces.get(weaker)! + actualPush);
-                
-                if (iteration === 0) { // Only log first iteration details
-                  console.log(`  ${stronger}→${weaker}: ${overlapAmount.toFixed(1)}° overlap, push=${actualPush.toFixed(2)}°`);
-                }
+                allOverlaps.push({
+                  nodeA, nodeB, overlapAmount, gravityA, gravityB,
+                  pushDistance: overlapAmount * PUSH_DAMPENING,
+                  pushSign
+                });
               }
             }
+          }
+          
+          // Step 2: Hierarchical primary pusher selection
+          if (hasCollisions) {
+            // Find primary pusher (highest gravity node involved in overlaps)
+            const involvedNodes = new Set<string>();
+            allOverlaps.forEach(overlap => {
+              involvedNodes.add(overlap.nodeA);
+              involvedNodes.add(overlap.nodeB);
+            });
+            
+            let primaryPusher = '';
+            let maxGravity = 0;
+            involvedNodes.forEach(nodeId => {
+              const gravity = nodeMap.get(nodeId)!.totalGravity;
+              if (gravity > maxGravity) {
+                maxGravity = gravity;
+                primaryPusher = nodeId;
+              }
+            });
+            
+            // Step 3: Process only Primary-* operations, discard interfering ones
+            const selectedOperations = allOverlaps.filter(overlap => 
+              overlap.nodeA === primaryPusher || overlap.nodeB === primaryPusher
+            );
+            
+            // Apply pushes from primary pusher
+            selectedOperations.forEach(operation => {
+              const { nodeA, nodeB, gravityA, gravityB, pushDistance, pushSign } = operation;
+              
+              const stronger = gravityA > gravityB ? nodeA : nodeB;
+              const weaker = gravityA > gravityB ? nodeB : nodeA;
+              const actualPush = pushDistance * (stronger === nodeA ? pushSign : -pushSign);
+              
+              if (weaker !== primaryPusher) { // Primary pusher doesn't move
+                pushForces.set(weaker, actualPush);
+                
+                if (iteration === 0) {
+                  console.log(`  ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap, push=${actualPush.toFixed(2)}°`);
+                }
+              }
+            });
+          }
+          
+          // Per-iteration logging
+          if (iteration < DEBUG_MAX_ITERS) {
+            console.log(`Iter ${iteration+1} pushForces:`, Array.from(pushForces.entries())
+              .map(([id, p]) => `${id}:${p.toFixed(3)}°`).join(', '));
+            
+            const before = nodes.map(id => `${id}@${finalPositions.get(id)!.angle.toFixed(2)}°`).join(', ');
+            console.log(`Iter ${iteration+1} before: ${before}`);
+            
+            console.log(`Iter ${iteration+1} stats: overlaps=${overlapPairsCount}, maxOverlap=${maxOverlap.toFixed(2)}°`);
           }
           
           if (!hasCollisions) {
@@ -897,16 +991,60 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             }
           });
           
+          // Log after applying pushes
+          if (iteration < DEBUG_MAX_ITERS) {
+            const after = nodes.map(id => `${id}@${finalPositions.get(id)!.angle.toFixed(2)}°`).join(', ');
+            console.log(`Iter ${iteration+1}  after: ${after}`);
+            
+            const bounds = nodes.map(id => {
+              const p = finalPositions.get(id)!; 
+              const w = territories.get(id)!.width;
+              return `${id}[${(p.angle - w/2).toFixed(2)} → ${(p.angle + w/2).toFixed(2)}]`;
+            }).join(', ');
+            console.log(`Iter ${iteration+1} bounds: ${bounds}`);
+          }
+          
           if (iteration === MAX_ITERATIONS - 1) {
             console.log(`  ⚠️ Reached max iterations with remaining collisions`);
           }
         }
       });
       
+      // Post-solve adjacency & gap check
+      generations.forEach((nodes, depth) => {
+        if (depth === 0 || nodes.length <= 1) return;
+        
+        const ringNodes = nodes
+          .map(id => ({ id, ang: finalPositions.get(id)!.angle, w: territories.get(id)!.width }))
+          .sort((a,b) => a.ang - b.ang);
+        const wrap = [...ringNodes, {...ringNodes[0], ang: ringNodes[0].ang + 360}];
+        const gaps = [];
+        for (let i=0;i<ringNodes.length;i++){
+          const cur = wrap[i], nxt = wrap[i+1];
+          const curEnd = cur.ang + cur.w/2;
+          const nxtStart = nxt.ang - nxt.w/2;
+          gaps.push({pair:`${cur.id}→${nxt.id}`, gap:(nxtStart - curEnd).toFixed(3)});
+        }
+        console.log(`🔎 Ring ${depth} post-solve gaps:`, gaps);
+      });
+      
       return finalPositions;
     }
 
     const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
+    
+    // ADD RIGHT AFTER: const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
+    console.log("💥 INVESTIGATING A & E - Post-Collision Positions:");
+    ['A', 'E'].forEach(search => {
+      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+      if (node) {
+        const eqPos = equilibriumPositions.get(node.id);
+        const resolvedPos = collisionResolvedPositions.get(node.id);
+        console.log(`${search} (${node.id}):`);
+        console.log(`  equilibrium: ${eqPos?.angle.toFixed(3)}°`);
+        console.log(`  resolved: ${resolvedPos?.angle.toFixed(3)}° (moved ${Math.abs((resolvedPos?.angle || 0) - (eqPos?.angle || 0)).toFixed(3)}°)`);
+      }
+    });
 
     // Step 3: Final comparison - D3 vs Equilibrium vs Collision-Resolved
     console.log("\n🎯 PHASE 3: Final Position Comparison");
@@ -1158,6 +1296,12 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       ) === i
     );
     
+    // ADDED DEBUG: Visibility filter
+    console.log("👁️ VISIBILITY FILTER:");
+    console.log("All nodes from hierarchy:", allNodes.map(d => ({ id: d.data.id, depth: d.depth })));
+    console.log("Visible after dedup:", visibleNodes.map(d => ({ id: d.data.id, depth: d.depth })));
+    console.log("Nodes lost in filtering:", allNodes.filter(a => !visibleNodes.some(v => v.data.id === a.data.id && v.depth === a.depth)).map(d => ({ id: d.data.id, depth: d.depth, reason: 'duplicate_or_filtered' })));
+    
     console.log('Visible Nodes:', visibleNodes.map(d => ({ id: d.data.id, depth: d.depth })));
     // Notify parent of visible nodes change
     if (onVisibleNodesChange) {
@@ -1238,6 +1382,19 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       
       const fieldX0 = centerAngleRad - halfWidth;
       const fieldX1 = centerAngleRad + halfWidth;
+      
+      // ADD INSIDE the fieldArcData.map(), right after calculating angularWidth:
+      if (d.data.name?.includes('A') || d.data.name?.includes('E')) {
+        console.log(`🎨 INVESTIGATING ${d.data.name} - Arc Calculation:`);
+        console.log(`  nodeGravity: ${nodeGravity}`);
+        console.log(`  totalGenerationGravity: ${totalGenerationGravity}`);
+        console.log(`  angularWidth: ${angularWidth * 180 / Math.PI}° (before max constraint)`);
+        console.log(`  fieldPos.angle: ${fieldPos.angle}°`);
+        console.log(`  centerAngleRad: ${centerAngleRad}`);
+        console.log(`  halfWidth: ${halfWidth * 180 / Math.PI}°`);
+        console.log(`  fieldX0: ${fieldX0} (${fieldX0 * 180 / Math.PI}°)`);
+        console.log(`  fieldX1: ${fieldX1} (${fieldX1 * 180 / Math.PI}°)`);
+      }
       const fieldY0 = hierarchyNode.depth; // Keep depth-based radius
       const fieldY1 = hierarchyNode.depth + 1;
       
@@ -1263,6 +1420,19 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       return item;
     });
 
+    // ADDED DEBUG: Arc data creation
+    console.log("🎨 ARC DATA CREATION:");
+    console.log("Visible nodes input:", visibleNodes.length);
+    console.log("Field arc data output:", fieldArcData.length);
+    fieldArcData.forEach(d => {
+      console.log(`  ${d.data.id}: field=${d.isFieldPositioned} angle=${d.fieldAngleDeg?.toFixed(1)}° width=${d.angularWidthDeg?.toFixed(1)}° gravity=${d.gravityMass?.toFixed(3)}`);
+    });
+    
+    // Check if we're missing any nodes in the arc data vs visible nodes
+    const renderedNodeIds = fieldArcData.map(d => d.data.id);
+    const missingFromRender = visibleNodes.filter(v => !renderedNodeIds.includes(v.data.id));
+    console.log("🚨 Missing from render:", missingFromRender.map(m => m.data.id));
+    
     console.log("🎨 Field arc data sample:", fieldArcData.slice(0, 5).map(d => ({
       id: d.data.id,
       fieldAngle: d.fieldAngleDeg?.toFixed(1),
@@ -1279,6 +1449,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     byDepth.forEach((sum, depth) => {
       console.log(`Ring ${depth} coverage: ${sum.toFixed(1)}° (${(sum/360*100).toFixed(1)}%)`);
     });
+    
+    // ADDED DEBUG: Coverage gap analysis
+    console.log("🚫 COVERAGE GAP ANALYSIS:");
+    byDepth.forEach((sum, depth) => {
+      const gapPercentage = Math.max(0, 360 - sum) / 360 * 100;
+      if (gapPercentage > 10) {
+        console.log(`⚠️ Ring ${depth} has ${gapPercentage.toFixed(1)}% uncovered space (${(360-sum).toFixed(1)}° gap)`);
+      }
+    });
 
     // Field-aware arc generator
     const arc = d3.arc<any>()
@@ -1286,7 +1465,12 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .endAngle(d => d.isFieldPositioned ? d.fieldX1 : d.x1)
       .innerRadius(d => (d.isFieldPositioned ? d.fieldY0 : d.y0) * ringWidth)
       .outerRadius(d => (d.isFieldPositioned ? d.fieldY1 : d.y1) * ringWidth * 1.01)
-      .padAngle(0.002); // Small padding for visual separation
+      .padAngle(d => {
+        // Zero padding for arcs that cross the 0/2π seam
+        const start = d.isFieldPositioned ? d.fieldX0 : d.x0;
+        const end = d.isFieldPositioned ? d.fieldX1 : d.x1;
+        return (start < 0 || end > 2 * Math.PI) ? 0 : 0.002;
+      });
 
 
     
@@ -1302,11 +1486,30 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       .style("padding", "8px")
       .style("box-shadow", "0 2px 8px rgba(0,0,0,0.15)");
     
+    // ADDED DEBUG: D3 path binding
+    console.log("🖼️ D3 PATH BINDING:");
+    console.log("Data being bound to paths:", fieldArcData.map(d => ({ 
+      id: d.data.id, 
+      depth: d.depth,
+      hasFieldPosition: !!d.fieldAngleDeg,
+      arcBounds: d.isFieldPositioned ? `${d.fieldX0?.toFixed(3)} to ${d.fieldX1?.toFixed(3)}` : `${d.x0?.toFixed(3)} to ${d.x1?.toFixed(3)}`
+    })));
+    
     const path = svg.selectAll("path")
       .data(fieldArcData, (d: any) => `${d.data.id}-${d.depth}`)
       .enter()
       .append("path")
       .attr("d", arc as any)
+      .each(function(d: any) {
+        // ADD RIGHT AFTER: .attr("d", arc as any)
+        if (d.data.name?.includes('A') || d.data.name?.includes('E')) {
+          const arcPath = arc(d);
+          console.log(`🖼️ FINAL ARC ${d.data.name}:`);
+          console.log(`  fieldX0: ${d.fieldX0} (${d.fieldX0 * 180 / Math.PI}°)`);
+          console.log(`  fieldX1: ${d.fieldX1} (${d.fieldX1 * 180 / Math.PI}°)`);
+          console.log(`  arc path: ${arcPath}`);
+        }
+      })
       .style("fill", (d: any) => d.data.color || "#ccc")
       .style("stroke", "white")
       .style("stroke-width", (d: any) =>
@@ -1566,14 +1769,14 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         </button>
       )}
       <div className="w-full h-[400px] flex items-center justify-center">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${width} ${height}`}
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${width} ${height}`}
           width="200"
           height="200"
           className="max-w-full max-h-full"
-          preserveAspectRatio="xMidYMid meet"
-        />
+        preserveAspectRatio="xMidYMid meet"
+      />
       </div>
     </div>
   );
