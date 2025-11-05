@@ -863,7 +863,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 10000;
+        const MAX_ITERATIONS = 6;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -966,9 +966,16 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             console.log(`🔧 Found ${clusters.length} collision clusters:`, 
               clusters.map(c => `{${c.nodes.join(',')}}`).join(', '));
             
-            // Step 3: Process each cluster independently
+            // Step 3: Collect all selected operations from all clusters
             console.log(`🐛 DEBUG: Processing ${clusters.length} clusters`);
 
+            const allSelectedOperations: Array<{
+              operation: any,
+              cluster: any,
+              primaryPusher: string
+            }> = [];
+
+            // First pass: identify primary pushers and collect operations
             clusters.forEach((cluster, clusterIndex) => {
               // Find primary pusher within this cluster
               let primaryPusher = '';
@@ -983,100 +990,191 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               
               console.log(`  Cluster ${clusterIndex + 1}: Primary pusher = ${primaryPusher} (gravity: ${maxGravity.toFixed(3)})`);
               
-              // Step 4: Process only Primary-* operations within this cluster
-              console.log(`🐛 DEBUG: Cluster ${clusterIndex + 1}, primary: ${primaryPusher}, overlaps: ${cluster.overlaps.length}`);
-
+              // Collect operations from this cluster
               const selectedOperations = cluster.overlaps.filter(overlap => 
                 overlap.nodeA === primaryPusher || overlap.nodeB === primaryPusher
               );
               
-              // Apply pushes from primary pusher
-              // Process operations sequentially, not simultaneously
-              console.log(`🐛 DEBUG: selectedOperations.length = ${selectedOperations.length}`);
+              selectedOperations.forEach(operation => {
+                allSelectedOperations.push({
+                  operation,
+                  cluster,
+                  primaryPusher
+                });
+              });
+            });
+            
+            // Step 4: Process ONLY ONE operation globally per iteration
+            console.log(`🐛 DEBUG: Total selectedOperations across all clusters: ${allSelectedOperations.length}`);
 
-              for (const operation of selectedOperations) {
-                console.log(`🐛 DEBUG: Processing operation:`, operation.nodeA, '→', operation.nodeB);
+            if (allSelectedOperations.length > 0) {
+              // Take only the FIRST operation globally
+              const { operation, cluster, primaryPusher } = allSelectedOperations[0];
+              console.log(`🐛 DEBUG: Processing operation:`, operation.nodeA, '→', operation.nodeB);
+              
+              const { nodeA, nodeB, gravityA, gravityB, pushDistance } = operation;
+              
+              const stronger = gravityA > gravityB ? nodeA : nodeB;
+              const weaker = gravityA > gravityB ? nodeB : nodeA;
+              
+              // Get CURRENT positions (updated from previous iterations)
+              const strongerPos = finalPositions.get(stronger)!;
+              const weakerPos = finalPositions.get(weaker)!;
+              
+              // Get the current generation depth
+              const hierarchyNode = root.descendants().find(d => d.data.id === stronger);
+              const depth = hierarchyNode ? hierarchyNode.depth : 2;
+              
+              // Recalculate masses with current positions
+              console.log(`🐛 MASS DEBUG: --- Starting mass calculation for ${stronger}→${weaker} ---`);
+              console.log(`🐛 MASS DEBUG: Current finalPositions:`, 
+                Array.from(finalPositions.entries()).map(([id, pos]) => `${id}@${pos.angle.toFixed(2)}°`));
+
+              const overlapCenter = (strongerPos.angle + weakerPos.angle) / 2;
+              console.log(`🐛 MASS DEBUG: Overlap center: ${overlapCenter.toFixed(2)}°`);
+
+              const leftSector = [overlapCenter - 180, overlapCenter];
+              const rightSector = [overlapCenter, overlapCenter + 180];
+              console.log(`🐛 MASS DEBUG: Left sector: [${leftSector[0].toFixed(2)}°, ${leftSector[1].toFixed(2)}°]`);
+              console.log(`🐛 MASS DEBUG: Right sector: [${rightSector[0].toFixed(2)}°, ${rightSector[1].toFixed(2)}°]`);
+              
+              function calculateSectorMass(sector: number[]) {
+                const [start, end] = sector;
+                let totalMass = 0;
                 
-                const { nodeA, nodeB, gravityA, gravityB, pushDistance } = operation;
+                console.log(`🐛 MASS DEBUG: Calculating sector [${start.toFixed(2)}° to ${end.toFixed(2)}°]`);
                 
-                const stronger = gravityA > gravityB ? nodeA : nodeB;
-                const weaker = gravityA > gravityB ? nodeB : nodeA;
-                
-                // Get CURRENT positions (updated after each push)
-                const strongerPos = finalPositions.get(stronger)!;
-                const weakerPos = finalPositions.get(weaker)!;
-                
-                // Recalculate masses with current positions
-                const overlapCenter = (strongerPos.angle + weakerPos.angle) / 2;
-                const leftSector = [overlapCenter - 180, overlapCenter];
-                const rightSector = [overlapCenter, overlapCenter + 180];
-                
-                function calculateSectorMass(sector: number[]) {
-                  const [start, end] = sector;
-                  let totalMass = 0;
+                // Get all nodes in the same ring/depth as the overlapping pair
+                const ringNodes = generations.get(depth) || [];
+                ringNodes.forEach(nodeId => {
+                  const nodeAngle = finalPositions.get(nodeId)!.angle;
+                  const mass = nodeMap.get(nodeId)!.totalGravity;
+                  const territory = territories.get(nodeId)!;
                   
-                  cluster.nodes.forEach(nodeId => {
-                    // Include ALL nodes - no exclusions
-                    const nodeAngle = finalPositions.get(nodeId)!.angle;
-                    const mass = nodeMap.get(nodeId)!.totalGravity;
-                    
-                    function isAngleInSector(angle: number, start: number, end: number) {
-                      angle = ((angle % 360) + 360) % 360;
-                      start = ((start % 360) + 360) % 360;
-                      end = ((end % 360) + 360) % 360;
-                      
-                      if (start <= end) {
-                        return angle >= start && angle <= end;
+                  console.log(`🐛 MASS DEBUG: Node ${nodeId} at ${nodeAngle.toFixed(2)}° with mass ${mass.toFixed(2)}`);
+                  
+                  // Calculate territory bounds
+                  const territoryStart = ((territory.centerAngle - territory.width/2) % 360 + 360) % 360;
+                  const territoryEnd = ((territory.centerAngle + territory.width/2) % 360 + 360) % 360;
+                  
+                  // Normalize sector bounds
+                  const sectorStart = ((start % 360) + 360) % 360;
+                  const sectorEnd = ((end % 360) + 360) % 360;
+                
+                  // Helper function: check if territory is fully within sector
+                  function isFullyWithinSector(terrStart: number, terrEnd: number, sectStart: number, sectEnd: number): boolean {
+                    if (sectStart <= sectEnd) {
+                      // Normal sector (no wraparound)
+                      if (terrStart <= terrEnd) {
+                        // Normal territory (no wraparound)
+                        return terrStart >= sectStart && terrEnd <= sectEnd;
                       } else {
-                        return angle >= start || angle <= end;
+                        // Territory wraps, sector doesn't - cannot be fully within
+                        return false;
+                      }
+                    } else {
+                      // Sector wraps around 0°
+                      if (terrStart <= terrEnd) {
+                        // Normal territory, sector wraps
+                        return terrStart >= sectStart || terrEnd <= sectEnd;
+                      } else {
+                        // Both wrap - territory must be within wrapped sector
+                        return terrStart >= sectStart && terrEnd <= sectEnd;
+                      }
+                    }
+                  }
+                  
+                  // Helper function: calculate angular overlap between ranges
+                  function calculateAngularOverlap(terrStart: number, terrEnd: number, sectStart: number, sectEnd: number): number {
+                    let overlap = 0;
+                    
+                    if (sectStart <= sectEnd) {
+                      // Normal sector (no wraparound)
+                      if (terrStart <= terrEnd) {
+                        // Normal territory (no wraparound)
+                        overlap = Math.max(0, Math.min(terrEnd, sectEnd) - Math.max(terrStart, sectStart));
+                      } else {
+                        // Territory wraps, sector doesn't
+                        // Territory: [terrStart, 360°] + [0°, terrEnd]
+                        overlap += Math.max(0, Math.min(360, sectEnd) - Math.max(terrStart, sectStart)); // First part
+                        overlap += Math.max(0, Math.min(terrEnd, sectEnd) - Math.max(0, sectStart));     // Second part
+                      }
+                    } else {
+                      // Sector wraps around 0°
+                      // Sector: [sectStart, 360°] + [0°, sectEnd]
+                      if (terrStart <= terrEnd) {
+                        // Normal territory, sector wraps
+                        overlap += Math.max(0, Math.min(terrEnd, 360) - Math.max(terrStart, sectStart)); // First part
+                        overlap += Math.max(0, Math.min(terrEnd, sectEnd) - Math.max(terrStart, 0));     // Second part
+                      } else {
+                        // Both wrap
+                        overlap += Math.max(0, Math.min(360, 360) - Math.max(terrStart, sectStart));     // [terrStart, 360°] ∩ [sectStart, 360°]
+                        overlap += Math.max(0, Math.min(terrEnd, sectEnd) - Math.max(0, 0));             // [0°, terrEnd] ∩ [0°, sectEnd]
                       }
                     }
                     
-                    if (isAngleInSector(nodeAngle, start, end)) {
-                      totalMass += mass;
-                    }
-                  });
-                  
-                  return totalMass;
-                }
-                
-                const leftMass = calculateSectorMass(leftSector);
-                const rightMass = calculateSectorMass(rightSector);
-                
-                // CORRECTED: Heavy left pushes clockwise
-                const jitterForce = microJitterDeg(weaker, 1.0);
-                const massImbalance = leftMass - rightMass; // FIXED DIRECTION
-                const massForce = massImbalance * 1.0;
-                
-                const totalForce = jitterForce + massForce;
-                const pushSign = totalForce >= 0 ? 1 : -1;
-                
-                const actualPush = pushDistance * pushSign;
-                
-                if (weaker !== primaryPusher) {
-                  // Apply push immediately (sequential)
-                  const currentPos = finalPositions.get(weaker)!;
-                  let newAngle = currentPos.angle + actualPush;
-                  
-                  // Normalize angle
-                  if (newAngle < 0) newAngle += 360;
-                  if (newAngle >= 360) newAngle -= 360;
-                  
-                  finalPositions.set(weaker, { ...currentPos, angle: newAngle });
-                  
-                  if (iteration === 0) {
-                    console.log(`    ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap`);
-                    console.log(`      Left mass: ${leftMass.toFixed(2)}, Right mass: ${rightMass.toFixed(2)}`);
-                    console.log(`      Jitter: ${jitterForce.toFixed(2)}°, Mass force: ${massForce.toFixed(2)}°, Total: ${totalForce.toFixed(2)}°`);
-                    console.log(`      Push: ${actualPush.toFixed(2)}° → ${newAngle.toFixed(2)}° (${pushSign > 0 ? 'clockwise' : 'counterclockwise'})`);
+                    return overlap;
                   }
-                }
+                  
+                  // Hybrid mass distribution
+                  if (isFullyWithinSector(territoryStart, territoryEnd, sectorStart, sectorEnd)) {
+                    // Fast path: territory fully within sector
+                    totalMass += mass;
+                    console.log(`🐛 MASS DEBUG: Node ${nodeId} fully in sector, added full mass ${mass.toFixed(2)}, total now: ${totalMass.toFixed(2)}`);
+                  } else {
+                    // Accurate path: calculate proportional overlap
+                    const overlapAmount = calculateAngularOverlap(territoryStart, territoryEnd, sectorStart, sectorEnd);
+                    const proportionalMass = mass * (overlapAmount / territory.width);
+                    
+                    if (overlapAmount > 0) {
+                      totalMass += proportionalMass;
+                      console.log(`🐛 MASS DEBUG: Node ${nodeId} partial overlap ${overlapAmount.toFixed(2)}°/${territory.width.toFixed(2)}°, added ${proportionalMass.toFixed(2)}, total now: ${totalMass.toFixed(2)}`);
+                    } else {
+                      console.log(`🐛 MASS DEBUG: Node ${nodeId} no overlap with sector`);
+                    }
+                  }
+                });
+                
+                console.log(`🐛 MASS DEBUG: Final sector mass: ${totalMass.toFixed(2)}`);
+                return totalMass;
               }
-            });
+              
+              const leftMass = calculateSectorMass(leftSector);
+              const rightMass = calculateSectorMass(rightSector);
+              
+              // CORRECTED: Heavy left pushes clockwise
+              const jitterForce = microJitterDeg(weaker, 1.0);
+              const massImbalance = leftMass - rightMass;
+              const massForce = massImbalance * 1.0;
+              
+              const totalForce = jitterForce + massForce;
+              const pushSign = totalForce >= 0 ? 1 : -1;
+              
+              const actualPush = pushDistance * pushSign;
+              
+              if (weaker !== primaryPusher) {
+                console.log(`🐛 DEBUG: About to apply push - weaker: ${weaker}, primaryPusher: ${primaryPusher}`);
+                
+                // Apply to pushForces for standard iteration processing
+                pushForces.set(weaker, actualPush);
+                
+                if (iteration < DEBUG_MAX_ITERS) {
+                  console.log(`🐛 DEBUG: iteration = ${iteration}, showing detailed logs`);
+                  console.log(`    ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap`);
+                  console.log(`      Left mass: ${leftMass.toFixed(2)}, Right mass: ${rightMass.toFixed(2)}`);
+                  console.log(`      Jitter: ${jitterForce.toFixed(2)}°, Mass force: ${massForce.toFixed(2)}°, Total: ${totalForce.toFixed(2)}°`);
+                  console.log(`      Push: ${actualPush.toFixed(2)}° (${pushSign > 0 ? 'clockwise' : 'counterclockwise'})`);
+                }
+              } else {
+                console.log(`🐛 DEBUG: Skipping push - weaker ${weaker} is primaryPusher ${primaryPusher}`);
+              }
+            }
           }
           
           // Per-iteration logging
           if (iteration < DEBUG_MAX_ITERS) {
+            console.log(`🐛 DEBUG: pushForces map size: ${pushForces.size}`);
+            console.log(`🐛 DEBUG: pushForces entries:`, Array.from(pushForces.entries()));
             console.log(`Iter ${iteration+1} pushForces:`, Array.from(pushForces.entries())
               .map(([id, p]) => `${id}:${p.toFixed(3)}°`).join(', '));
             
@@ -1091,21 +1189,21 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             break;
           }
           
-          // // Apply push forces
-          // pushForces.forEach((totalPush, nodeId) => {
-          //   const currentPos = finalPositions.get(nodeId)!;
-          //   let newAngle = currentPos.angle + totalPush;
+          // Apply push forces
+          pushForces.forEach((totalPush, nodeId) => {
+            const currentPos = finalPositions.get(nodeId)!;
+            let newAngle = currentPos.angle + totalPush;
             
-          //   // Normalize angle
-          //   if (newAngle < 0) newAngle += 360;
-          //   if (newAngle >= 360) newAngle -= 360;
+            // Normalize angle
+            if (newAngle < 0) newAngle += 360;
+            if (newAngle >= 360) newAngle -= 360;
             
-          //   finalPositions.set(nodeId, { ...currentPos, angle: newAngle });
+            finalPositions.set(nodeId, { ...currentPos, angle: newAngle });
             
-          //   if (iteration === MAX_ITERATIONS - 1) {
-          //     console.log(`  ${nodeId}: ${currentPos.angle.toFixed(1)}° → ${newAngle.toFixed(1)}° (final push: ${totalPush.toFixed(2)}°)`);
-          //   }
-          // });
+            if (iteration === MAX_ITERATIONS - 1) {
+              console.log(`  ${nodeId}: ${currentPos.angle.toFixed(1)}° → ${newAngle.toFixed(1)}° (final push: ${totalPush.toFixed(2)}°)`);
+            }
+          });
           
           // Log after applying pushes
           if (iteration < DEBUG_MAX_ITERS) {
