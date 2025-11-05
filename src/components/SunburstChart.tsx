@@ -461,17 +461,17 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Call the gravity calculation
     addGravityMetadata();
     
-    // ADD RIGHT AFTER: addGravityMetadata();
-    console.log("🔍 INVESTIGATING A & E - Gravity Values:");
-    ['A', 'E'].forEach(search => {
-      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
-      if (node) {
-        console.log(`${search} (${node.id}):`);
-        console.log(`  totalGravity: ${node.totalGravity}`);
-        console.log(`  authorityLevel: ${node.authorityLevel}`);
-        console.log(`  gravityPoints:`, Object.fromEntries(node.gravityPoints || new Map()));
-      }
-    });
+    // // ADD RIGHT AFTER: addGravityMetadata();
+    // console.log("🔍 INVESTIGATING A & E - Gravity Values:");
+    // ['A', 'E'].forEach(search => {
+    //   const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+    //   if (node) {
+    //     console.log(`${search} (${node.id}):`);
+    //     console.log(`  totalGravity: ${node.totalGravity}`);
+    //     console.log(`  authorityLevel: ${node.authorityLevel}`);
+    //     console.log(`  gravityPoints:`, Object.fromEntries(node.gravityPoints || new Map()));
+    //   }
+    // });
     
     console.log('PivotId:', pivotId);
     console.log('Hierarchy Data:', hierarchyData);
@@ -734,15 +734,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     const equilibriumPositions = calculateEquilibriumPositions();
     
-    // ADD RIGHT AFTER: const equilibriumPositions = calculateEquilibriumPositions();
-    console.log("🎯 INVESTIGATING A & E - Equilibrium Positions:");
-    ['A', 'E'].forEach(search => {
-      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
-      if (node) {
-        const eqPos = equilibriumPositions.get(node.id);
-        console.log(`${search} (${node.id}): equilibrium angle = ${eqPos?.angle.toFixed(3)}°`);
-      }
-    });
+    // // ADD RIGHT AFTER: const equilibriumPositions = calculateEquilibriumPositions();
+    // console.log("🎯 INVESTIGATING A & E - Equilibrium Positions:");
+    // ['A', 'E'].forEach(search => {
+    //   const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+    //   if (node) {
+    //     const eqPos = equilibriumPositions.get(node.id);
+    //     console.log(`${search} (${node.id}): equilibrium angle = ${eqPos?.angle.toFixed(3)}°`);
+    //   }
+    // });
 
     // Step 3: Field vs D3 Comparison (Educational)
     console.log("\n🔍 PHASE 2: Field-Derived vs D3 Partition Comparison");
@@ -863,7 +863,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 6;
+        const MAX_ITERATIONS = 12;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -1049,14 +1049,19 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                 ringNodes.forEach(nodeId => {
                   const nodeAngle = finalPositions.get(nodeId)!.angle;
                   const mass = nodeMap.get(nodeId)!.totalGravity;
-                  const territory = territories.get(nodeId)!;
                   
+                  const currentAngle = finalPositions.get(nodeId)!.angle;
+                  const territoryWidth = territories.get(nodeId)!.width; 
+
                   console.log(`🐛 MASS DEBUG: Node ${nodeId} at ${nodeAngle.toFixed(2)}° with mass ${mass.toFixed(2)}`);
+
+                  // Calculate territory bounds using CURRENT position
+                  const territoryStart = ((currentAngle - territoryWidth/2) % 360 + 360) % 360;
+                  const territoryEnd = ((currentAngle + territoryWidth/2) % 360 + 360) % 360;
                   
-                  // Calculate territory bounds
-                  const territoryStart = ((territory.centerAngle - territory.width/2) % 360 + 360) % 360;
-                  const territoryEnd = ((territory.centerAngle + territory.width/2) % 360 + 360) % 360;
-                  
+                  console.log(`🐛 TERRITORY DEBUG: ${nodeId} center=${currentAngle.toFixed(2)}° width=${territoryWidth.toFixed(2)}° bounds=[${territoryStart.toFixed(2)}°, ${territoryEnd.toFixed(2)}°]`);
+                  console.log(`🐛 SECTOR DEBUG: Left=[${start.toFixed(2)}°, ${end.toFixed(2)}°], Right=[${start.toFixed(2)}°, ${end.toFixed(2)}°]`);
+
                   // Normalize sector bounds
                   const sectorStart = ((start % 360) + 360) % 360;
                   const sectorEnd = ((end % 360) + 360) % 360;
@@ -1124,11 +1129,11 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                   } else {
                     // Accurate path: calculate proportional overlap
                     const overlapAmount = calculateAngularOverlap(territoryStart, territoryEnd, sectorStart, sectorEnd);
-                    const proportionalMass = mass * (overlapAmount / territory.width);
+                    const proportionalMass = mass * (overlapAmount / territoryWidth);
                     
                     if (overlapAmount > 0) {
                       totalMass += proportionalMass;
-                      console.log(`🐛 MASS DEBUG: Node ${nodeId} partial overlap ${overlapAmount.toFixed(2)}°/${territory.width.toFixed(2)}°, added ${proportionalMass.toFixed(2)}, total now: ${totalMass.toFixed(2)}`);
+                      console.log(`🐛 MASS DEBUG: Node ${nodeId} partial overlap ${overlapAmount.toFixed(2)}°/${territoryWidth.toFixed(2)}°, added ${proportionalMass.toFixed(2)}, total now: ${totalMass.toFixed(2)}`);
                     } else {
                       console.log(`🐛 MASS DEBUG: Node ${nodeId} no overlap with sector`);
                     }
@@ -1143,7 +1148,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               const rightMass = calculateSectorMass(rightSector);
               
               // CORRECTED: Heavy left pushes clockwise
-              const jitterForce = microJitterDeg(weaker, 1.0);
+              const jitterForce = microJitterDeg(weaker, 0.0000001);
               const massImbalance = leftMass - rightMass;
               const massForce = massImbalance * 1.0;
               
@@ -1247,18 +1252,18 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
     
-    // ADD RIGHT AFTER: const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
-    console.log("💥 INVESTIGATING A & E - Post-Collision Positions:");
-    ['A', 'E'].forEach(search => {
-      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
-      if (node) {
-        const eqPos = equilibriumPositions.get(node.id);
-        const resolvedPos = collisionResolvedPositions.get(node.id);
-        console.log(`${search} (${node.id}):`);
-        console.log(`  equilibrium: ${eqPos?.angle.toFixed(3)}°`);
-        console.log(`  resolved: ${resolvedPos?.angle.toFixed(3)}° (moved ${Math.abs((resolvedPos?.angle || 0) - (eqPos?.angle || 0)).toFixed(3)}°)`);
-      }
-    });
+    // // ADD RIGHT AFTER: const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
+    // console.log("💥 INVESTIGATING A & E - Post-Collision Positions:");
+    // ['A', 'E'].forEach(search => {
+    //   const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+    //   if (node) {
+    //     const eqPos = equilibriumPositions.get(node.id);
+    //     const resolvedPos = collisionResolvedPositions.get(node.id);
+    //     console.log(`${search} (${node.id}):`);
+    //     console.log(`  equilibrium: ${eqPos?.angle.toFixed(3)}°`);
+    //     console.log(`  resolved: ${resolvedPos?.angle.toFixed(3)}° (moved ${Math.abs((resolvedPos?.angle || 0) - (eqPos?.angle || 0)).toFixed(3)}°)`);
+    //   }
+    // });
 
     // Step 3: Final comparison - D3 vs Equilibrium vs Collision-Resolved
     console.log("\n🎯 PHASE 3: Final Position Comparison");
@@ -1585,10 +1590,6 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         // Fallback: equal distribution
         angularWidth = (360 / generationNodes.length) * (Math.PI / 180);
       }
-      
-      // Maximum width constraint only (no minimum to prevent >360° totals)
-      const maxWidth = (120 * Math.PI / 180); // 120 degrees maximum
-      angularWidth = Math.min(maxWidth, angularWidth);
       
       // Convert field position to radians and create arc bounds
       const centerAngleRad = (fieldPos.angle * Math.PI) / 180;
