@@ -69,7 +69,7 @@ export const createMockData = () => {
     // C -> e, f, c (must sum to 100% for parent C) - multiparent: c also has parent B
     { relationship_id: 'r11', parent_id: 'C', child_id: 'e', influence_weight: 40, influence_score: 0.87 },
     { relationship_id: 'r12', parent_id: 'C', child_id: 'f', influence_weight: 40, influence_score: 0.9 },
-    { relationship_id: 'r19', parent_id: 'C', child_id: 'c', influence_weight: 20, influence_score: 0.78 }, // C's share of c
+    { relationship_id: 'r19', parent_id: 'C', child_id: 'c', influence_weight: 20, influence_score: 0.78 },
     // D -> g, h (must sum to 100% for parent D)
     { relationship_id: 'r13', parent_id: 'D', child_id: 'g', influence_weight: 50, influence_score: 0.83 },
     { relationship_id: 'r14', parent_id: 'D', child_id: 'h', influence_weight: 50, influence_score: 0.91 },

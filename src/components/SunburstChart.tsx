@@ -461,17 +461,17 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Call the gravity calculation
     addGravityMetadata();
     
-    // // ADD RIGHT AFTER: addGravityMetadata();
-    // console.log("🔍 INVESTIGATING A & E - Gravity Values:");
-    // ['A', 'E'].forEach(search => {
-    //   const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
-    //   if (node) {
-    //     console.log(`${search} (${node.id}):`);
-    //     console.log(`  totalGravity: ${node.totalGravity}`);
-    //     console.log(`  authorityLevel: ${node.authorityLevel}`);
-    //     console.log(`  gravityPoints:`, Object.fromEntries(node.gravityPoints || new Map()));
-    //   }
-    // });
+    // ADD RIGHT AFTER: addGravityMetadata();
+    console.log("🔍 INVESTIGATING B & C - Gravity Values:");
+    ['B', 'C'].forEach(search => {
+      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+      if (node) {
+        console.log(`${search} (${node.id}):`);
+        console.log(`  totalGravity: ${node.totalGravity}`);
+        console.log(`  authorityLevel: ${node.authorityLevel}`);
+        console.log(`  gravityPoints:`, Object.fromEntries(node.gravityPoints || new Map()));
+      }
+    });
     
     console.log('PivotId:', pivotId);
     console.log('Hierarchy Data:', hierarchyData);
@@ -502,6 +502,29 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // root.count()
     console.log('Root before partition:', root.descendants().map(d => ({ id: d.data.id, depth: d.depth })));
     
+    // // *** AUTO-SEED PIVOT TO FIRST REAL CORE ***
+    // if (!pivotId) {
+    //   // In the non-pivoted view, depth 0 is the synthetic root; the first real cores are at depth 1.
+    //   const firstCore = root.descendants().find(d => d.depth === 1);
+    //   if (firstCore) {
+    //     console.log(`🎯 Auto-seeding pivot to first core: ${firstCore.data.id}`);
+    //     setPivotId(firstCore.data.id);
+    //     setPivotStack([firstCore.data.id]);
+    //     onCoreChange?.(firstCore.data.id);
+    //   }
+    // }
+    
+    // RIGHT AFTER the auto-seeding if (!pivotId) block:
+    console.log("🎯 PIVOT DEBUG:");
+    console.log("  Current pivotId:", pivotId);
+    console.log("  Current pivotStack:", pivotStack);
+    console.log("  Root hierarchy structure:", root.descendants().map(d => ({ 
+        id: d.data.id, 
+        depth: d.depth, 
+        parent: d.parent?.data.id 
+      })));
+    console.log("  hierarchyData:", hierarchyData);
+
     const radius = Math.min(width, height) / 2;
     const layers = maxLayers;
     const ringWidth = radius / layers;
@@ -582,6 +605,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         generations.get(depth)!.push(nodeId);
       });
       
+      console.log("🔍 COLLISION RESOLUTION GENERATIONS:");
+      console.log("  Ring 0:", generations.get(0) || []);
+      console.log("  Ring 1:", generations.get(1) || []);
+      console.log("  Ring 2:", generations.get(2) || []);
+      console.log("  Ring 3:", generations.get(3) || []);
+      console.log("  Total rings:", generations.size);
+
       console.log("📊 Generations:", Object.fromEntries(generations));
       
       // Step 2: Calculate equilibrium positions
@@ -595,68 +625,68 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       });
       
       // Generation 1 - Mass-proportional placement around ring
-      const gen1 = generations.get(1) || [];
-      if (gen1.length > 0) {
-        console.log(`\n⚖️ Gen-1 Mass-Proportional Placement (${gen1.length} nodes):`);
+      // const gen1 = generations.get(1) || [];
+      // if (gen1.length > 0) {
+      //   console.log(`\n⚖️ Gen-1 Mass-Proportional Placement (${gen1.length} nodes):`);
         
-        // Calculate mass shares for each child
-        const massShares = gen1.map(nodeId => {
-          const node = nodeMap.get(nodeId);
-          const mass = node?.totalGravity || 0;
-          return { nodeId, mass };
-        });
+      //   // Calculate mass shares for each child
+      //   const massShares = gen1.map(nodeId => {
+      //     const node = nodeMap.get(nodeId);
+      //     const mass = node?.totalGravity || 0;
+      //     return { nodeId, mass };
+      //   });
         
-        const totalMass = massShares.reduce((sum, item) => sum + item.mass, 0);
+      //   const totalMass = massShares.reduce((sum, item) => sum + item.mass, 0);
         
         // ADDED DEBUG: Gen-1 Mass Calculation Details
-        console.log("🔢 Gen-1 Mass Calculation Details:");
-        massShares.forEach(item => {
-          const node = nodeMap.get(item.nodeId);
-          console.log(`  ${item.nodeId}: gravity=${item.mass.toFixed(4)}, gravityPoints=`, 
-            node?.gravityPoints ? Object.fromEntries(node.gravityPoints) : 'none');
-        });
-        console.log(`  Total mass: ${totalMass.toFixed(4)}`);
+        // console.log("🔢 Gen-1 Mass Calculation Details:");
+        // massShares.forEach(item => {
+        //   const node = nodeMap.get(item.nodeId);
+        //   console.log(`  ${item.nodeId}: gravity=${item.mass.toFixed(4)}, gravityPoints=`, 
+        //     node?.gravityPoints ? Object.fromEntries(node.gravityPoints) : 'none');
+        // });
+        // console.log(`  Total mass: ${totalMass.toFixed(4)}`);
         
-        if (totalMass > 0) {
-          let cumulativeMass = 0;
-          massShares.forEach(item => {
-            const massShare = item.mass / totalMass;
-            const sectorCenter = 360 * (cumulativeMass + massShare / 2);
-            const jitter = microJitterDeg(item.nodeId, 0.3);
-            const finalAngle = (sectorCenter + jitter) % 360;
+        // if (totalMass > 0) {
+        //   let cumulativeMass = 0;
+        //   massShares.forEach(item => {
+        //     const massShare = item.mass / totalMass;
+        //     const sectorCenter = 360 * (cumulativeMass + massShare / 2);
+        //     const jitter = microJitterDeg(item.nodeId, 0.3);
+        //     const finalAngle = (sectorCenter + jitter) % 360;
             
-            equilibriumPositions.set(item.nodeId, { 
-              angle: finalAngle, 
-              radius: 1 * ringWidth 
-            });
+        //     equilibriumPositions.set(item.nodeId, { 
+        //       angle: finalAngle, 
+        //       radius: 1 * ringWidth 
+        //     });
             
-            // ADDED DEBUG: Position set tracking
-            const hierarchyNode = root?.descendants()?.find((d: any) => d.data.id === item.nodeId);
-            console.log(`📍 Position Set: ${item.nodeId} depth=${hierarchyNode?.depth ?? 'unknown'} angle=${finalAngle.toFixed(2)}° radius=${(1 * ringWidth).toFixed(1)}`);
+      //       // ADDED DEBUG: Position set tracking
+      //       const hierarchyNode = root?.descendants()?.find((d: any) => d.data.id === item.nodeId);
+      //       console.log(`📍 Position Set: ${item.nodeId} depth=${hierarchyNode?.depth ?? 'unknown'} angle=${finalAngle.toFixed(2)}° radius=${(1 * ringWidth).toFixed(1)}`);
             
-            console.log(`  ${item.nodeId}: mass=${item.mass.toFixed(3)} (${(massShare*100).toFixed(1)}%) → ${sectorCenter.toFixed(1)}° + jitter=${jitter.toFixed(2)}° → ${finalAngle.toFixed(1)}°`);
+      //       console.log(`  ${item.nodeId}: mass=${item.mass.toFixed(3)} (${(massShare*100).toFixed(1)}%) → ${sectorCenter.toFixed(1)}° + jitter=${jitter.toFixed(2)}° → ${finalAngle.toFixed(1)}°`);
             
-            cumulativeMass += massShare;
-          });
-        } else {
-          // Fallback for zero-mass case - equal spacing with jitter
-          gen1.forEach((nodeId, index) => {
-            const baseAngle = (index / gen1.length) * 360;
-            const jitter = microJitterDeg(nodeId, 0.5);
-            const finalAngle = (baseAngle + jitter) % 360;
+      //       cumulativeMass += massShare;
+      //     });
+      //   } else {
+      //     // Fallback for zero-mass case - equal spacing with jitter
+      //     gen1.forEach((nodeId, index) => {
+      //       const baseAngle = (index / gen1.length) * 360;
+      //       const jitter = microJitterDeg(nodeId, 0.5);
+      //       const finalAngle = (baseAngle + jitter) % 360;
             
-            equilibriumPositions.set(nodeId, { 
-              angle: finalAngle, 
-              radius: 1 * ringWidth 
-            });
+      //       equilibriumPositions.set(nodeId, { 
+      //         angle: finalAngle, 
+      //         radius: 1 * ringWidth 
+      //       });
             
-            console.log(`  ${nodeId}: zero-mass fallback → ${finalAngle.toFixed(1)}°`);
-          });
-        }
-      }
+      //       console.log(`  ${nodeId}: zero-mass fallback → ${finalAngle.toFixed(1)}°`);
+      //     });
+      //   }
+      // }
       
       // Generation 2+ - Mass-weighted circular mean from parents
-      for (let depth = 2; depth <= Math.max(...generations.keys()); depth++) {
+      for (let depth = 1; depth <= Math.max(...generations.keys()); depth++) {
         const genNodes = generations.get(depth) || [];
         if (genNodes.length === 0) continue;
         
@@ -690,6 +720,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
             }
           });
           
+          // ADD THIS DEBUG:
+          console.log(`🔍 ⛔️ DEBUG ${nodeId} parent positioning:`);
+          console.log(`  gravityPoints:`, Object.fromEntries(node.gravityPoints || new Map()));
+          console.log(`  parentSources:`, parentSources.map(p => `${p.angleDeg.toFixed(2)}°(${p.mass.toFixed(2)})`));
+          console.log(`  equilibriumPositions has:`, Array.from(equilibriumPositions.keys()));
+
+
           console.log(`  ${nodeId} parents:`, parentSources.map(p => `${p.angleDeg.toFixed(1)}°(${p.mass.toFixed(2)})`));
           
           let finalAngle: number;
@@ -734,15 +771,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     const equilibriumPositions = calculateEquilibriumPositions();
     
-    // // ADD RIGHT AFTER: const equilibriumPositions = calculateEquilibriumPositions();
-    // console.log("🎯 INVESTIGATING A & E - Equilibrium Positions:");
-    // ['A', 'E'].forEach(search => {
-    //   const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
-    //   if (node) {
-    //     const eqPos = equilibriumPositions.get(node.id);
-    //     console.log(`${search} (${node.id}): equilibrium angle = ${eqPos?.angle.toFixed(3)}°`);
-    //   }
-    // });
+    // ADD RIGHT AFTER: const equilibriumPositions = calculateEquilibriumPositions();
+    console.log("🎯 INVESTIGATING B & C - Equilibrium Positions:");
+    ['B', 'C'].forEach(search => {
+      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+      if (node) {
+        const eqPos = equilibriumPositions.get(node.id);
+        console.log(`${search} (${node.id}): equilibrium angle = ${eqPos?.angle.toFixed(3)}°`);
+      }
+    });
 
     // Step 3: Field vs D3 Comparison (Educational)
     console.log("\n🔍 PHASE 2: Field-Derived vs D3 Partition Comparison");
@@ -861,9 +898,39 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       generations.forEach((nodes, depth) => {
         if (depth === 0 || nodes.length <= 1) return; // Skip root and single-node generations
         
+        // RECALCULATE EQUILIBRIUM FOR THIS GENERATION USING UPDATED PARENT POSITIONS
+        if (depth > 1) {
+          console.log(`\n🔄 Recalculating Gen-${depth} equilibrium with updated parents:`);
+          nodes.forEach(nodeId => {
+            const node = nodeMap.get(nodeId);
+            if (!node || !node.gravityPoints || node.gravityPoints.size === 0) return;
+            
+            // Use CURRENT positions from finalPositions
+            const parentSources: Array<{angleDeg: number, mass: number}> = [];
+            node.gravityPoints.forEach((gravityValue: number, parentId: string) => {
+              const parentPos = finalPositions.get(parentId);  // ✅ UPDATED PARENT POSITIONS
+              if (parentPos && gravityValue > 0) {
+                parentSources.push({ angleDeg: parentPos.angle, mass: gravityValue });
+              }
+            });
+            
+            if (parentSources.length > 0) {
+              const weightedMean = massWeightedCircularMean(parentSources);
+              if (weightedMean !== null) {
+                const jitter = microJitterDeg(nodeId, 0.15);
+                let finalAngle = (weightedMean + jitter) % 360;
+                if (finalAngle < 0) finalAngle += 360;
+                
+                finalPositions.set(nodeId, { angle: finalAngle, radius: depth * ringWidth });
+                console.log(`  ${nodeId}: repositioned to ${finalAngle.toFixed(2)}° based on updated parents`);
+              }
+            }
+          });
+        }
+        
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 12;
+        const MAX_ITERATIONS = 37;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -894,6 +961,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               const requiredSeparation = (territoryA.width + territoryB.width) / 2;
               const currentSeparation = Math.abs(posB.angle - posA.angle);
               const overlapAmount = Math.max(0, requiredSeparation - currentSeparation);
+              
+              
               
               if (overlapAmount > 0.1) {
                 hasCollisions = true;
@@ -1014,12 +1083,14 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               
               const { nodeA, nodeB, gravityA, gravityB, pushDistance } = operation;
               
+              // APPLY CONDITIONAL MOVEMENT CALCULATION HERE
               const stronger = gravityA > gravityB ? nodeA : nodeB;
               const weaker = gravityA > gravityB ? nodeB : nodeA;
               
-              // Get CURRENT positions (updated from previous iterations)
               const strongerPos = finalPositions.get(stronger)!;
               const weakerPos = finalPositions.get(weaker)!;
+              const currentSeparation = Math.abs(strongerPos.angle - weakerPos.angle);
+              
               
               // Get the current generation depth
               const hierarchyNode = root.descendants().find(d => d.data.id === stronger);
@@ -1155,7 +1226,30 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               const totalForce = jitterForce + massForce;
               const pushSign = totalForce >= 0 ? 1 : -1;
               
-              const actualPush = pushDistance * pushSign;
+              // NOW INSERT THE MOVEMENT CALCULATION HERE
+              const requiredSeparation = (territories.get(stronger)!.width + territories.get(weaker)!.width) / 2;
+              
+              // Use existing massForce to determine direction
+              const moveClockwise = massForce >= 0;
+              
+              let actualMovementDistance;
+              
+              if (moveClockwise) {
+                // Clockwise movement
+                actualMovementDistance = strongerPos.angle > weakerPos.angle 
+                  ? requiredSeparation + currentSeparation
+                  : requiredSeparation - currentSeparation;
+              } else {
+                // Counterclockwise movement
+                actualMovementDistance = strongerPos.angle > weakerPos.angle 
+                  ? requiredSeparation - currentSeparation
+                  : requiredSeparation + currentSeparation;
+              }
+              
+              // Apply direction sign
+              const signedMovementDistance = moveClockwise ? actualMovementDistance : -actualMovementDistance;
+              
+              const actualPush = signedMovementDistance;
               
               if (weaker !== primaryPusher) {
                 console.log(`🐛 DEBUG: About to apply push - weaker: ${weaker}, primaryPusher: ${primaryPusher}`);
@@ -1252,18 +1346,106 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
 
     const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
     
-    // // ADD RIGHT AFTER: const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
-    // console.log("💥 INVESTIGATING A & E - Post-Collision Positions:");
-    // ['A', 'E'].forEach(search => {
-    //   const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
-    //   if (node) {
-    //     const eqPos = equilibriumPositions.get(node.id);
-    //     const resolvedPos = collisionResolvedPositions.get(node.id);
-    //     console.log(`${search} (${node.id}):`);
-    //     console.log(`  equilibrium: ${eqPos?.angle.toFixed(3)}°`);
-    //     console.log(`  resolved: ${resolvedPos?.angle.toFixed(3)}° (moved ${Math.abs((resolvedPos?.angle || 0) - (eqPos?.angle || 0)).toFixed(3)}°)`);
-    //   }
-    // });
+    // Verify the collision resolution results are being stored
+    console.log("🐛 COLLISION RESOLVED POSITIONS:");
+    Array.from(collisionResolvedPositions.entries()).forEach(([id, pos]) => {
+      console.log(`  ${id}: ${pos.angle.toFixed(2)}°`);
+    });
+    
+    // *** PHASE 3.5: RECALCULATE CHILD POSITIONS ***
+    function recalculateChildPositions(finalPositions: Map<string, {angle: number, radius: number}>) {
+      console.log("🔄 PHASE 3.5: Recalculating child positions with final parent positions");
+      
+      const generations = new Map<number, string[]>();
+      
+      // Reorganize by generation
+      visibleNodeIds.forEach(nodeId => {
+        const hierarchyNode = root.descendants().find(d => d.data.id === nodeId);
+        if (hierarchyNode) {
+          const depth = hierarchyNode.depth;
+          if (!generations.has(depth)) {
+            generations.set(depth, []);
+          }
+          generations.get(depth)!.push(nodeId);
+        }
+      });
+      
+      // Recalculate positions for generations 2+
+      for (let depth = 2; depth <= Math.max(...generations.keys()); depth++) {
+        const genNodes = generations.get(depth) || [];
+        if (genNodes.length === 0) continue;
+        
+        console.log(`🔄 Recalculating Gen-${depth} positions (${genNodes.length} nodes):`);
+        
+        genNodes.forEach(nodeId => {
+          const node = nodeMap.get(nodeId);
+          if (!node || !node.gravityPoints || node.gravityPoints.size === 0) {
+            // No gravity sources - keep existing position
+            console.log(`  ${nodeId}: no gravity sources, keeping existing position`);
+            return;
+          }
+          
+          // Build parent angle/mass pairs using FINAL positions
+          const parentSources: Array<{angleDeg: number, mass: number}> = [];
+          node.gravityPoints.forEach((gravityValue: number, parentId: string) => {
+            const parentPos = finalPositions.get(parentId);  // ✅ USE FINAL POSITIONS
+            if (parentPos && gravityValue > 0) {
+              parentSources.push({
+                angleDeg: parentPos.angle,
+                mass: gravityValue
+              });
+            }
+          });
+          
+          if (parentSources.length === 0) {
+            console.log(`  ${nodeId}: no valid parents, keeping existing position`);
+            return;
+          }
+          
+          // Calculate new weighted mean with final parent positions
+          const weightedMean = massWeightedCircularMean(parentSources);
+          
+          if (weightedMean !== null) {
+            const jitter = microJitterDeg(nodeId, 0.15);
+            let finalAngle = (weightedMean + jitter) % 360;
+            if (finalAngle < 0) finalAngle += 360;
+            
+            const oldPos = finalPositions.get(nodeId);
+            finalPositions.set(nodeId, { 
+              angle: finalAngle, 
+              radius: depth * ringWidth 
+            });
+            
+            console.log(`  ${nodeId}: ${oldPos?.angle.toFixed(2)}° → ${finalAngle.toFixed(2)}° (parents: ${parentSources.map(p => `${p.angleDeg.toFixed(1)}°(${p.mass.toFixed(1)})`).join(', ')})`);
+          }
+        });
+      }
+      
+      console.log("🔄 PHASE 3.5 Complete - Child positions recalculated with final parent positions");
+      return finalPositions;
+    }
+    
+    // Skip child recalculation since all generations were processed together
+    const finalPositionsWithUpdatedChildren = collisionResolvedPositions;
+    
+    // Check what finalPositionsWithUpdatedChildren contains
+    console.log("🐛 VISUAL DEBUG: finalPositionsWithUpdatedChildren:");
+    Array.from(finalPositionsWithUpdatedChildren.entries()).forEach(([id, pos]) => {
+      console.log(`  ${id}: ${pos.angle.toFixed(2)}°`);
+    });
+    
+    // ADD RIGHT AFTER: const collisionResolvedPositions = resolveCollisions(equilibriumPositions);
+    console.log("💥 INVESTIGATING B & C - Post-Collision Positions:");
+    ['B', 'C'].forEach(search => {
+      const node = Array.from(nodeMap.values()).find(n => n.name?.includes(search));
+      if (node) {
+        const eqPos = equilibriumPositions.get(node.id);
+        const resolvedPos = collisionResolvedPositions.get(node.id);
+        console.log(`${search} (${node.id}):`);
+        console.log(`  equilibrium: ${eqPos?.angle.toFixed(3)}°`);
+        console.log(`  resolved: ${resolvedPos?.angle.toFixed(3)}° (moved ${Math.abs((resolvedPos?.angle || 0) - (eqPos?.angle || 0)).toFixed(3)}°)`);
+      }
+    });
 
     // Step 3: Final comparison - D3 vs Equilibrium vs Collision-Resolved
     console.log("\n🎯 PHASE 3: Final Position Comparison");
@@ -1283,7 +1465,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     });
 
     // Store resolved positions for next phase
-    (window as any).__fieldPositions__ = collisionResolvedPositions;
+    (window as any).__fieldPositions__ = finalPositionsWithUpdatedChildren;
     console.log("🎯 PHASE 3 Complete - Collision resolution done! Positions stored in window.__fieldPositions__");
 
     // *** INVESTIGATION: Let's see what's really happening ***
@@ -1539,14 +1721,6 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         onVisibleNodesChange(mapped);
       }
     }
-
-    // // Define arc generator
-    // const arc = d3.arc<any>()
-    //   .startAngle(d => d.x0)
-    //   .endAngle(d => d.x1)
-    //   .innerRadius(d => d.y0 * ringWidth)
-    //   .outerRadius(d => d.y1 * ringWidth * 1.01) // Slightly larger outer radius for better visibility
-    //   .padAngle(0);
     
 
     // *** PHASE 4: FIELD MODEL ARC GENERATOR ***
@@ -1555,7 +1729,11 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Calculate field-based arc data for each visible node
     const fieldArcData = visibleNodes.map(d => {
       const nodeId = d.data.id;
-      const fieldPos = collisionResolvedPositions.get(nodeId);
+      const fieldPos = finalPositionsWithUpdatedChildren.get(nodeId);
+      
+      // Check what fieldPos is getting in the fieldArcData mapping
+      console.log(`🐛 FIELD POS for ${nodeId}: ${fieldPos?.angle.toFixed(2)}°`);
+      
       const hierarchyNode = root.descendants().find(h => h.data.id === nodeId);
       
       if (!fieldPos || !hierarchyNode) {
