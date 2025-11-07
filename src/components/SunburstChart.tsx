@@ -930,7 +930,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 37;
+        const MAX_ITERATIONS = 10;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -1044,7 +1044,26 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               primaryPusher: string
             }> = [];
 
-            // First pass: identify primary pushers and collect operations
+            // ADDED: Sort clusters by severity then mass
+            clusters.sort((a, b) => {
+              // 1. Severity-Based Ordering (Primary)
+              const maxOverlapA = a.overlaps.length > 0 ? Math.max(...a.overlaps.map(o => o.overlapAmount || 0)) : 0;
+              const maxOverlapB = b.overlaps.length > 0 ? Math.max(...b.overlaps.map(o => o.overlapAmount || 0)) : 0;
+              
+              if (Math.abs(maxOverlapA - maxOverlapB) > 0.1) {
+                return maxOverlapB - maxOverlapA; // Larger overlaps first
+              }
+              
+              // 2. Total Mass Ordering (Tie-breaker)
+              const massA = a.nodes.reduce((sum, nodeId) => sum + (nodeMap.get(nodeId)?.totalGravity || 0), 0);
+              const massB = b.nodes.reduce((sum, nodeId) => sum + (nodeMap.get(nodeId)?.totalGravity || 0), 0);
+              
+              return massB - massA; // Heavier clusters first
+            });
+
+            console.log(`🐛 DEBUG: Processing ${clusters.length} clusters (sorted by severity then mass)`);
+
+            // Process each cluster
             clusters.forEach((cluster, clusterIndex) => {
               // Find primary pusher within this cluster
               let primaryPusher = '';
@@ -1100,6 +1119,13 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               console.log(`🐛 MASS DEBUG: --- Starting mass calculation for ${stronger}→${weaker} ---`);
               console.log(`🐛 MASS DEBUG: Current finalPositions:`, 
                 Array.from(finalPositions.entries()).map(([id, pos]) => `${id}@${pos.angle.toFixed(2)}°`));
+
+
+              // ADD THIS DEBUG BLOCK:
+              console.log(`🐛 POSITION DEBUG:`);
+              console.log(`  stronger: "${stronger}" at ${strongerPos.angle.toFixed(2)}°`);
+              console.log(`  weaker: "${weaker}" at ${weakerPos.angle.toFixed(2)}°`);
+              console.log(`  Expected overlap center: ${((strongerPos.angle + weakerPos.angle) / 2).toFixed(2)}°`);
 
               const overlapCenter = (strongerPos.angle + weakerPos.angle) / 2;
               console.log(`🐛 MASS DEBUG: Overlap center: ${overlapCenter.toFixed(2)}°`);
