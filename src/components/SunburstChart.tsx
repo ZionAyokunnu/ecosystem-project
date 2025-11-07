@@ -850,6 +850,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     function resolveCollisions(equilibriumPositions: Map<string, {angle: number, radius: number}>) {
       const DEBUG_NODES = new Set(['A','B','C','D','E']); // limit prints to ring-2
       const DEBUG_MAX_ITERS = 500;
+      let lastUsedClusterIndex = -1;
 
       // Step 2: Detect and resolve collisions by generation
       const finalPositions = new Map(equilibriumPositions); // Copy initial positions
@@ -948,7 +949,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 2;
+        const MAX_ITERATIONS = 60;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -1117,13 +1118,44 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               });
             });
             
-            // Step 4: Process ONLY ONE operation globally per iteration
+            // Step 4: Process operations with cluster rotation to prevent oscillation
             console.log(`🐛 DEBUG: Total selectedOperations across all clusters: ${allSelectedOperations.length}`);
 
+            // Track which cluster was used (add this outside the iteration loop)
+            let lastUsedClusterIndex = -1;
+
             if (allSelectedOperations.length > 0) {
-              // Take only the FIRST operation globally
-              const { operation, cluster, primaryPusher } = allSelectedOperations[0];
-              console.log(`🐛 DEBUG: Processing operation:`, operation.nodeA, '→', operation.nodeB);
+              // Group operations by cluster
+              const operationsByCluster = new Map();
+              allSelectedOperations.forEach(({ operation, cluster, primaryPusher }) => {
+                if (!operationsByCluster.has(cluster)) {
+                  operationsByCluster.set(cluster, []);
+                }
+                operationsByCluster.get(cluster).push({ operation, cluster, primaryPusher });
+              });
+              
+              const uniqueClusters = Array.from(operationsByCluster.keys());
+              console.log(`🔄 DEBUG: ${uniqueClusters.length} unique clusters available for rotation`);
+              
+              // Rotate to next cluster (prevent oscillation)
+              let selectedClusterIndex;
+              if (uniqueClusters.length === 1) {
+                // Only one cluster - must use it
+                selectedClusterIndex = 0;
+                console.log(`🔄 DEBUG: Only 1 cluster available, using cluster ${selectedClusterIndex + 1}`);
+              } else {
+                // Multiple clusters - rotate to next one
+                selectedClusterIndex = (lastUsedClusterIndex + 1) % uniqueClusters.length;
+                console.log(`🔄 DEBUG: Rotating from cluster ${lastUsedClusterIndex + 1} to cluster ${selectedClusterIndex + 1}`);
+              }
+              
+              lastUsedClusterIndex = selectedClusterIndex;
+              const selectedCluster = uniqueClusters[selectedClusterIndex];
+              const clusterOperations = operationsByCluster.get(selectedCluster);
+              
+              // Take first operation from selected cluster
+              const { operation, cluster, primaryPusher } = clusterOperations[0];
+              console.log(`🔄 DEBUG: Processing operation from cluster ${selectedClusterIndex + 1}:`, operation.nodeA, '→', operation.nodeB);
               
               const { nodeA, nodeB, gravityA, gravityB, pushDistance } = operation;
               
@@ -1230,8 +1262,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                         // Normal territory, sector wraps
                         return terrStart >= sectStart || terrEnd <= sectEnd;
                       } else {
-                        // Both wrap - territory must be within wrapped sector
-                        return terrStart >= sectStart && terrEnd <= sectEnd;
+                        // Both wrap - more robust containment check
+                        // Territory is fully within sector if BOTH parts are contained
+                        const terrFirstPart = terrStart >= sectStart;
+                        const terrSecondPart = terrEnd <= sectEnd;
+                        
+                        // Add tolerance for floating point precision
+                        const tolerance = 0.01;
+                        return (terrFirstPart || Math.abs(terrStart - sectStart) < tolerance) && 
+                               (terrSecondPart || Math.abs(terrEnd - sectEnd) < tolerance);
                       }
                     }
                   }
@@ -1307,20 +1346,16 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               
               // Use existing massForce to determine direction
               const moveClockwise = massForce >= 0;
-              
-              let actualMovementDistance;
-              
-              if (moveClockwise) {
-                // Clockwise movement
-                actualMovementDistance = strongerPos.angle > weakerPos.angle 
-                  ? requiredSeparation + currentSeparation
-                  : requiredSeparation - currentSeparation;
-              } else {
-                // Counterclockwise movement
-                actualMovementDistance = strongerPos.angle > weakerPos.angle 
-                  ? requiredSeparation - currentSeparation
-                  : requiredSeparation + currentSeparation;
-              }
+
+              // Calculate movement based on overlap resolution, not final positioning
+              const totalOverlapToResolve = operation.overlapAmount;
+
+              // Simple movement: just resolve the overlap
+              const actualMovementDistance = totalOverlapToResolve;
+
+              console.log(`🔧 MOVEMENT DEBUG: Resolving ${totalOverlapToResolve.toFixed(2)}° overlap`);
+              console.log(`  Direction: ${moveClockwise ? 'clockwise' : 'counterclockwise'}`);
+              console.log(`  Movement needed: ${actualMovementDistance.toFixed(2)}°`);
               
               // Apply direction sign
               const signedMovementDistance = moveClockwise ? actualMovementDistance : -actualMovementDistance;
