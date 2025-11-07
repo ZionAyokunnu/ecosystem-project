@@ -697,14 +697,14 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           if (!node || !node.gravityPoints || node.gravityPoints.size === 0) {
             // No gravity sources - use jitter only
             const jitter = microJitterDeg(nodeId, 1.0);
-          equilibriumPositions.set(nodeId, { 
-            angle: jitter < 0 ? jitter + 360 : jitter, 
-            radius: depth * ringWidth 
-          });
-          // ADDED DEBUG: Position set tracking
-          const hierarchyNode2 = root?.descendants()?.find((d: any) => d.data.id === nodeId);
-          console.log(`📍 Position Set: ${nodeId} depth=${hierarchyNode2?.depth ?? 'unknown'} angle=${(jitter < 0 ? jitter + 360 : jitter).toFixed(2)}° radius=${(depth * ringWidth).toFixed(1)}`);
-          console.log(`  ${nodeId}: no gravity sources → jitter-only ${jitter.toFixed(1)}°`);
+            equilibriumPositions.set(nodeId, { 
+              angle: jitter < 0 ? jitter + 360 : jitter, 
+              radius: depth * ringWidth 
+            });
+            // ADDED DEBUG: Position set tracking
+            const hierarchyNode2 = root?.descendants()?.find((d: any) => d.data.id === nodeId);
+            console.log(`📍 Position Set: ${nodeId} depth=${hierarchyNode2?.depth ?? 'unknown'} angle=${(jitter < 0 ? jitter + 360 : jitter).toFixed(2)}° radius=${(depth * ringWidth).toFixed(1)}`);
+            console.log(`  ${nodeId}: no gravity sources → jitter-only ${jitter.toFixed(1)}°`);
             return;
           }
           
@@ -713,10 +713,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           node.gravityPoints.forEach((gravityValue: number, parentId: string) => {
             const parentPos = equilibriumPositions.get(parentId);
             if (parentPos && gravityValue > 0) {
-              parentSources.push({
-                angleDeg: parentPos.angle,
-                mass: gravityValue
-              });
+              parentSources.push({ angleDeg: parentPos.angle, mass: gravityValue });
             }
           });
           
@@ -730,27 +727,43 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           console.log(`  ${nodeId} parents:`, parentSources.map(p => `${p.angleDeg.toFixed(1)}°(${p.mass.toFixed(2)})`));
           
           let finalAngle: number;
+          let jitterValue = 0;
+          let weightedMeanResult: number | null = null;
           
           if (parentSources.length === 0) {
             // No valid parents
-            finalAngle = microJitterDeg(nodeId, 1.0);
+            const jitter = microJitterDeg(nodeId, 1.0);
+            jitterValue = jitter;
+            finalAngle = jitter;
             console.log(`    → No valid parents, jitter-only: ${finalAngle.toFixed(1)}°`);
           } else {
             // Try mass-weighted circular mean
             const weightedMean = massWeightedCircularMean(parentSources);
+            weightedMeanResult = weightedMean;
             
             if (weightedMean !== null) {
               // Normal case - weighted direction exists
               const jitter = microJitterDeg(nodeId, 0.15);
+              jitterValue = jitter;
               finalAngle = (weightedMean + jitter) % 360;
               console.log(`    → Weighted mean: ${weightedMean.toFixed(1)}° + jitter: ${jitter.toFixed(2)}° = ${finalAngle.toFixed(1)}°`);
             } else {
               // Perfect cancellation - use simple mean of parent angles
               const simpleMean = parentSources.reduce((sum, p) => sum + p.angleDeg, 0) / parentSources.length;
               const jitter = microJitterDeg(nodeId, 0.3);
+              jitterValue = jitter;
               finalAngle = (simpleMean + jitter) % 360;
               console.log(`    → Perfect cancellation, simple mean: ${simpleMean.toFixed(1)}° + jitter: ${jitter.toFixed(2)}° = ${finalAngle.toFixed(1)}°`);
             }
+          }
+          
+          if (depth === 1) {
+            console.log(`🔍 Gen-1 DEBUG for ${nodeId}:`);
+            console.log(`  gravityPoints:`, Array.from(node.gravityPoints.entries()));
+            console.log(`  parentSources:`, parentSources);
+            console.log(`  weightedMean result:`, weightedMeanResult);
+            console.log(`  jitter:`, jitterValue);
+            console.log(`  finalAngle:`, finalAngle);
           }
           
           if (finalAngle < 0) finalAngle += 360;
@@ -764,6 +777,11 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           const hierarchyNode3 = root?.descendants()?.find((d: any) => d.data.id === nodeId);
           console.log(`📍 Position Set: ${nodeId} depth=${hierarchyNode3?.depth ?? 'unknown'} angle=${finalAngle.toFixed(2)}° radius=${(depth * ringWidth).toFixed(1)}`);
         });
+      console.log(`🎯 Gen-${depth} EQUILIBRIUM POSITIONS:`,
+        genNodes.map(nodeId => {
+          const pos = equilibriumPositions.get(nodeId);
+          return `${nodeId}@${pos?.angle.toFixed(2)}°`;
+        }).join(', '));
       }
       
       return equilibriumPositions;
@@ -930,7 +948,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 10;
+        const MAX_ITERATIONS = 2;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -959,8 +977,15 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               const territoryB = territories.get(nodeB)!;
               
               const requiredSeparation = (territoryA.width + territoryB.width) / 2;
-              const currentSeparation = Math.abs(posB.angle - posA.angle);
-              const overlapAmount = Math.max(0, requiredSeparation - currentSeparation);
+              // Handle circular distance properly
+              const angleDiff = Math.abs(posB.angle - posA.angle);
+              const circularSeparation = Math.min(angleDiff, 360 - angleDiff);
+              const overlapAmount = Math.max(0, requiredSeparation - circularSeparation);
+
+              console.log(`🔄 CIRCULAR OVERLAP DEBUG: ${nodeA}-${nodeB}`);
+              console.log(`  Angles: ${posA.angle.toFixed(2)}° vs ${posB.angle.toFixed(2)}°`);
+              console.log(`  Raw diff: ${angleDiff.toFixed(2)}°, Circular: ${circularSeparation.toFixed(2)}°`);
+              console.log(`  Required: ${requiredSeparation.toFixed(2)}°, Overlap: ${overlapAmount.toFixed(2)}°`);
               
               
               
@@ -1127,11 +1152,36 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               console.log(`  weaker: "${weaker}" at ${weakerPos.angle.toFixed(2)}°`);
               console.log(`  Expected overlap center: ${((strongerPos.angle + weakerPos.angle) / 2).toFixed(2)}°`);
 
-              const overlapCenter = (strongerPos.angle + weakerPos.angle) / 2;
+              // Handle wraparound for overlap center calculation
+              let overlapCenter: number;
+              const angleDiff = Math.abs(strongerPos.angle - weakerPos.angle);
+
+              if (angleDiff <= 180) {
+                // Normal case - direct average
+                overlapCenter = (strongerPos.angle + weakerPos.angle) / 2;
+              } else {
+                // Wraparound case - they're closer going through 0°
+                const avg = (strongerPos.angle + weakerPos.angle + 360) / 2;
+                overlapCenter = avg > 360 ? avg - 360 : avg;
+              }
+
+              console.log(`🔄 OVERLAP CENTER DEBUG: ${stronger}@${strongerPos.angle.toFixed(2)}° vs ${weaker}@${weakerPos.angle.toFixed(2)}°`);
+              console.log(`  AngleDiff: ${angleDiff.toFixed(2)}°, Wraparound: ${angleDiff > 180}`);
+              console.log(`  OverlapCenter: ${overlapCenter.toFixed(2)}°`);
               console.log(`🐛 MASS DEBUG: Overlap center: ${overlapCenter.toFixed(2)}°`);
 
               const leftSector = [overlapCenter - 180, overlapCenter];
               const rightSector = [overlapCenter, overlapCenter + 180];
+
+              // Normalize sectors to [0, 360°] range
+              leftSector[0] = ((leftSector[0] % 360) + 360) % 360;
+              leftSector[1] = ((leftSector[1] % 360) + 360) % 360;
+              rightSector[0] = ((rightSector[0] % 360) + 360) % 360;
+              rightSector[1] = ((rightSector[1] % 360) + 360) % 360;
+
+              console.log(`🔄 NORMALIZED SECTORS:`);
+              console.log(`  Left: [${leftSector[0].toFixed(2)}°, ${leftSector[1].toFixed(2)}°]`);
+              console.log(`  Right: [${rightSector[0].toFixed(2)}°, ${rightSector[1].toFixed(2)}°]`);
               console.log(`🐛 MASS DEBUG: Left sector: [${leftSector[0].toFixed(2)}°, ${leftSector[1].toFixed(2)}°]`);
               console.log(`🐛 MASS DEBUG: Right sector: [${rightSector[0].toFixed(2)}°, ${rightSector[1].toFixed(2)}°]`);
               
@@ -1275,23 +1325,95 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               // Apply direction sign
               const signedMovementDistance = moveClockwise ? actualMovementDistance : -actualMovementDistance;
               
-              const actualPush = signedMovementDistance;
-              
-              if (weaker !== primaryPusher) {
-                console.log(`🐛 DEBUG: About to apply push - weaker: ${weaker}, primaryPusher: ${primaryPusher}`);
+              // *** BIDIRECTIONAL PHYSICS WITH SPACE CONSTRAINT ***
+              function getAvailableFreeSpace(nodeId: string, direction: number): number {
+                const currentPos = finalPositions.get(nodeId)!;
+                const nodeTerritory = territories.get(nodeId)!;
+                let freeSpace = 0;
+                let scanAngle = currentPos.angle;
+                const scanStep = direction > 0 ? 1 : -1; // 1° increments
                 
-                // Apply to pushForces for standard iteration processing
-                pushForces.set(weaker, actualPush);
+                for (let i = 0; i < 180; i++) { // Max scan 180°
+                  scanAngle += scanStep;
+                  if (scanAngle < 0) scanAngle += 360;
+                  if (scanAngle >= 360) scanAngle -= 360;
+                  
+                  // Check if this angle hits any other node's territory in same generation
+                  const blocked = nodes.some(otherId => {
+                    if (otherId === nodeId) return false;
+                    const otherPos = finalPositions.get(otherId)!;
+                    const otherTerritory = territories.get(otherId)!;
+                    const otherStart = otherPos.angle - (otherTerritory.width / 2);
+                    const otherEnd = otherPos.angle + (otherTerritory.width / 2);
+                    
+                    // Check if scanAngle falls within other node's territory
+                    if (otherStart <= otherEnd) {
+                      return scanAngle >= otherStart && scanAngle <= otherEnd;
+                    } else {
+                      // Territory wraps around 0°
+                      return scanAngle >= otherStart || scanAngle <= otherEnd;
+                    }
+                  });
+                  
+                  if (blocked) break;
+                  freeSpace += 1;
+                }
+                
+                return freeSpace;
+              }
+
+              // Calculate physics-based movements
+              const totalMovement = Math.abs(signedMovementDistance);
+              const massA = nodeMap.get(stronger)!.totalGravity;
+              const massB = nodeMap.get(weaker)!.totalGravity;
+              const totalMass = massA + massB;
+
+              // Physics: movement inversely proportional to mass
+              const intendedStrongerMovement = totalMass > 0 ? totalMovement * (massB / totalMass) : totalMovement * 0.3;
+              const intendedWeakerMovement = totalMass > 0 ? totalMovement * (massA / totalMass) : totalMovement * 0.7;
+
+              // Determine movement directions (opposite to each other)
+              const pushDirection = signedMovementDistance > 0 ? 1 : -1;
+              const strongerMoveDirection = -pushDirection; // Opposite to push
+              const weakerMoveDirection = pushDirection;
+
+              // Check available space for stronger node
+              const availableSpace = getAvailableFreeSpace(stronger, strongerMoveDirection);
+              const actualStrongerMovement = Math.min(intendedStrongerMovement, availableSpace);
+
+              // Redistribute blocked movement to weaker node
+              const redistributed = intendedStrongerMovement - actualStrongerMovement;
+              const actualWeakerMovement = intendedWeakerMovement + redistributed;
+
+              console.log(`🔧 PHYSICS DEBUG: ${stronger} → ${weaker}`);
+              console.log(`  Total movement: ${totalMovement.toFixed(2)}°`);
+              console.log(`  Masses: ${massA.toFixed(2)} vs ${massB.toFixed(2)}, total: ${totalMass.toFixed(2)}`);
+              console.log(`  Intended movements: stronger=${intendedStrongerMovement.toFixed(2)}°, weaker=${intendedWeakerMovement.toFixed(2)}°`);
+              console.log(`  Available space for ${stronger}: ${availableSpace.toFixed(1)}°`);
+              console.log(`  Actual movements: stronger=${actualStrongerMovement.toFixed(2)}°, weaker=${actualWeakerMovement.toFixed(2)}°`);
+              console.log(`  Movement directions: stronger=${strongerMoveDirection}, weaker=${weakerMoveDirection}`);
+              console.log(`  Primary pusher: ${primaryPusher}, stronger=${stronger}, weaker=${weaker}`);
+
+              // Apply movements to both nodes (if they're not primary pushers)
+              if (actualStrongerMovement > 0.1) { // Remove primary pusher restriction
+                pushForces.set(stronger, strongerMoveDirection * actualStrongerMovement);
+                console.log(`  ✅ ${stronger}: physics move ${actualStrongerMovement.toFixed(2)}° applied (${strongerMoveDirection > 0 ? 'clockwise' : 'counterclockwise'})`);
+              } else {
+                console.log(`  ❌ ${stronger}: movement blocked - isPrimaryPusher=${stronger === primaryPusher}, movement=${actualStrongerMovement.toFixed(2)}°`);
+              }
+
+              if (weaker !== primaryPusher) {
+                pushForces.set(weaker, weakerMoveDirection * actualWeakerMovement);
+                console.log(`  ✅ ${weaker}: physics move ${actualWeakerMovement.toFixed(2)}° applied (${weakerMoveDirection > 0 ? 'clockwise' : 'counterclockwise'})`);
                 
                 if (iteration < DEBUG_MAX_ITERS) {
                   console.log(`🐛 DEBUG: iteration = ${iteration}, showing detailed logs`);
                   console.log(`    ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap`);
-                  console.log(`      Left mass: ${leftMass.toFixed(2)}, Right mass: ${rightMass.toFixed(2)}`);
-                  console.log(`      Jitter: ${jitterForce.toFixed(2)}°, Mass force: ${massForce.toFixed(2)}°, Total: ${totalForce.toFixed(2)}°`);
-                  console.log(`      Push: ${actualPush.toFixed(2)}° (${pushSign > 0 ? 'clockwise' : 'counterclockwise'})`);
+                  console.log(`    Physics: stronger=${actualStrongerMovement.toFixed(2)}°, weaker=${actualWeakerMovement.toFixed(2)}°`);
+                  console.log(`    Masses: ${massA.toFixed(2)} vs ${massB.toFixed(2)}, available space: ${availableSpace.toFixed(1)}°`);
                 }
               } else {
-                console.log(`🐛 DEBUG: Skipping push - weaker ${weaker} is primaryPusher ${primaryPusher}`);
+                console.log(`  ❌ ${weaker}: movement blocked - isPrimaryPusher=${weaker === primaryPusher}`);
               }
             }
           }
@@ -1714,7 +1836,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Initialize current positions for transitions
     root.each((d: any) => (d.current = d));
     
-    // Include depth 0 when we have pivoted; otherwise skip the synthetic "Root"
+    // Include depth 0 when we have pivoted; otherwise skip the synthetic "Root"
     const minDepth = pivotId ? 0 : 1;
     const allNodes = root.descendants().filter((d: any) => d.depth >= minDepth && d.depth <= layers);
     const visibleNodes = allNodes.filter((d, i, arr) =>
@@ -1979,8 +2101,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         }
           else {
             // Leaf node ▼
-            // Zoom so that the leaf’s *parent* is centred,
-            // **but** tell the outside world that *this* leaf is the “selected core”
+            // Zoom so that the leaf's *parent* is centred,
+            // **but** tell the outside world that *this* leaf is the "selected core"
             // to drive the DescriptionPanel and TrendGraph.
 
             if (d.parent) {

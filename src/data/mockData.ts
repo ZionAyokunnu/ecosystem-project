@@ -22,19 +22,19 @@ export const createMockData = () => {
     { indicator_id: 'D', name: 'D - Environment Domain', current_value: 68, category: 'Environment', description: 'Environment domain indicator' },
     { indicator_id: 'E', name: 'E - Social Domain', current_value: 74, category: 'Social', description: 'Social domain indicator' },
     
-    // Level 3: a, b, c, d, e, f, g, h, i, j, k, l
-    { indicator_id: 'a', name: 'a - Primary Healthcare', current_value: 85, category: 'Health', description: 'Primary healthcare access' },
-    { indicator_id: 'b', name: 'b - Mental Health', current_value: 75, category: 'Health', description: 'Mental health services' },
-    { indicator_id: 'c', name: 'c - Employment Rate', current_value: 65, category: 'Economic', description: 'Employment rate indicator' },
-    { indicator_id: 'd', name: 'd - Income Level', current_value: 60, category: 'Economic', description: 'Average income level' },
-    { indicator_id: 'e', name: 'e - School Enrollment', current_value: 78, category: 'Education', description: 'School enrollment rate' },
-    { indicator_id: 'f', name: 'f - Literacy Rate', current_value: 82, category: 'Education', description: 'Adult literacy rate' },
-    { indicator_id: 'g', name: 'g - Air Quality', current_value: 70, category: 'Environment', description: 'Air quality index' },
-    { indicator_id: 'h', name: 'h - Water Access', current_value: 88, category: 'Environment', description: 'Clean water access' },
-    { indicator_id: 'i', name: 'i - Community Cohesion', current_value: 76, category: 'Social', description: 'Community cohesion index' },
-    { indicator_id: 'j', name: 'j - Safety Index', current_value: 73, category: 'Social', description: 'Community safety index' },
-    { indicator_id: 'k', name: 'k - Social Support', current_value: 79, category: 'Social', description: 'Social support networks' },
-    { indicator_id: 'l', name: 'l - Cultural Access', current_value: 71, category: 'Social', description: 'Cultural activities access' },
+    // // Level 3: a, b, c, d, e, f, g, h, i, j, k, l
+    // { indicator_id: 'a', name: 'a - Primary Healthcare', current_value: 85, category: 'Health', description: 'Primary healthcare access' },
+    // { indicator_id: 'b', name: 'b - Mental Health', current_value: 75, category: 'Health', description: 'Mental health services' },
+    // { indicator_id: 'c', name: 'c - Employment Rate', current_value: 65, category: 'Economic', description: 'Employment rate indicator' },
+    // { indicator_id: 'd', name: 'd - Income Level', current_value: 60, category: 'Economic', description: 'Average income level' },
+    // { indicator_id: 'e', name: 'e - School Enrollment', current_value: 78, category: 'Education', description: 'School enrollment rate' },
+    // { indicator_id: 'f', name: 'f - Literacy Rate', current_value: 82, category: 'Education', description: 'Adult literacy rate' },
+    // { indicator_id: 'g', name: 'g - Air Quality', current_value: 70, category: 'Environment', description: 'Air quality index' },
+    // { indicator_id: 'h', name: 'h - Water Access', current_value: 88, category: 'Environment', description: 'Clean water access' },
+    // { indicator_id: 'i', name: 'i - Community Cohesion', current_value: 76, category: 'Social', description: 'Community cohesion index' },
+    // { indicator_id: 'j', name: 'j - Safety Index', current_value: 73, category: 'Social', description: 'Community safety index' },
+    // { indicator_id: 'k', name: 'k - Social Support', current_value: 79, category: 'Social', description: 'Social support networks' },
+    // { indicator_id: 'l', name: 'l - Cultural Access', current_value: 71, category: 'Social', description: 'Cultural activities access' },
     
     // // Level 4: a1, b1, c1, d1, e1, f1, g1, h1, i1, j1, k1, l1
     // { indicator_id: 'a1', name: 'a1 - Clinic Density', current_value: 82, category: 'Health', description: 'Number of clinics per capita' },
@@ -59,25 +59,25 @@ export const createMockData = () => {
     { relationship_id: 'r4', parent_id: 'core', child_id: 'D', influence_weight: 20, influence_score: 0.73 },
     { relationship_id: 'r5', parent_id: 'core', child_id: 'E', influence_weight: 20, influence_score: 0.76 },
     
-    // Level 2 -> Level 3: A -> a, b (must sum to 100% for parent A)
-    { relationship_id: 'r6', parent_id: 'A', child_id: 'a', influence_weight: 60, influence_score: 0.9 },
-    { relationship_id: 'r7', parent_id: 'A', child_id: 'b', influence_weight: 40, influence_score: 0.85 },
-    // B -> c, d, a (must sum to 100% for parent B) - multiparent: a also has parent A
-    { relationship_id: 'r8', parent_id: 'B', child_id: 'c', influence_weight: 35, influence_score: 0.88 },
-    { relationship_id: 'r9', parent_id: 'B', child_id: 'd', influence_weight: 35, influence_score: 0.82 },
-    { relationship_id: 'r10', parent_id: 'B', child_id: 'a', influence_weight: 30, influence_score: 0.75 },
-    // C -> e, f, c (must sum to 100% for parent C) - multiparent: c also has parent B
-    { relationship_id: 'r11', parent_id: 'C', child_id: 'e', influence_weight: 40, influence_score: 0.87 },
-    { relationship_id: 'r12', parent_id: 'C', child_id: 'f', influence_weight: 40, influence_score: 0.9 },
-    { relationship_id: 'r19', parent_id: 'C', child_id: 'c', influence_weight: 20, influence_score: 0.78 },
-    // D -> g, h (must sum to 100% for parent D)
-    { relationship_id: 'r13', parent_id: 'D', child_id: 'g', influence_weight: 50, influence_score: 0.83 },
-    { relationship_id: 'r14', parent_id: 'D', child_id: 'h', influence_weight: 50, influence_score: 0.91 },
-    // E -> i, j, k, l (must sum to 100% for parent E)
-    { relationship_id: 'r15', parent_id: 'E', child_id: 'i', influence_weight: 25, influence_score: 0.86 },
-    { relationship_id: 'r16', parent_id: 'E', child_id: 'j', influence_weight: 25, influence_score: 0.84 },
-    { relationship_id: 'r17', parent_id: 'E', child_id: 'k', influence_weight: 25, influence_score: 0.89 },
-    { relationship_id: 'r18', parent_id: 'E', child_id: 'l', influence_weight: 25, influence_score: 0.81 },
+    // // Level 2 -> Level 3: A -> a, b (must sum to 100% for parent A)
+    // { relationship_id: 'r6', parent_id: 'A', child_id: 'a', influence_weight: 60, influence_score: 0.9 },
+    // { relationship_id: 'r7', parent_id: 'A', child_id: 'b', influence_weight: 40, influence_score: 0.85 },
+    // // B -> c, d, a (must sum to 100% for parent B) - multiparent: a also has parent A
+    // { relationship_id: 'r8', parent_id: 'B', child_id: 'c', influence_weight: 35, influence_score: 0.88 },
+    // { relationship_id: 'r9', parent_id: 'B', child_id: 'd', influence_weight: 35, influence_score: 0.82 },
+    // { relationship_id: 'r10', parent_id: 'B', child_id: 'a', influence_weight: 30, influence_score: 0.75 },
+    // // C -> e, f, c (must sum to 100% for parent C) - multiparent: c also has parent B
+    // { relationship_id: 'r11', parent_id: 'C', child_id: 'e', influence_weight: 40, influence_score: 0.87 },
+    // { relationship_id: 'r12', parent_id: 'C', child_id: 'f', influence_weight: 40, influence_score: 0.9 },
+    // { relationship_id: 'r19', parent_id: 'C', child_id: 'c', influence_weight: 20, influence_score: 0.78 },
+    // // D -> g, h (must sum to 100% for parent D)
+    // { relationship_id: 'r13', parent_id: 'D', child_id: 'g', influence_weight: 50, influence_score: 0.83 },
+    // { relationship_id: 'r14', parent_id: 'D', child_id: 'h', influence_weight: 50, influence_score: 0.91 },
+    // // E -> i, j, k, l (must sum to 100% for parent E)
+    // { relationship_id: 'r15', parent_id: 'E', child_id: 'i', influence_weight: 25, influence_score: 0.86 },
+    // { relationship_id: 'r16', parent_id: 'E', child_id: 'j', influence_weight: 25, influence_score: 0.84 },
+    // { relationship_id: 'r17', parent_id: 'E', child_id: 'k', influence_weight: 25, influence_score: 0.89 },
+    // { relationship_id: 'r18', parent_id: 'E', child_id: 'l', influence_weight: 25, influence_score: 0.81 },
     
     // // Level 3 -> Level 4: a -> a1, b1 (must sum to 100% for parent a)
     // { relationship_id: 'r20', parent_id: 'a', child_id: 'a1', influence_weight: 60, influence_score: 0.92 },
