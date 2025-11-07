@@ -851,6 +851,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       const DEBUG_NODES = new Set(['A','B','C','D','E']); // limit prints to ring-2
       const DEBUG_MAX_ITERS = 500;
       let lastUsedClusterIndex = -1;
+      const oscillationTracker = new Map<string, number>(); // nodeA_nodeB -> lastIteration
 
       // Step 2: Detect and resolve collisions by generation
       const finalPositions = new Map(equilibriumPositions); // Copy initial positions
@@ -949,7 +950,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
         
         console.log(`\n🔧 Resolving Generation ${depth} collisions (${nodes.length} nodes):`);
         
-        const MAX_ITERATIONS = 60;
+        const MAX_ITERATIONS = 87;
         const PUSH_DAMPENING = 1; // Prevent oscillation
         
         for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
@@ -1137,24 +1138,94 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               const uniqueClusters = Array.from(operationsByCluster.keys());
               console.log(`🔄 DEBUG: ${uniqueClusters.length} unique clusters available for rotation`);
               
-              // Rotate to next cluster (prevent oscillation)
-              let selectedClusterIndex;
-              if (uniqueClusters.length === 1) {
-                // Only one cluster - must use it
-                selectedClusterIndex = 0;
-                console.log(`🔄 DEBUG: Only 1 cluster available, using cluster ${selectedClusterIndex + 1}`);
-              } else {
-                // Multiple clusters - rotate to next one
-                selectedClusterIndex = (lastUsedClusterIndex + 1) % uniqueClusters.length;
-                console.log(`🔄 DEBUG: Rotating from cluster ${lastUsedClusterIndex + 1} to cluster ${selectedClusterIndex + 1}`);
+              // Track recent operations to detect oscillating pairs
+              // Clean old entries (only keep last 5 iterations)
+              const currentIter = iteration;
+              for (const [pair, lastSeen] of oscillationTracker.entries()) {
+                if (currentIter - lastSeen > 3) { //overlap last seen here
+                  oscillationTracker.delete(pair);
+                }
               }
-              
+
+              // Deadlock-aware cluster selection
+              let selectedClusterIndex = -1;
+              let selectedCluster = null;
+              let clusterOperations = [];
+
+              console.log(`🔄 DEADLOCK-AWARE: Selecting from ${uniqueClusters.length} clusters, avoiding recent pairs:`, 
+                Array.from(oscillationTracker.keys()));
+
+              // Priority 1: Clusters without ANY problematic node pairs
+              for (let i = 0; i < uniqueClusters.length; i++) {
+                const cluster = uniqueClusters[i];
+                const operations = operationsByCluster.get(cluster);
+                
+                const hasProblematicPair = operations.some(op => {
+                  const pairKey = [op.operation.nodeA, op.operation.nodeB].sort().join('_');
+                  return oscillationTracker.has(pairKey);
+                });
+                
+                if (!hasProblematicPair) {
+                  selectedClusterIndex = i;
+                  selectedCluster = cluster;
+                  clusterOperations = operations;
+                  console.log(`🔄 PRIORITY 1: Selected clean cluster ${i + 1} (no problematic pairs)`);
+                  break;
+                }
+              }
+
+              // Priority 2: Clusters with only ONE node from problematic pairs
+              if (selectedClusterIndex === -1) {
+                for (let i = 0; i < uniqueClusters.length; i++) {
+                  const cluster = uniqueClusters[i];
+                  const operations = operationsByCluster.get(cluster);
+                  
+                  const hasPartialOverlap = operations.some(op => {
+                    const problematicNodes = new Set<string>();
+                    oscillationTracker.forEach((_, pairKey) => {
+                      const [nodeA, nodeB] = pairKey.split('_');
+                      problematicNodes.add(nodeA);
+                      problematicNodes.add(nodeB);
+                    });
+                    
+                    const opNodes = [op.operation.nodeA, op.operation.nodeB];
+                    const overlapCount = opNodes.filter(node => problematicNodes.has(node)).length;
+                    return overlapCount === 1; // Only one node overlaps
+                  });
+                  
+                  if (hasPartialOverlap) {
+                    selectedClusterIndex = i;
+                    selectedCluster = cluster;
+                    clusterOperations = operations;
+                    console.log(`🔄 PRIORITY 2: Selected partial cluster ${i + 1} (one problematic node)`);
+                    break;
+                  }
+                }
+              }
+
+              // Priority 3: Fallback - rotate through remaining clusters
+              if (selectedClusterIndex === -1) {
+                if (uniqueClusters.length === 1) {
+                  selectedClusterIndex = 0;
+                  console.log(`🔄 PRIORITY 3: Only 1 cluster available, using cluster ${selectedClusterIndex + 1}`);
+                } else {
+                  selectedClusterIndex = (lastUsedClusterIndex + 1) % uniqueClusters.length;
+                  console.log(`🔄 PRIORITY 3: Rotating from cluster ${lastUsedClusterIndex + 1} to cluster ${selectedClusterIndex + 1}`);
+                }
+                
+                selectedCluster = uniqueClusters[selectedClusterIndex];
+                clusterOperations = operationsByCluster.get(selectedCluster);
+              }
+
               lastUsedClusterIndex = selectedClusterIndex;
-              const selectedCluster = uniqueClusters[selectedClusterIndex];
-              const clusterOperations = operationsByCluster.get(selectedCluster);
-              
+
               // Take first operation from selected cluster
               const { operation, cluster, primaryPusher } = clusterOperations[0];
+
+              // Record this operation for oscillation tracking
+              const pairKey = [operation.nodeA, operation.nodeB].sort().join('_');
+              oscillationTracker.set(pairKey, currentIter);
+              console.log(`🔄 TRACKING: Recorded ${pairKey} at iteration ${currentIter}`);
               console.log(`🔄 DEBUG: Processing operation from cluster ${selectedClusterIndex + 1}:`, operation.nodeA, '→', operation.nodeB);
               
               const { nodeA, nodeB, gravityA, gravityB, pushDistance } = operation;
@@ -1429,26 +1500,42 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               console.log(`  Movement directions: stronger=${strongerMoveDirection}, weaker=${weakerMoveDirection}`);
               console.log(`  Primary pusher: ${primaryPusher}, stronger=${stronger}, weaker=${weaker}`);
 
-              // Apply movements to both nodes (if they're not primary pushers)
-              if (actualStrongerMovement > 0.1) { // Remove primary pusher restriction
+              // // Apply movements to both nodes (if they're not primary pushers)
+              // if (actualStrongerMovement > 0.1) { // Remove primary pusher restriction
+              //   pushForces.set(stronger, strongerMoveDirection * actualStrongerMovement);
+              //   console.log(`  ✅ ${stronger}: physics move ${actualStrongerMovement.toFixed(2)}° applied (${strongerMoveDirection > 0 ? 'clockwise' : 'counterclockwise'})`);
+              // } else {
+              //   console.log(`  ❌ ${stronger}: movement blocked - isPrimaryPusher=${stronger === primaryPusher}, movement=${actualStrongerMovement.toFixed(2)}°`);
+              // }
+
+              // if (weaker !== primaryPusher) {
+              //   pushForces.set(weaker, weakerMoveDirection * actualWeakerMovement);
+              //   console.log(`  ✅ ${weaker}: physics move ${actualWeakerMovement.toFixed(2)}° applied (${weakerMoveDirection > 0 ? 'clockwise' : 'counterclockwise'})`);
+                
+              //   if (iteration < DEBUG_MAX_ITERS) {
+              //     console.log(`🐛 DEBUG: iteration = ${iteration}, showing detailed logs`);
+              //     console.log(`    ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap`);
+              //     console.log(`    Physics: stronger=${actualStrongerMovement.toFixed(2)}°, weaker=${actualWeakerMovement.toFixed(2)}°`);
+              //     console.log(`    Masses: ${massA.toFixed(2)} vs ${massB.toFixed(2)}, available space: ${availableSpace.toFixed(1)}°`);
+              //   }
+              // } else {
+              //   console.log(`  ❌ ${weaker}: movement blocked - isPrimaryPusher=${weaker === primaryPusher}`);
+              // }
+
+              // Apply movements to both nodes (space permitting)
+              if (actualStrongerMovement > 0.01) {
                 pushForces.set(stronger, strongerMoveDirection * actualStrongerMovement);
                 console.log(`  ✅ ${stronger}: physics move ${actualStrongerMovement.toFixed(2)}° applied (${strongerMoveDirection > 0 ? 'clockwise' : 'counterclockwise'})`);
               } else {
-                console.log(`  ❌ ${stronger}: movement blocked - isPrimaryPusher=${stronger === primaryPusher}, movement=${actualStrongerMovement.toFixed(2)}°`);
+                console.log(`  ❌ ${stronger}: blocked by space constraint, movement=${actualStrongerMovement.toFixed(2)}°`);
               }
 
-              if (weaker !== primaryPusher) {
+              if (actualWeakerMovement > 0.01) {
                 pushForces.set(weaker, weakerMoveDirection * actualWeakerMovement);
                 console.log(`  ✅ ${weaker}: physics move ${actualWeakerMovement.toFixed(2)}° applied (${weakerMoveDirection > 0 ? 'clockwise' : 'counterclockwise'})`);
                 
-                if (iteration < DEBUG_MAX_ITERS) {
-                  console.log(`🐛 DEBUG: iteration = ${iteration}, showing detailed logs`);
-                  console.log(`    ${stronger}→${weaker}: ${operation.overlapAmount.toFixed(1)}° overlap`);
-                  console.log(`    Physics: stronger=${actualStrongerMovement.toFixed(2)}°, weaker=${actualWeakerMovement.toFixed(2)}°`);
-                  console.log(`    Masses: ${massA.toFixed(2)} vs ${massB.toFixed(2)}, available space: ${availableSpace.toFixed(1)}°`);
-                }
               } else {
-                console.log(`  ❌ ${weaker}: movement blocked - isPrimaryPusher=${weaker === primaryPusher}`);
+                console.log(`  ❌ ${weaker}: blocked by space constraint, movement=${actualWeakerMovement.toFixed(2)}°`);
               }
             }
           }
