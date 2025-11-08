@@ -7,6 +7,9 @@ import { KnowledgeCheck } from '@/components/onboarding/KnowledgeCheck';
 import { GoalSetting } from '@/components/onboarding/GoalSetting';
 import { NotificationSetup } from '@/components/onboarding/NotificationSetup';
 import { WelcomeToPath } from '@/components/onboarding/WelcomeToPath';
+import { completeOnboarding } from '@/services/onboardingService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type OnboardingStep = 'welcome' | 'domain' | 'knowledge' | 'goals' | 'notifications' | 'complete';
 
@@ -63,12 +66,28 @@ const Onboarding = () => {
     setCurrentStep('complete');
   };
 
-  const handleOnboardingComplete = () => {
-    // TODO: Save onboarding data to backend/localStorage
-    console.log('Onboarding completed with data:', data);
-    
-    // Navigate to main learning path
-    navigate('/');
+  const handleOnboardingComplete = async () => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Please sign in to complete onboarding');
+        navigate('/auth');
+        return;
+      }
+
+      // Save onboarding data to backend
+      await completeOnboarding(user.id, data);
+      
+      toast.success('Welcome to your ecosystem journey!');
+      
+      // Navigate to surveys page (main learning path)
+      navigate('/surveys');
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      toast.error('Something went wrong. Please try again.');
+    }
   };
 
   // Determine level based on unlocked unit

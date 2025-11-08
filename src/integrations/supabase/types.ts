@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -333,47 +333,191 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          time_hour: number | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          time_hour?: number | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          time_hour?: number | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      path_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          insights_earned: number | null
+          status: string | null
+          unit_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          insights_earned?: number | null
+          status?: string | null
+          unit_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          insights_earned?: number | null
+          status?: string | null
+          unit_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "path_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      placement_results: {
+        Row: {
+          concept_score: number | null
+          confidence_score: number | null
+          created_at: string | null
+          domain: string
+          id: string
+          total_score: number | null
+          understanding_score: number | null
+          unlocked_to_unit: number | null
+          user_id: string
+        }
+        Insert: {
+          concept_score?: number | null
+          confidence_score?: number | null
+          created_at?: string | null
+          domain: string
+          id?: string
+          total_score?: number | null
+          understanding_score?: number | null
+          unlocked_to_unit?: number | null
+          user_id: string
+        }
+        Update: {
+          concept_score?: number | null
+          confidence_score?: number | null
+          created_at?: string | null
+          domain?: string
+          id?: string
+          total_score?: number | null
+          understanding_score?: number | null
+          unlocked_to_unit?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_results_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           age_group: string | null
           created_at: string | null
+          daily_goal: number | null
           email: string
           first_name: string
           gender: string | null
           has_completed_onboarding: boolean | null
+          hearts: number | null
           id: string
+          insights: number | null
+          knowledge_level: number | null
+          last_session: string | null
           location_id: string | null
           phone_number: string | null
           profile_photo: string | null
           role: string
+          selected_domain: string | null
+          streak: number | null
           updated_at: string | null
         }
         Insert: {
           age_group?: string | null
           created_at?: string | null
+          daily_goal?: number | null
           email: string
           first_name: string
           gender?: string | null
           has_completed_onboarding?: boolean | null
+          hearts?: number | null
           id: string
+          insights?: number | null
+          knowledge_level?: number | null
+          last_session?: string | null
           location_id?: string | null
           phone_number?: string | null
           profile_photo?: string | null
           role?: string
+          selected_domain?: string | null
+          streak?: number | null
           updated_at?: string | null
         }
         Update: {
           age_group?: string | null
           created_at?: string | null
+          daily_goal?: number | null
           email?: string
           first_name?: string
           gender?: string | null
           has_completed_onboarding?: boolean | null
+          hearts?: number | null
           id?: string
+          insights?: number | null
+          knowledge_level?: number | null
+          last_session?: string | null
           location_id?: string | null
           phone_number?: string | null
           profile_photo?: string | null
           role?: string
+          selected_domain?: string | null
+          streak?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1184,26 +1328,26 @@ export type Database = {
         Returns: {
           location_id: string
           name: string
-          type: string
           parent_id: string
+          type: string
         }[]
       }
       get_location_path: {
         Args: { target_location_id: string }
         Returns: {
+          depth: number
           location_id: string
           name: string
           type: string
-          depth: number
         }[]
       }
       get_survey_target_users: {
-        Args: { survey_id_param: string; location_id_param: string }
+        Args: { location_id_param: string; survey_id_param: string }
         Returns: {
-          user_id: string
-          phone_number: string
-          gender: string
           age_group: string
+          gender: string
+          phone_number: string
+          user_id: string
         }[]
       }
     }
