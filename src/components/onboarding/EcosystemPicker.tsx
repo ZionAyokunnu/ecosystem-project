@@ -12,34 +12,34 @@ export interface EcosystemDomain {
 
 const ecosystemDomains: EcosystemDomain[] = [
   {
-    id: 'environment',
-    title: 'Environment & Nature',
-    description: 'Green spaces, pollution, climate impact',
-    icon: '🌳',
+    id: 'altruism',
+    title: 'Altruism',
+    description: 'Giving to others, helping others, community service',
+    icon: '💖',
     gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
     textColor: '#FFFFFF'
   },
   {
-    id: 'social',
-    title: 'Social Connections',
-    description: 'Community bonds, inclusivity, cultural life',
-    icon: '🤝',
+    id: 'information',
+    title: 'Information',
+    description: 'Learning about the community, the people, the culture',
+    icon: '💡',
     gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
     textColor: '#FFFFFF'
   },
   {
-    id: 'economy',
-    title: 'Local Economy',
-    description: 'Employment, business growth, affordability',
-    icon: '💼',
+    id: 'love',
+    title: 'Love & Interest',
+    description: 'Love for the community, the people, the culture',
+    icon: '💕',
     gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
     textColor: '#FFFFFF'
   },
   {
     id: 'health',
-    title: 'Health & Wellbeing',
+    title: 'Health & Wellness',
     description: 'Physical and mental health resources',
-    icon: '❤️',
+    icon: '🏥',
     gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
     textColor: '#FFFFFF'
   },
@@ -49,6 +49,22 @@ const ecosystemDomains: EcosystemDomain[] = [
     description: 'Learning opportunities, skill development',
     icon: '📚',
     gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+    textColor: '#FFFFFF'
+  },
+  {
+    id: 'dignity',
+    title: 'Dignity',
+    description: 'Respect for the community, the people, the culture',
+    icon: '💪',
+    gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+    textColor: '#FFFFFF'
+  },
+  {
+    id: 'safety',
+    title: 'Safety & Security',
+    description: 'Safety for the community, the people, the culture',
+    icon: '🔒',
+    gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
     textColor: '#FFFFFF'
   },
   {

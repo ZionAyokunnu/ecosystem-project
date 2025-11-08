@@ -154,7 +154,7 @@ const App = () => (
                     <Route index element={<Profile />} />
                   </Route>
                   
-                  <Route path="/onboarding" element={<MainLayout />}>
+                  <Route path="/old-onboarding" element={<MainLayout />}>
                     <Route index element={<OnboardingSurvey />} />
                   </Route>
                   

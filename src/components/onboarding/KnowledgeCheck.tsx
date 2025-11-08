@@ -4,11 +4,13 @@ import { Slider } from '@/components/ui/slider';
 import type { EcosystemDomain } from './EcosystemPicker';
 
 const conceptOptions: Record<string, string[]> = {
-  environment: ['Climate action', 'Biodiversity', 'Sustainable living', 'Green infrastructure'],
-  social: ['Community events', 'Volunteer networks', 'Cultural diversity', 'Neighborhood safety'],
-  economy: ['Local businesses', 'Job opportunities', 'Innovation hubs', 'Affordable housing'],
-  health: ['Healthcare access', 'Mental health support', 'Active lifestyle', 'Community wellness'],
-  education: ['Skill development', 'Learning resources', 'Career pathways', 'Digital literacy'],
+  altruism: ['Giving to others', 'Religious activities', 'Community service', 'Influence others', 'Art and craft'],
+  information: ['Learning about the community', 'The people', 'Media and communication', 'Information literacy'],
+  love: ['Love for the community', 'The people', 'The culture', 'Love and affection', 'Motivation and interest'],
+  health: ['Physical and mental health resources', 'Health and wellness', 'Waste and pollution', 'Family and community'],
+  education: ['Learning opportunities', 'Economic and social development', 'Job opportunities', 'Education and skills'],
+  dignity: ['Infrastructure and services', 'Influence and leadership', 'The culture', 'Dignity and respect'],
+  safety: ['Energy and water security', 'Financial stability', 'Infrastructure and services', 'Safety and security'],
   explore: ['System connections', 'Data patterns', 'Research insights', 'Complex relationships']
 };
 
