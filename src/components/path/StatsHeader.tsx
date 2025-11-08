@@ -16,10 +16,6 @@ export const StatsHeader: React.FC = () => {
     streak: 0
   });
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
   const loadStats = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -42,6 +38,16 @@ export const StatsHeader: React.FC = () => {
       console.error('Error loading stats:', error);
     }
   };
+
+  useEffect(() => {
+    loadStats();
+    
+    // Refresh stats when storage event fires (from other components)
+    const handleStorageChange = () => loadStats();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const statItems = [
     {

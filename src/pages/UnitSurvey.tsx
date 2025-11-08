@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { HeartModal } from '@/components/path/HeartModal';
 
 interface Domain {
   parent_id: string | null;
@@ -38,6 +39,9 @@ const UnitSurvey = () => {
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
   const [domainPath, setDomainPath] = useState<Domain[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPracticeMode, setIsPracticeMode] = useState(false);
+  const [showHeartModal, setShowHeartModal] = useState(false);
+  const [userHearts, setUserHearts] = useState(5);
 
   // Dynamic steps based on context
   const steps = isOnboarding ? [
@@ -86,6 +90,27 @@ const UnitSurvey = () => {
     { value: 'researcher', label: 'Researcher', description: 'I study community wellbeing' },
     { value: 'business', label: 'Business Owner', description: 'I run a business in this area' }
   ];
+
+  // Load hearts and daily stats
+  useEffect(() => {
+    const loadHearts = async () => {
+      if (!user?.id) return;
+      
+      await pathProgressService.updateDailyStats();
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('hearts')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserHearts(profile.hearts || 0);
+      }
+    };
+    
+    loadHearts();
+  }, [user]);
 
   // Load root domains (level 1) on component mount
   useEffect(() => {
@@ -283,6 +308,21 @@ const UnitSurvey = () => {
     }
   };
 
+  const handleSurveyStart = async () => {
+    if (isPracticeMode || isOnboarding) return true;
+    
+    // Check hearts and spend one
+    const result = await pathProgressService.spendHeart();
+    
+    if (!result.success) {
+      setShowHeartModal(true);
+      return false;
+    }
+    
+    setUserHearts(result.heartsRemaining || 0);
+    return true;
+  };
+
   const handleComplete = async () => {
     try {
       console.log('🏁 UnitSurvey: Starting completion process');
@@ -299,15 +339,20 @@ const UnitSurvey = () => {
         toast.success('Onboarding completed! You earned 50 points.');
         navigate('/path');
       } else if (unitId) {
-        // Unit survey flow
-        const insightsEarned = 5; // Fixed insights per unit survey
-        const result = await pathProgressService.completeUnit(unitId, insightsEarned);
-        
-        if (result.success) {
-          toast.success(`Unit complete! Earned ${insightsEarned} insights.`);
-          setTimeout(() => navigate('/path'), 2000);
+        // Unit survey flow - only award insights if not in practice mode
+        if (!isPracticeMode) {
+          const insightsEarned = 5;
+          const result = await pathProgressService.completeUnit(unitId, insightsEarned);
+          
+          if (result.success) {
+            toast.success(`Unit complete! Earned ${insightsEarned} insights.`);
+            setTimeout(() => navigate('/path'), 2000);
+          } else {
+            toast.error('Failed to complete unit');
+          }
         } else {
-          toast.error('Failed to complete unit');
+          toast.success('Practice complete! Try again with hearts to earn insights.');
+          setTimeout(() => navigate('/path'), 2000);
         }
       }
     } catch (err) {
@@ -433,12 +478,20 @@ const UnitSurvey = () => {
         
         return (
           <div className="animate-fade-in">
+            {isPracticeMode && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                <p className="text-sm font-medium text-yellow-800">
+                  🎯 Practice Mode - Complete this to learn, but you won't earn insights
+                </p>
+              </div>
+            )}
             <SurveyRenderer
               onComplete={(surveyResponses) => {
                 console.log('📋 OnboardingSurvey: Survey completed with responses:', surveyResponses);
                 setResponses({ ...responses, surveyResponses });
                 handleComplete();
               }}
+              onStart={handleSurveyStart}
               domainId={responses.domain}
               domainPath={responses.domainPath || []}
             />
@@ -469,6 +522,16 @@ const UnitSurvey = () => {
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50">
+      <HeartModal 
+        isOpen={showHeartModal}
+        onClose={() => setShowHeartModal(false)}
+        onPracticeMode={() => {
+          setIsPracticeMode(true);
+          setShowHeartModal(false);
+          toast.info('Practice mode activated - no insights earned');
+        }}
+      />
+      
       <div className="max-w-6xl mx-auto">
         {/* Progress bar */}
         <div className="mb-8">

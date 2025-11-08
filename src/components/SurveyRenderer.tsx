@@ -32,16 +32,18 @@ interface Domain {
 
 interface SurveyRendererProps {
   onComplete: (responses: any[]) => void;
+  onStart?: () => Promise<boolean>;
   domainId?: string;
   domainPath?: Domain[];
 }
 
-const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, domainPath = [] }) => {
+const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, onStart, domainId, domainPath = [] }) => {
   const { user, profile } = useAuth();
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
   const [allIndicators, setAllIndicators] = useState<{ indicator_id: string; name: string }[]>([]);
+  const [hasStarted, setHasStarted] = useState(false);
   const [currentResponse, setCurrentResponse] = useState({
     direction: '',
     strength: [5],
@@ -50,6 +52,25 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
   });
   const [loading, setLoading] = useState(true);
   const [newOptionText, setNewOptionText] = useState('');
+
+  // Monitor hearts update for StatsHeader refresh
+  useEffect(() => {
+    const updateHearts = async () => {
+      if (!user?.id || !hasStarted) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('hearts, streak, insights')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        window.dispatchEvent(new Event('storage'));
+      }
+    };
+    
+    updateHearts();
+  }, [user, hasStarted]);
 
   // load names of similar indicators with fuse once on mount for additional option
   useEffect(() => {
@@ -243,6 +264,15 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
   ];
 
   const handleNext = async () => {
+    // Check hearts before first question
+    if (!hasStarted && onStart) {
+      const canStart = await onStart();
+      if (!canStart) {
+        return; // Heart modal will show
+      }
+      setHasStarted(true);
+    }
+
     if (!currentResponse.direction) {
       toast.error('Please select a relationship direction');
       return;
@@ -262,7 +292,7 @@ const SurveyRenderer: React.FC<SurveyRendererProps> = ({ onComplete, domainId, d
       question_id: questions[currentQuestionIndex].question_id,
       parent_id: questions[currentQuestionIndex].parent_indicator_id,
       child_id: questions[currentQuestionIndex].child_indicator_id,
-      user_id: user.id, // Using user.id from useAuth instead of userProfile.id
+      user_id: user.id,
       domain: domainId,
       strength_score: currentResponse.strength[0],
       created_at: new Date().toISOString()
