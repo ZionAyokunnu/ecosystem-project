@@ -29,6 +29,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import Leaderboard from "@/pages/Leaderboard";
 import About from "./pages/About";
 import Home from "./pages/Home";
+import Onboarding from "@/pages/Onboarding";
 import "./App.css"
 import SurveysPage from "./pages/SurveysPage";
 
@@ -45,6 +46,8 @@ const App = () => (
               <Sonner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
+                <Route path="/onboarding" element={<Onboarding />} />
+
                   <Route path="/auth" element={<Auth />} />
 
                   <Route path="/" element={<MainLayout />}>

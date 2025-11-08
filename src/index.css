@@ -49,6 +49,24 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Duolingo-inspired greens */
+    --success: 142 76% 36%;
+    --success-light: 142 71% 45%;
+    --success-bg: 142 76% 96%;
+    --success-hover: 142 76% 32%;
+    
+    /* Additional semantic colors */
+    --gray-50: 210 20% 98%;
+    --gray-100: 214 15% 95%;
+    --gray-200: 214 13% 91%;
+    --gray-300: 213 12% 85%;
+    --gray-400: 215 10% 65%;
+    --gray-500: 215 8% 47%;
+    --gray-600: 215 14% 34%;
+    --gray-700: 215 19% 27%;
+    --gray-800: 217 19% 20%;
+    --gray-900: 222 22% 11%;
   }
 
   .dark {
@@ -175,6 +193,46 @@
   }
 }
 
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes bounce-soft {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .animate-ripple {
   animation: ripple 2s ease-out infinite;
 }
@@ -197,6 +255,22 @@
 
 .animate-grow-network {
   animation: grow-network 1s ease-out;
+}
+
+.animate-gentle-float {
+  animation: gentle-float 2s ease-in-out infinite;
+}
+
+.animate-bounce-soft {
+  animation: bounce-soft 1.5s ease-in-out infinite;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 
 /* Custom scrollbar */
