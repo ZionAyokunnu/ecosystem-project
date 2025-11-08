@@ -17,7 +17,7 @@ import Homepage from "@/pages/Homepage";
 import CommunityStoriesPage from "@/pages/CommunityStoriesPage";
 import TreeMapPage from "@/pages/TreeMapPage";
 import Profile from "@/pages/Profile";
-import OnboardingSurvey from "@/pages/OnboardingSurvey";
+import UnitSurvey from '@/pages/UnitSurvey';
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Wallet from "@/pages/Wallet";
@@ -47,9 +47,8 @@ const App = () => (
               <Sonner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
-                <Route path="/onboarding" element={<Onboarding />} />
-
-                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/onboarding" element={<Onboarding />} />
+                  <Route path="/unit-survey" element={<UnitSurvey />} />
 
                   <Route path="/" element={<MainLayout />}>
                     <Route index element={<Home />} />
@@ -152,10 +151,6 @@ const App = () => (
                   
                   <Route path="/profile" element={<MainLayout />}>
                     <Route index element={<Profile />} />
-                  </Route>
-                  
-                  <Route path="/old-onboarding" element={<MainLayout />}>
-                    <Route index element={<OnboardingSurvey />} />
                   </Route>
                   
                   <Route path="*" element={<NotFound />} />

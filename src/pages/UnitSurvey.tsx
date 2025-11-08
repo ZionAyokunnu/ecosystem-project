@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Lightbulb, Users, Target, BookOpen } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { pathProgressService } from '@/services/pathProgressService';
 import SurveyRenderer from '@/components/SurveyRenderer';
 import { awardPoints } from '@/services/gamificationApi';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,10 +22,16 @@ interface Domain {
   indicator_id: string | null;
 }
 
-const OnboardingSurvey = () => {
+const UnitSurvey = () => {
   const { setOnboardingComplete } = useUser();
-  const { user } = useAuth(); // Use useAuth instead of userProfile
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Check if this is onboarding or unit survey
+  const unitId = searchParams.get('unit');
+  const isOnboarding = searchParams.get('onboarding') === 'true';
+  
   const [currentStep, setCurrentStep] = useState(0);
   const [responses, setResponses] = useState<any>({});
   const [currentDomains, setCurrentDomains] = useState<Domain[]>([]);
@@ -32,7 +39,8 @@ const OnboardingSurvey = () => {
   const [domainPath, setDomainPath] = useState<Domain[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const steps = [
+  // Dynamic steps based on context
+  const steps = isOnboarding ? [
     { 
       title: 'Welcome to Community Insights', 
       type: 'intro', 
@@ -55,6 +63,19 @@ const OnboardingSurvey = () => {
       title: 'Community Relationships', 
       type: 'survey', 
       content: 'Help us understand how you perceive relationships between community indicators.',
+      icon: BookOpen
+    }
+  ] : [
+    { 
+      title: 'Select Your Focus Area', 
+      type: 'domain', 
+      content: 'Choose the domain you want to explore in this unit.',
+      icon: Target
+    },
+    { 
+      title: 'Unit Survey', 
+      type: 'survey', 
+      content: 'Share your insights on these community relationships.',
       icon: BookOpen
     }
   ];
@@ -264,33 +285,34 @@ const OnboardingSurvey = () => {
 
   const handleComplete = async () => {
     try {
-      console.log('🏁 OnboardingSurvey: Starting completion process');
-      console.log('👤 OnboardingSurvey: User from useAuth:', user);
-      
+      console.log('🏁 UnitSurvey: Starting completion process');
       const userId = user?.id;
       if (!userId) {
-        console.error('❌ OnboardingSurvey: No valid user ID from useAuth');
+        console.error('❌ UnitSurvey: No valid user ID');
         throw new Error('No valid user ID');
       }
 
-      console.log('✅ OnboardingSurvey: Valid user ID found:', userId);
-      console.log('🎯 OnboardingSurvey: Awarding points...');
-
-      await awardPoints(userId, 'survey_completed', 50, { survey_type: 'onboarding' });
-
-      console.log('✅ OnboardingSurvey: Points awarded successfully');
-      console.log('📝 OnboardingSurvey: Setting onboarding complete...');
-
-      setOnboardingComplete(true);
-      
-      console.log('✅ OnboardingSurvey: Onboarding marked complete');
-      console.log('🚀 OnboardingSurvey: Navigating to overview...');
-
-      toast.success('Onboarding completed! You earned 50 points.');
-      navigate('/overview');
+      if (isOnboarding) {
+        // Onboarding flow
+        await awardPoints(userId, 'survey_completed', 50, { survey_type: 'onboarding' });
+        setOnboardingComplete(true);
+        toast.success('Onboarding completed! You earned 50 points.');
+        navigate('/path');
+      } else if (unitId) {
+        // Unit survey flow
+        const insightsEarned = 5; // Fixed insights per unit survey
+        const result = await pathProgressService.completeUnit(unitId, insightsEarned);
+        
+        if (result.success) {
+          toast.success(`Unit complete! Earned ${insightsEarned} insights.`);
+          setTimeout(() => navigate('/path'), 2000);
+        } else {
+          toast.error('Failed to complete unit');
+        }
+      }
     } catch (err) {
-      console.error('💥 OnboardingSurvey: Error in completion process:', err);
-      toast.error('Error completing onboarding.');
+      console.error('💥 UnitSurvey: Error in completion process:', err);
+      toast.error('Error completing survey.');
     }
   };
 
@@ -493,4 +515,4 @@ const OnboardingSurvey = () => {
   );
 };
 
-export default OnboardingSurvey;
+export default UnitSurvey;

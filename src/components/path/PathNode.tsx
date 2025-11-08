@@ -65,8 +65,11 @@ export const PathNode: React.FC<PathNodeProps> = ({
     : nodeStyles[status];
 
   const handleClick = () => {
-    if (style.clickable && status !== 'locked') {
-      navigate(`/surveys?unit=${unitId}`);
+    if (status === 'locked') return;
+    
+    // Navigate to unit survey
+    if (unitId) {
+      navigate(`/unit-survey?unit=${unitId}`);
     }
   };
 

@@ -82,8 +82,8 @@ const Onboarding = () => {
       
       toast.success('Welcome to your ecosystem journey!');
       
-      // Navigate to learning path
-      navigate('/path');
+      // Navigate to unit survey with onboarding flag
+      navigate('/unit-survey?onboarding=true');
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
       toast.error('Something went wrong. Please try again.');
