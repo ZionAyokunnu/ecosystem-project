@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileText, Users, TrendingUp } from 'lucide-react';
+import { pathProgressService } from '@/services/pathProgressService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocation } from '@/context/LocationContext';
@@ -14,9 +15,13 @@ import { useAuth } from '@/hooks/useAuth';
 
 const SurveysPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const unitId = searchParams.get('unit');
+  
   const { selectedLocation } = useLocation();
   const [selectedSurvey, setSelectedSurvey] = useState<any>(null);
   const [completedSurveys, setCompletedSurveys] = useState<Set<string>>(new Set());
+  const [unitCompleting, setUnitCompleting] = useState(false);
   const { profile } = useAuth();
 
   // // Mock survey data
@@ -102,12 +107,15 @@ const SurveysPage: React.FC = () => {
   const [participantCounts, setParticipantCounts] = useState<Record<string,number>>({});
 
   useEffect(() => {
+    // Update daily stats when entering surveys
+    pathProgressService.updateDailyStats();
+    
     const locId = selectedLocation?.location_id || profile?.location_id;
-if (!locId) {
-  console.warn('SurveysPage: no location to fetch for');
-  return;
-}
-console.log('📊 Fetching surveys for location:', locId);
+    if (!locId) {
+      console.warn('SurveysPage: no location to fetch for');
+      return;
+    }
+    console.log('📊 Fetching surveys for location:', locId);
 
 
     (async () => {
@@ -164,23 +172,86 @@ console.log('📊 Fetching surveys for location:', locId);
 
   const handleSurveyComplete = (responses: Record<string, string>) => {
     console.log('Survey responses:', responses);
-    setCompletedSurveys(prev => new Set([...prev, selectedSurvey.id]));
-    toast.success('Thank you for completing the survey!');
+    setCompletedSurveys(prev => new Set([...prev, selectedSurvey.survey_id]));
+    toast.success('Thank you for completing the survey! +2 Insights');
     setSelectedSurvey(null);
   };
 
-  const availableSurveys = surveys.filter(survey => !completedSurveys.has(String(survey.id)));
-  const completedSurveysList = surveys.filter(survey => completedSurveys.has(String(survey.id)));
+  const handleCompleteUnit = async () => {
+    if (!unitId) return;
+    
+    setUnitCompleting(true);
+    const insightsEarned = completedSurveys.size * 2; // 2 insights per survey
+    const result = await pathProgressService.completeUnit(unitId, insightsEarned);
+    
+    if (result.success) {
+      // Navigate back to path after a short delay
+      setTimeout(() => {
+        navigate('/path');
+      }, 2000);
+    }
+    setUnitCompleting(false);
+  };
+
+  // Check if all surveys in the unit are completed
+  const allSurveysCompleted = surveys.length > 0 && surveys.every(s => 
+    completedSurveys.has(s.survey_id)
+  );
+
+  const availableSurveys = surveys.filter(survey => !completedSurveys.has(survey.survey_id));
+  const completedSurveysList = surveys.filter(survey => completedSurveys.has(survey.survey_id));
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Unit Progress Banner */}
+      {unitId && (
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/path')}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Learning Path
+          </Button>
+          <Card className="border-primary bg-primary/5">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-primary mb-2">
+                {unitId.replace('_', ' ').toUpperCase()}
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                Complete all surveys to finish this unit and unlock the next one!
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">
+                  Progress: {completedSurveys.size} / {surveys.length} completed
+                </div>
+                {allSurveysCompleted && (
+                  <Button
+                    onClick={handleCompleteUnit}
+                    disabled={unitCompleting}
+                    className="bg-success hover:bg-success-hover text-white font-bold"
+                  >
+                    {unitCompleting ? '🎉 Completing...' : '✅ Complete Unit'}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate('/overview')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Overview
-        </Button>
+        {!unitId && (
+          <Button variant="ghost" onClick={() => navigate('/overview')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Overview
+          </Button>
+        )}
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Community Surveys</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {unitId ? 'Unit Surveys' : 'Community Surveys'}
+          </h1>
           <p className="text-gray-600 mt-1">
             Share your voice and help shape community priorities
             {selectedLocation && ` in ${selectedLocation.name}`}
