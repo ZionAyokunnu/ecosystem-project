@@ -17,7 +17,6 @@ import Homepage from "@/pages/Homepage";
 import CommunityStoriesPage from "@/pages/CommunityStoriesPage";
 import TreeMapPage from "@/pages/TreeMapPage";
 import Profile from "@/pages/Profile";
-import UnitSurvey from '@/pages/UnitSurvey';
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Wallet from "@/pages/Wallet";
@@ -30,7 +29,9 @@ import Leaderboard from "@/pages/Leaderboard";
 import About from "./pages/About";
 import Home from "./pages/Home";
 import Onboarding from "@/pages/Onboarding";
-import LearningPath from "@/pages/LearningPath";
+import LearningPath from './pages/LearningPath';
+import UnitSurvey from './pages/UnitSurvey';
+import Achievements from './pages/Achievements';
 import "./App.css"
 import SurveysPage from "./pages/SurveysPage";
 
@@ -144,6 +145,8 @@ const App = () => (
                   </Route>
                   <Route path="/surveys" element={<SurveysPage />} />
                   <Route path="/path" element={<LearningPath />} />
+                  <Route path="/unit-survey" element={<UnitSurvey />} />
+                  <Route path="/achievements" element={<Achievements />} />
                   
                   <Route path="/about" element={<MainLayout />}>
                     <Route index element={<About />} />

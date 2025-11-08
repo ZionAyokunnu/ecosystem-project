@@ -90,18 +90,17 @@ export const pathProgressService = {
         if (nextError) throw nextError;
       }
 
-      // Show success message
-      if (isCheckpoint) {
-        toast.success(`🎉 Checkpoint Complete! +${totalInsights} Insights`, {
-          description: 'Amazing progress! Keep going!'
-        });
-      } else {
-        toast.success(`✅ Unit Complete! +${totalInsights} Insights`, {
-          description: 'Next unit unlocked!'
-        });
-      }
+      // Check for new achievements (imported dynamically to avoid circular deps)
+      const { achievementService } = await import('./achievementService');
+      const newBadges = await achievementService.checkAndAwardAchievements(user.id);
 
-      return { success: true, insightsEarned: totalInsights };
+      return { 
+        success: true, 
+        insightsEarned: totalInsights,
+        isCheckpoint,
+        unitNumber: unitNum,
+        newBadges
+      };
     } catch (error) {
       console.error('Error completing unit:', error);
       toast.error('Failed to complete unit');

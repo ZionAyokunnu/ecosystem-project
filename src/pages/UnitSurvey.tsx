@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { HeartModal } from '@/components/path/HeartModal';
+import { CelebrationModal } from '@/components/path/CelebrationModal';
 
 interface Domain {
   parent_id: string | null;
@@ -42,6 +43,8 @@ const UnitSurvey = () => {
   const [isPracticeMode, setIsPracticeMode] = useState(false);
   const [showHeartModal, setShowHeartModal] = useState(false);
   const [userHearts, setUserHearts] = useState(5);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationData, setCelebrationData] = useState<any>(null);
 
   // Dynamic steps based on context
   const steps = isOnboarding ? [
@@ -345,8 +348,14 @@ const UnitSurvey = () => {
           const result = await pathProgressService.completeUnit(unitId, insightsEarned);
           
           if (result.success) {
-            toast.success(`Unit complete! Earned ${insightsEarned} insights.`);
-            setTimeout(() => navigate('/path'), 2000);
+            // Show celebration modal instead of toast
+            setCelebrationData({
+              unitNumber: result.unitNumber,
+              insightsEarned: result.insightsEarned,
+              isCheckpoint: result.isCheckpoint,
+              newBadges: result.newBadges || []
+            });
+            setShowCelebration(true);
           } else {
             toast.error('Failed to complete unit');
           }
@@ -531,6 +540,20 @@ const UnitSurvey = () => {
           toast.info('Practice mode activated - no insights earned');
         }}
       />
+      
+      {celebrationData && (
+        <CelebrationModal
+          isOpen={showCelebration}
+          onClose={() => {
+            setShowCelebration(false);
+            setCelebrationData(null);
+          }}
+          unitNumber={celebrationData.unitNumber}
+          insightsEarned={celebrationData.insightsEarned}
+          isCheckpoint={celebrationData.isCheckpoint}
+          newBadges={celebrationData.newBadges}
+        />
+      )}
       
       <div className="max-w-6xl mx-auto">
         {/* Progress bar */}
