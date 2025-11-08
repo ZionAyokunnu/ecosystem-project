@@ -30,6 +30,7 @@ import Leaderboard from "@/pages/Leaderboard";
 import About from "./pages/About";
 import Home from "./pages/Home";
 import Onboarding from "@/pages/Onboarding";
+import LearningPath from "@/pages/LearningPath";
 import "./App.css"
 import SurveysPage from "./pages/SurveysPage";
 
@@ -143,6 +144,7 @@ const App = () => (
                     } />
                   </Route>
                   <Route path="/surveys" element={<SurveysPage />} />
+                  <Route path="/path" element={<LearningPath />} />
                   
                   <Route path="/about" element={<MainLayout />}>
                     <Route index element={<About />} />
