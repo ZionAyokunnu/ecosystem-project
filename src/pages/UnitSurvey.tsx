@@ -30,7 +30,8 @@ const UnitSurvey = () => {
         unitNumber: completionData.nodeId?.sequence_day || 1,
         insightsEarned: result.insightsEarned,
         isCheckpoint: false,
-        newBadges: result.achievements?.map((a: any) => a.title) || []
+        newBadges: result.achievements?.map((a: any) => a.title) || [],
+        onViewInsights: () => navigate('/insights')
       });
       setShowCelebration(true);
     } else {
@@ -75,6 +76,7 @@ const UnitSurvey = () => {
           insightsEarned={celebrationData.insightsEarned}
           isCheckpoint={celebrationData.isCheckpoint}
           newBadges={celebrationData.newBadges}
+          onViewInsights={celebrationData.onViewInsights}
         />
       )}
     </>

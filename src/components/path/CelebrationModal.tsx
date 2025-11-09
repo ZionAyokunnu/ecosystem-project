@@ -11,6 +11,7 @@ interface CelebrationModalProps {
   insightsEarned: number;
   isCheckpoint: boolean;
   newBadges?: string[];
+  onViewInsights?: () => void;
 }
 
 export const CelebrationModal: React.FC<CelebrationModalProps> = ({
@@ -19,7 +20,8 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
   unitNumber,
   insightsEarned,
   isCheckpoint,
-  newBadges = []
+  newBadges = [],
+  onViewInsights
 }) => {
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
@@ -128,8 +130,21 @@ export const CelebrationModal: React.FC<CelebrationModalProps> = ({
               }}
               className="w-full h-12 text-base"
             >
-              Continue Learning
+              🚀 Continue Learning
             </Button>
+            {onViewInsights && (
+              <Button
+                onClick={() => {
+                  onViewInsights();
+                  onClose();
+                }}
+                variant="outline"
+                className="w-full h-12 text-base border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+              >
+                <span className="mr-2">🧠</span>
+                See Your Impact
+              </Button>
+            )}
             <Button
               onClick={() => {
                 onClose();

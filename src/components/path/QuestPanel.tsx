@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Quest {
@@ -14,6 +15,7 @@ interface Quest {
 }
 
 export const QuestPanel: React.FC = () => {
+  const navigate = useNavigate();
   const [quests, setQuests] = useState<Quest[]>([]);
 
   useEffect(() => {
@@ -44,6 +46,17 @@ export const QuestPanel: React.FC = () => {
 
       // Default quests
       const defaultQuests: Quest[] = [
+        {
+          id: 'daily_insights',
+          icon: '🧠',
+          title: 'Check Your Impact',
+          description: 'See how your learning affects your community',
+          progress: 0,
+          total: 1,
+          reward: { type: 'insights', amount: 3 },
+          bgColor: '#F3E8FF',
+          textColor: '#7C3AED'
+        },
         {
           id: 'insights',
           icon: '⚡',
@@ -101,12 +114,14 @@ export const QuestPanel: React.FC = () => {
       <div className="space-y-3">
         {quests.map((quest) => {
           const progressPercent = (quest.progress / quest.total) * 100;
+          const isInsightsQuest = quest.id === 'daily_insights';
           
           return (
             <div
               key={quest.id}
-              className="p-3 rounded-lg border border-muted/50 flex items-center gap-3"
+              className={`p-3 rounded-lg border border-muted/50 flex items-center gap-3 ${isInsightsQuest ? 'cursor-pointer hover:scale-105 transition-all duration-200' : ''}`}
               style={{ backgroundColor: quest.bgColor }}
+              onClick={isInsightsQuest ? () => navigate('/insights') : undefined}
             >
               {/* Icon */}
               <div className="text-2xl flex-shrink-0">

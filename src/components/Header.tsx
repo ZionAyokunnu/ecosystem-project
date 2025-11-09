@@ -40,10 +40,10 @@ const Header: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/overview', label: 'Overview', icon: BarChart3 },
+    { path: '/path', label: 'Learning', icon: TreePine },
+    { path: '/insights', label: 'Insights', icon: BarChart3 },
     { path: '/stories', label: 'Stories', icon: MessageSquare },
     { path: '/surveys', label: 'Surveys', icon: FileText },
-    { path: '/detail', label: 'Insight', icon: PieChart },
   ];
 
   const isActive = (path: string) => location.pathname === path;

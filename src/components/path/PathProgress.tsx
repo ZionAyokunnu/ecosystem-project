@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { PathNode } from './PathNode';
 import { PathMascot } from './PathMascot';
@@ -14,6 +15,7 @@ interface PathNodeData {
 }
 
 export const PathProgress: React.FC = () => {
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState<PathNodeData[]>([]);
   const [currentDay, setCurrentDay] = useState<number>(1);
   const [loading, setLoading] = useState(true);
@@ -88,16 +90,26 @@ export const PathProgress: React.FC = () => {
   return (
     <div className="relative min-h-screen py-10 px-[60px]">
       {/* Current day banner */}
-      <div className="w-[480px] h-16 mb-12 rounded-2xl bg-gradient-to-br from-success to-success-light p-4 flex items-center justify-between animate-scale-in">
-        <div>
+      <div className="w-[480px] h-20 mb-12 rounded-2xl bg-gradient-to-br from-success to-success-light p-4 flex items-center justify-between animate-scale-in">
+        <div className="flex-1">
           <div className="text-xs font-bold text-white/80 uppercase tracking-wide">
             Day {currentDay}
           </div>
           <div className="text-lg font-bold text-white">
-            {nodes.find(n => n.status === 'current')?.title || 'Your Current Task'}
+            {nodes.find(n => n.status === 'current')?.title || 'Your Learning Journey'}
           </div>
         </div>
-        <span className="text-2xl">📊</span>
+        
+        {/* Insights Button */}
+        <button
+          onClick={() => navigate('/insights')}
+          className="bg-white/20 hover:bg-white/30 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2"
+        >
+          <span className="text-lg">🧠</span>
+          <span className="text-sm">See Insights</span>
+        </button>
+        
+        <span className="text-2xl ml-4">📊</span>
       </div>
 
       {/* Path track - vertical line */}
