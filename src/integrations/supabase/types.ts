@@ -97,6 +97,60 @@ export type Database = {
           },
         ]
       }
+      community_actions: {
+        Row: {
+          action_template: string | null
+          action_type: string
+          created_at: string | null
+          description: string
+          difficulty_level: number | null
+          dynamic_fields: Json | null
+          id: string
+          impact_potential: number | null
+          indicator_id: string | null
+          insights_reward: number | null
+          location_type: string | null
+          target_demographic: Json | null
+          time_requirement: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_template?: string | null
+          action_type: string
+          created_at?: string | null
+          description: string
+          difficulty_level?: number | null
+          dynamic_fields?: Json | null
+          id?: string
+          impact_potential?: number | null
+          indicator_id?: string | null
+          insights_reward?: number | null
+          location_type?: string | null
+          target_demographic?: Json | null
+          time_requirement?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_template?: string | null
+          action_type?: string
+          created_at?: string | null
+          description?: string
+          difficulty_level?: number | null
+          dynamic_fields?: Json | null
+          id?: string
+          impact_potential?: number | null
+          indicator_id?: string | null
+          insights_reward?: number | null
+          location_type?: string | null
+          target_demographic?: Json | null
+          time_requirement?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       daily_quests: {
         Row: {
           badge_reward: string | null
@@ -415,6 +469,54 @@ export type Database = {
         }
         Relationships: []
       }
+      local_context: {
+        Row: {
+          address: string | null
+          contact_info: Json | null
+          context_type: string | null
+          current_status: string | null
+          data_source: string | null
+          description: string | null
+          id: string
+          last_updated: string | null
+          location_id: string | null
+          name: string
+          operating_hours: Json | null
+          relevant_indicators: string[] | null
+          tags: string[] | null
+        }
+        Insert: {
+          address?: string | null
+          contact_info?: Json | null
+          context_type?: string | null
+          current_status?: string | null
+          data_source?: string | null
+          description?: string | null
+          id?: string
+          last_updated?: string | null
+          location_id?: string | null
+          name: string
+          operating_hours?: Json | null
+          relevant_indicators?: string[] | null
+          tags?: string[] | null
+        }
+        Update: {
+          address?: string | null
+          contact_info?: Json | null
+          context_type?: string | null
+          current_status?: string | null
+          data_source?: string | null
+          description?: string | null
+          id?: string
+          last_updated?: string | null
+          location_id?: string | null
+          name?: string
+          operating_hours?: Json | null
+          relevant_indicators?: string[] | null
+          tags?: string[] | null
+        }
+        Relationships: []
+      }
       local_measurements: {
         Row: {
           community_confidence: number | null
@@ -685,66 +787,90 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           age_group: string | null
+          avatar_data: string | null
+          avatar_type: string | null
           created_at: string | null
           daily_goal: number | null
           email: string
+          family_status: string | null
           first_name: string
           gender: string | null
           has_completed_onboarding: boolean | null
           hearts: number | null
           id: string
           insights: number | null
+          interests: string[] | null
           knowledge_level: number | null
           last_session: string | null
           location_id: string | null
+          mobility_level: string | null
+          occupation_sector: string | null
           phone_number: string | null
           profile_photo: string | null
           role: string
           selected_domain: string | null
           streak: number | null
+          time_availability: string | null
           updated_at: string | null
         }
         Insert: {
+          age?: number | null
           age_group?: string | null
+          avatar_data?: string | null
+          avatar_type?: string | null
           created_at?: string | null
           daily_goal?: number | null
           email: string
+          family_status?: string | null
           first_name: string
           gender?: string | null
           has_completed_onboarding?: boolean | null
           hearts?: number | null
           id: string
           insights?: number | null
+          interests?: string[] | null
           knowledge_level?: number | null
           last_session?: string | null
           location_id?: string | null
+          mobility_level?: string | null
+          occupation_sector?: string | null
           phone_number?: string | null
           profile_photo?: string | null
           role?: string
           selected_domain?: string | null
           streak?: number | null
+          time_availability?: string | null
           updated_at?: string | null
         }
         Update: {
+          age?: number | null
           age_group?: string | null
+          avatar_data?: string | null
+          avatar_type?: string | null
           created_at?: string | null
           daily_goal?: number | null
           email?: string
+          family_status?: string | null
           first_name?: string
           gender?: string | null
           has_completed_onboarding?: boolean | null
           hearts?: number | null
           id?: string
           insights?: number | null
+          interests?: string[] | null
           knowledge_level?: number | null
           last_session?: string | null
           location_id?: string | null
+          mobility_level?: string | null
+          occupation_sector?: string | null
           phone_number?: string | null
           profile_photo?: string | null
           role?: string
           selected_domain?: string | null
           streak?: number | null
+          time_availability?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1482,6 +1608,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_community_actions: {
+        Row: {
+          action_id: string | null
+          completed_date: string | null
+          completion_notes: string | null
+          created_at: string | null
+          id: string
+          impact_rating: number | null
+          insights_earned: number | null
+          recommended_date: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          completed_date?: string | null
+          completion_notes?: string | null
+          created_at?: string | null
+          id?: string
+          impact_rating?: number | null
+          insights_earned?: number | null
+          recommended_date?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          completed_date?: string | null
+          completion_notes?: string | null
+          created_at?: string | null
+          id?: string
+          impact_rating?: number | null
+          insights_earned?: number | null
+          recommended_date?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_community_actions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "community_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_community_actions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_daily_quests: {
         Row: {

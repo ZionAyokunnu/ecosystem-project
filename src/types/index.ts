@@ -146,11 +146,20 @@ export interface CommunityStory {
 export interface UserProfile {
   id: string;
   name: string;
+  first_name?: string;
   role: 'resident' | 'community_rep' | 'admin' | 'researcher' | 'business';
   location_id: string;
   phoneNumber?: string;
   gender?: string;
   ageGroup?: string;
+  age?: number;
+  family_status?: string;
+  interests?: string[];
+  occupation_sector?: string;
+  mobility_level?: string;
+  time_availability?: string;
+  avatar_type?: string;
+  avatar_data?: string;
   hasCompletedOnboarding: boolean;
 }
 
