@@ -97,6 +97,45 @@ export type Database = {
           },
         ]
       }
+      daily_quests: {
+        Row: {
+          badge_reward: string | null
+          created_at: string | null
+          description: string
+          id: string
+          insights_reward: number | null
+          is_daily: boolean | null
+          is_weekly: boolean | null
+          quest_type: string
+          target_value: number
+          title: string
+        }
+        Insert: {
+          badge_reward?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          insights_reward?: number | null
+          is_daily?: boolean | null
+          is_weekly?: boolean | null
+          quest_type: string
+          target_value: number
+          title: string
+        }
+        Update: {
+          badge_reward?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          insights_reward?: number | null
+          is_daily?: boolean | null
+          is_weekly?: boolean | null
+          quest_type?: string
+          target_value?: number
+          title?: string
+        }
+        Relationships: []
+      }
       domains: {
         Row: {
           Description: string | null
@@ -298,6 +337,161 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_achievements: {
+        Row: {
+          achievement_type: string
+          badge_granted: string | null
+          created_at: string | null
+          description: string
+          icon_name: string | null
+          id: string
+          insights_reward: number | null
+          title: string
+          unlock_condition: Json
+        }
+        Insert: {
+          achievement_type: string
+          badge_granted?: string | null
+          created_at?: string | null
+          description: string
+          icon_name?: string | null
+          id?: string
+          insights_reward?: number | null
+          title: string
+          unlock_condition: Json
+        }
+        Update: {
+          achievement_type?: string
+          badge_granted?: string | null
+          created_at?: string | null
+          description?: string
+          icon_name?: string | null
+          id?: string
+          insights_reward?: number | null
+          title?: string
+          unlock_condition?: Json
+        }
+        Relationships: []
+      }
+      learning_nodes: {
+        Row: {
+          created_at: string | null
+          day_in_week: number | null
+          description: string | null
+          difficulty_level: string | null
+          estimated_minutes: number | null
+          id: string
+          node_type: string
+          sequence_day: number
+          title: string
+          unlock_requirements: Json | null
+          week_number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_in_week?: number | null
+          description?: string | null
+          difficulty_level?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          node_type: string
+          sequence_day: number
+          title: string
+          unlock_requirements?: Json | null
+          week_number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          day_in_week?: number | null
+          description?: string | null
+          difficulty_level?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          node_type?: string
+          sequence_day?: number
+          title?: string
+          unlock_requirements?: Json | null
+          week_number?: number | null
+        }
+        Relationships: []
+      }
+      local_measurements: {
+        Row: {
+          community_confidence: number | null
+          created_at: string | null
+          current_state_rating: number
+          id: string
+          improvement_suggestions: string | null
+          indicator_id: string | null
+          location_id: string | null
+          node_id: string | null
+          personal_confidence: number
+          qualitative_notes: string | null
+          response_time_seconds: number | null
+          trend_direction: number
+          user_id: string | null
+        }
+        Insert: {
+          community_confidence?: number | null
+          created_at?: string | null
+          current_state_rating: number
+          id?: string
+          improvement_suggestions?: string | null
+          indicator_id?: string | null
+          location_id?: string | null
+          node_id?: string | null
+          personal_confidence: number
+          qualitative_notes?: string | null
+          response_time_seconds?: number | null
+          trend_direction: number
+          user_id?: string | null
+        }
+        Update: {
+          community_confidence?: number | null
+          created_at?: string | null
+          current_state_rating?: number
+          id?: string
+          improvement_suggestions?: string | null
+          indicator_id?: string | null
+          location_id?: string | null
+          node_id?: string | null
+          personal_confidence?: number
+          qualitative_notes?: string | null
+          response_time_seconds?: number | null
+          trend_direction?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "local_measurements_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "local_measurements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "local_measurements_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "learning_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "local_measurements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           created_at: string
@@ -370,6 +564,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      path_content_templates: {
+        Row: {
+          content_rules: Json
+          created_at: string | null
+          description_template: string
+          difficulty_level: string
+          id: string
+          node_type: string
+          prerequisites: Json | null
+          title_template: string
+        }
+        Insert: {
+          content_rules: Json
+          created_at?: string | null
+          description_template: string
+          difficulty_level: string
+          id?: string
+          node_type: string
+          prerequisites?: Json | null
+          title_template: string
+        }
+        Update: {
+          content_rules?: Json
+          created_at?: string | null
+          description_template?: string
+          difficulty_level?: string
+          id?: string
+          node_type?: string
+          prerequisites?: Json | null
+          title_template?: string
+        }
+        Relationships: []
       }
       path_progress: {
         Row: {
@@ -615,9 +842,11 @@ export type Database = {
         Row: {
           additional_indicator_ids: string[] | null
           child_id: string
+          confidence_score: number | null
           created_at: string | null
           direction: string
           domain: string
+          node_id: string | null
           notes_file_url: string | null
           parent_id: string
           response_id: string
@@ -627,9 +856,11 @@ export type Database = {
         Insert: {
           additional_indicator_ids?: string[] | null
           child_id: string
+          confidence_score?: number | null
           created_at?: string | null
           direction: string
           domain: string
+          node_id?: string | null
           notes_file_url?: string | null
           parent_id: string
           response_id?: string
@@ -639,9 +870,11 @@ export type Database = {
         Update: {
           additional_indicator_ids?: string[] | null
           child_id?: string
+          confidence_score?: number | null
           created_at?: string | null
           direction?: string
           domain?: string
+          node_id?: string | null
           notes_file_url?: string | null
           parent_id?: string
           response_id?: string
@@ -655,6 +888,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "indicators"
             referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "relationship_user_responses_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "learning_nodes"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "relationship_user_responses_parent_id_fkey"
@@ -1042,6 +1282,8 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          learning_context: Json | null
+          node_id: string | null
           phone_number: string | null
           qualitative_text: string | null
           quantitative_value: number | null
@@ -1054,6 +1296,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          learning_context?: Json | null
+          node_id?: string | null
           phone_number?: string | null
           qualitative_text?: string | null
           quantitative_value?: number | null
@@ -1066,6 +1310,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          learning_context?: Json | null
+          node_id?: string | null
           phone_number?: string | null
           qualitative_text?: string | null
           quantitative_value?: number | null
@@ -1076,6 +1322,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "survey_responses_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "learning_nodes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "survey_responses_question_id_fkey"
             columns: ["question_id"]
@@ -1170,6 +1423,45 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string | null
+          id: string
+          progress_data: Json | null
+          unlocked_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          achievement_id?: string | null
+          id?: string
+          progress_data?: Json | null
+          unlocked_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          achievement_id?: string | null
+          id?: string
+          progress_data?: Json | null
+          unlocked_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "learning_achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           awarded_at: string | null
@@ -1190,6 +1482,327 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_daily_quests: {
+        Row: {
+          assigned_date: string
+          completed_at: string | null
+          created_at: string | null
+          current_progress: number | null
+          id: string
+          insights_earned: number | null
+          quest_id: string | null
+          target_progress: number
+          user_id: string | null
+        }
+        Insert: {
+          assigned_date?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress?: number | null
+          id?: string
+          insights_earned?: number | null
+          quest_id?: string | null
+          target_progress: number
+          user_id?: string | null
+        }
+        Update: {
+          assigned_date?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_progress?: number | null
+          id?: string
+          insights_earned?: number | null
+          quest_id?: string | null
+          target_progress?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_daily_quests_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "daily_quests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_daily_quests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_domain_progress: {
+        Row: {
+          confidence_level: number | null
+          created_at: string | null
+          domain_id: string | null
+          domain_level: number
+          id: string
+          last_explored_day: number | null
+          proficiency_score: number | null
+          times_explored: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          confidence_level?: number | null
+          created_at?: string | null
+          domain_id?: string | null
+          domain_level: number
+          id?: string
+          last_explored_day?: number | null
+          proficiency_score?: number | null
+          times_explored?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          confidence_level?: number | null
+          created_at?: string | null
+          domain_id?: string | null
+          domain_level?: number
+          id?: string
+          last_explored_day?: number | null
+          proficiency_score?: number | null
+          times_explored?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_domain_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_indicator_history: {
+        Row: {
+          cooldown_until_day: number
+          created_at: string | null
+          domain_context: string | null
+          id: string
+          indicator_id: string | null
+          usage_day: number
+          usage_type: string
+          user_id: string | null
+        }
+        Insert: {
+          cooldown_until_day: number
+          created_at?: string | null
+          domain_context?: string | null
+          id?: string
+          indicator_id?: string | null
+          usage_day: number
+          usage_type: string
+          user_id?: string | null
+        }
+        Update: {
+          cooldown_until_day?: number
+          created_at?: string | null
+          domain_context?: string | null
+          id?: string
+          indicator_id?: string | null
+          usage_day?: number
+          usage_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_indicator_history_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["indicator_id"]
+          },
+          {
+            foreignKeyName: "user_indicator_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_learning_preferences: {
+        Row: {
+          avg_session_length_minutes: number | null
+          challenge_level: string | null
+          consistency_pattern: Json | null
+          created_at: string | null
+          difficulty_progression_rate: number | null
+          enjoys_comparisons: boolean | null
+          likes_qualitative: boolean | null
+          likes_quantitative: boolean | null
+          optimal_session_length: number | null
+          prefers_daily_consistency: boolean | null
+          prefers_deep_dive: boolean | null
+          prefers_local_focus: boolean | null
+          prefers_variety: boolean | null
+          updated_at: string | null
+          user_id: string
+          weekend_activity_level: string | null
+        }
+        Insert: {
+          avg_session_length_minutes?: number | null
+          challenge_level?: string | null
+          consistency_pattern?: Json | null
+          created_at?: string | null
+          difficulty_progression_rate?: number | null
+          enjoys_comparisons?: boolean | null
+          likes_qualitative?: boolean | null
+          likes_quantitative?: boolean | null
+          optimal_session_length?: number | null
+          prefers_daily_consistency?: boolean | null
+          prefers_deep_dive?: boolean | null
+          prefers_local_focus?: boolean | null
+          prefers_variety?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          weekend_activity_level?: string | null
+        }
+        Update: {
+          avg_session_length_minutes?: number | null
+          challenge_level?: string | null
+          consistency_pattern?: Json | null
+          created_at?: string | null
+          difficulty_progression_rate?: number | null
+          enjoys_comparisons?: boolean | null
+          likes_qualitative?: boolean | null
+          likes_quantitative?: boolean | null
+          optimal_session_length?: number | null
+          prefers_daily_consistency?: boolean | null
+          prefers_deep_dive?: boolean | null
+          prefers_local_focus?: boolean | null
+          prefers_variety?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          weekend_activity_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_learning_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_node_progress: {
+        Row: {
+          completed_at: string | null
+          completion_data: Json | null
+          created_at: string | null
+          hearts_spent: number | null
+          id: string
+          insights_earned: number | null
+          is_practice_mode: boolean | null
+          node_id: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_data?: Json | null
+          created_at?: string | null
+          hearts_spent?: number | null
+          id?: string
+          insights_earned?: number | null
+          is_practice_mode?: boolean | null
+          node_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          completion_data?: Json | null
+          created_at?: string | null
+          hearts_spent?: number | null
+          id?: string
+          insights_earned?: number | null
+          is_practice_mode?: boolean | null
+          node_id?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_node_progress_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "learning_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_node_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_path_state: {
+        Row: {
+          created_at: string | null
+          current_day: number
+          current_streak: number | null
+          exploration_domains: string[] | null
+          furthest_unlocked_day: number
+          last_session_date: string | null
+          longest_streak: number | null
+          preferred_domains: string[] | null
+          total_days_completed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_day?: number
+          current_streak?: number | null
+          exploration_domains?: string[] | null
+          furthest_unlocked_day?: number
+          last_session_date?: string | null
+          longest_streak?: number | null
+          preferred_domains?: string[] | null
+          total_days_completed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_day?: number
+          current_streak?: number | null
+          exploration_domains?: string[] | null
+          furthest_unlocked_day?: number
+          last_session_date?: string | null
+          longest_streak?: number | null
+          preferred_domains?: string[] | null
+          total_days_completed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_path_state_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_points_log: {
         Row: {
@@ -1341,6 +1954,7 @@ export type Database = {
           type: string
         }[]
       }
+      get_node_for_day: { Args: { day: number }; Returns: string }
       get_survey_target_users: {
         Args: { location_id_param: string; survey_id_param: string }
         Returns: {
@@ -1349,6 +1963,19 @@ export type Database = {
           phone_number: string
           user_id: string
         }[]
+      }
+      increment_insights: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: number
+      }
+      update_quest_progress: {
+        Args: {
+          p_date: string
+          p_increment: number
+          p_quest_type: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
