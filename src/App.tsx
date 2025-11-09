@@ -32,6 +32,7 @@ import Onboarding from "@/pages/Onboarding";
 import LearningPath from './pages/LearningPath';
 import UnitSurvey from './pages/UnitSurvey';
 import Achievements from './pages/Achievements';
+import PersonalizedInsights from './pages/PersonalizedInsights';
 import "./App.css"
 import SurveysPage from "./pages/SurveysPage";
 
@@ -94,6 +95,12 @@ const App = () => (
                     <Route path="detail" element={
                       <ProtectedRoute>
                         <DetailView />
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="insights/:indicatorId?" element={
+                      <ProtectedRoute>
+                        <PersonalizedInsights />
                       </ProtectedRoute>
                     } />
                     
