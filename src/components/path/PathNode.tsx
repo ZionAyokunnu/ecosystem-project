@@ -2,18 +2,22 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface PathNodeProps {
-  unitId: string;
+  id: string;
+  node_type: 'domain_drill' | 'connection_explore' | 'local_measure' | 'knowledge_review';
   status: 'locked' | 'available' | 'current' | 'completed';
   title: string;
-  position: number;
+  sequence_day: number;
+  estimated_minutes: number;
   isCheckpoint?: boolean;
 }
 
 export const PathNode: React.FC<PathNodeProps> = ({
-  unitId,
+  id,
+  node_type,
   status,
   title,
-  position,
+  sequence_day,
+  estimated_minutes,
   isCheckpoint
 }) => {
   const navigate = useNavigate();
@@ -66,11 +70,7 @@ export const PathNode: React.FC<PathNodeProps> = ({
 
   const handleClick = () => {
     if (status === 'locked') return;
-    
-    // Navigate to unit survey
-    if (unitId) {
-      navigate(`/unit-survey?unit=${unitId}`);
-    }
+    navigate(`/unit-survey?nodeId=${id}&type=${node_type}`);
   };
 
   return (
@@ -126,7 +126,7 @@ export const PathNode: React.FC<PathNodeProps> = ({
       )}
 
       {/* JUMP button for available nodes above current */}
-      {status === 'available' && position > 2 && (
+      {status === 'available' && sequence_day > 2 && (
         <button
           onClick={handleClick}
           className="absolute -bottom-[45px] left-1/2 -translate-x-1/2

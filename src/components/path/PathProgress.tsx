@@ -3,17 +3,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { PathNode } from './PathNode';
 import { PathMascot } from './PathMascot';
 
-interface UnitNode {
-  unitId: string;
+interface PathNodeData {
+  id: string;
+  node_type: 'domain_drill' | 'connection_explore' | 'local_measure' | 'knowledge_review';
   status: 'locked' | 'available' | 'current' | 'completed';
   title: string;
-  position: number;
+  sequence_day: number;
+  estimated_minutes: number;
   isCheckpoint?: boolean;
 }
 
 export const PathProgress: React.FC = () => {
-  const [units, setUnits] = useState<UnitNode[]>([]);
-  const [currentUnit, setCurrentUnit] = useState<number>(1);
+  const [nodes, setNodes] = useState<PathNodeData[]>([]);
+  const [currentDay, setCurrentDay] = useState<number>(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,92 +27,48 @@ export const PathProgress: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch user's path progress
-      const { data: progress } = await supabase
-        .from('path_progress')
+      // Get user's path state
+      const { data: pathState } = await supabase
+        .from('user_path_state')
         .select('*')
         .eq('user_id', user.id)
-        .order('unit_id');
+        .maybeSingle();
 
-      // Fetch user's domain to customize titles
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('selected_domain')
-        .eq('id', user.id)
-        .single();
+      const currentDayValue = pathState?.current_day || 1;
+      setCurrentDay(currentDayValue);
 
-      // Generate unit titles based on domain
-      const generateUnitTitle = (unitNum: number, domain: string) => {
-        const titles = {
-          environment: [
-            'Green Spaces Impact',
-            'Climate & Community',
-            'Sustainable Living',
-            'Biodiversity Basics',
-            'Environmental Justice'
-          ],
-          social: [
-            'Community Bonds',
-            'Cultural Diversity',
-            'Social Networks',
-            'Inclusion & Belonging',
-            'Civic Engagement'
-          ],
-          economy: [
-            'Local Business Impact',
-            'Employment Trends',
-            'Economic Mobility',
-            'Housing & Affordability',
-            'Innovation Hubs'
-          ],
-          health: [
-            'Health Access',
-            'Mental Wellbeing',
-            'Active Lifestyles',
-            'Community Wellness',
-            'Healthcare Equity'
-          ],
-          education: [
-            'Learning Opportunities',
-            'Skill Development',
-            'Digital Literacy',
-            'Career Pathways',
-            'Educational Equity'
-          ],
-          explore: [
-            'System Connections',
-            'Data Patterns',
-            'Complex Relationships',
-            'Research Methods',
-            'Ecosystem Thinking'
-          ]
-        };
+      // Get learning nodes with user progress
+      const { data: learningNodes } = await supabase
+        .from('learning_nodes')
+        .select('*')
+        .gte('sequence_day', currentDayValue)
+        .lte('sequence_day', currentDayValue + 9)
+        .order('sequence_day');
 
-        const domainTitles = titles[domain as keyof typeof titles] || titles.explore;
-        return domainTitles[unitNum - 1] || `Unit ${unitNum}`;
-      };
+      // Get user progress for these nodes
+      const nodeIds = learningNodes?.map(n => n.id) || [];
+      const { data: progressData } = await supabase
+        .from('user_node_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('node_id', nodeIds);
 
-      // Build units array (showing 10 units)
-      const unitsData: UnitNode[] = Array.from({ length: 10 }, (_, i) => {
-        const unitNum = i + 1;
-        const unitProgress = progress?.find(p => p.unit_id === `unit_${unitNum}`);
-        
+      const progressMap = new Map(progressData?.map(p => [p.node_id, p]) || []);
+
+      const nodesData: PathNodeData[] = (learningNodes || []).map((node, i) => {
+        const progress = progressMap.get(node.id);
         return {
-          unitId: `unit_${unitNum}`,
-          status: (unitProgress?.status as UnitNode['status']) || 'locked',
-          title: generateUnitTitle(unitNum, profile?.selected_domain || 'explore'),
-          position: i,
-          isCheckpoint: unitNum % 5 === 0 // Every 5th unit is a checkpoint
+          id: node.id,
+          node_type: node.node_type as PathNodeData['node_type'],
+          status: (progress?.status as PathNodeData['status']) || 'locked',
+          title: node.title,
+          sequence_day: node.sequence_day,
+          estimated_minutes: node.estimated_minutes || 3,
+          isCheckpoint: node.sequence_day % 7 === 0
         };
       });
 
-      setUnits(unitsData);
-      
-      // Find current unit
-      const current = unitsData.find(u => u.status === 'current');
-      if (current) {
-        setCurrentUnit(parseInt(current.unitId.split('_')[1]));
-      }
+      setNodes(nodesData);
       
     } catch (error) {
       console.error('Error loading path progress:', error);
@@ -129,14 +87,14 @@ export const PathProgress: React.FC = () => {
 
   return (
     <div className="relative min-h-screen py-10 px-[60px]">
-      {/* Current unit banner */}
+      {/* Current day banner */}
       <div className="w-[480px] h-16 mb-12 rounded-2xl bg-gradient-to-br from-success to-success-light p-4 flex items-center justify-between animate-scale-in">
         <div>
           <div className="text-xs font-bold text-white/80 uppercase tracking-wide">
-            Section 1, Unit {currentUnit}
+            Day {currentDay}
           </div>
           <div className="text-lg font-bold text-white">
-            {units.find(u => u.status === 'current')?.title || 'Your Current Unit'}
+            {nodes.find(n => n.status === 'current')?.title || 'Your Current Task'}
           </div>
         </div>
         <span className="text-2xl">📊</span>
@@ -145,16 +103,16 @@ export const PathProgress: React.FC = () => {
       {/* Path track - vertical line */}
       <div className="absolute left-[300px] top-0 bottom-0 w-1 bg-border" />
 
-      {/* Units with mascot */}
+      {/* Nodes with mascot */}
       <div className="relative">
-        {units.map((unit) => (
-          <div key={unit.unitId} className="relative mb-[120px] last:mb-0">
-            <PathNode {...unit} />
+        {nodes.map((node) => (
+          <div key={node.id} className="relative mb-[120px] last:mb-0">
+            <PathNode {...node} />
           </div>
         ))}
         
-        {/* Mascot follows current unit */}
-        <PathMascot currentUnit={currentUnit} />
+        {/* Mascot follows current day */}
+        <PathMascot currentUnit={currentDay} />
       </div>
     </div>
   );
