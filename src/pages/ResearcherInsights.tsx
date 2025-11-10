@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEcosystem } from '@/context/EcosystemContext';
 import { TrendingUp, Users, FileText, Filter, FileQuestion } from 'lucide-react';
 import AssociationSummaryCard from '@/components/AssociationSummaryCard';
-import SurveyCreationForm from '@/components/SurveyCreationForm';
+// import SurveyCreationForm from '@/components/SurveyCreationForm';
 import {
   Dialog,
   DialogTrigger,
@@ -153,10 +153,10 @@ const ResearcherInsights = () => {
             <DialogHeader>
               <DialogTitle>New Survey</DialogTitle>
             </DialogHeader>
-            <SurveyCreationForm
+            {/* <SurveyCreationForm
               onSurveyCreated={handleSurveyCreated}
               indicators={[]}
-            />
+            /> */}
             <DialogClose asChild>
               <Button variant="ghost" className="mt-4">
                 Close

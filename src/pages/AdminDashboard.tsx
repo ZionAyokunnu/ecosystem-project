@@ -251,9 +251,9 @@ const AdminDashboard: React.FC = () => {
 
         </div>
       </div>
-      <SurveyCreationForm onSurveyCreated={function (surveyId: string): void {
+      {/* <SurveyCreationForm onSurveyCreated={function (surveyId: string): void {
         throw new Error('Function not implemented.');
-      } } indicators={[]} />
+      } } indicators={[]} /> */}
       </div>
   );
 };

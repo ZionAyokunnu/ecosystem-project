@@ -6,32 +6,30 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     // run Vite on port 8080
-    port: 8080,
-        host: 'localhost',
-        proxy: {
-          '/api': {
-            target: 'http://localhost:8080', // llm‑proxy
-            changeOrigin: true,
-          },
-        },
+    port: 5173,
+    host: "localhost",
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080", // llm‑proxy
+        changeOrigin: true,
+      },
     },
-    plugins: [
-        react(),
-        mode === 'development' &&
-            componentTagger(),
-    ].filter(Boolean),
-    resolve: {
-        alias: {
-            "@": path.resolve(__dirname, "./src"),
-        },
+  },
+  plugins: [react(), mode === "development" && componentTagger()].filter(
+    Boolean
+  ),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
     },
-    build: {
-        rollupOptions: {
-            external: [],
-        },
+  },
+  build: {
+    rollupOptions: {
+      external: [],
     },
-    define: {
-        // Force TypeScript to not emit declaration files
-        __DEV__: mode === 'development',
-    }
+  },
+  define: {
+    // Force TypeScript to not emit declaration files
+    __DEV__: mode === "development",
+  },
 }));

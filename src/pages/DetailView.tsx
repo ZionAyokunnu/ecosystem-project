@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEcosystem } from '@/context/EcosystemContext';
@@ -26,7 +27,9 @@ import SettingsDialog from '@/components/SettingsDialog';
 import EnhancedLocationPicker from '@/components/EnhancedLocationPicker';
 import LLMContextToggle from '@/components/LLMContextToggle';
 import { Settings } from 'lucide-react';
+
 import { useLocation } from '@/context/LocationContext';
+import { USE_MOCK_DATA, createMockData } from '@/data/mockData';
 
 const DetailView: React.FC = () => {
   const { indicatorId } = useParams<{ indicatorId: string }>();

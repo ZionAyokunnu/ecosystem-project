@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Users, Flag, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Survey } from '@/types';
-import SurveyApprovalCard from '@/components/SurveyApprovalCard';
+// import SurveyApprovalCard from '@/components/SurveyApprovalCard';
 
 interface TownStats {
   total_residents: number;
@@ -41,38 +41,38 @@ const RepDashboard: React.FC = () => {
     if (!profile?.location_id) return;
 
     (async () => {
-      try {
-        // 1) Load the pending surveys for this rep’s location
-        const { data: surveys, error: surveyError } = await supabase
-          .from('surveys')
-          .select('*')
-          .eq('status', 'pending_approval')
-          .eq('target_location', profile.location_id);
-        if (surveyError) throw surveyError;
-        const pending = surveys.map(survey => ({
-          ...survey,
-          demographic_filters: survey.demographic_filters as { genders: string[]; age_groups: string[]; }
-        })) as Survey[];
-        setPendingSurveys(pending);
+      // try {
+      //   // 1) Load the pending surveys for this rep’s location
+      //   const { data: surveys, error: surveyError } = await supabase
+      //     .from('surveys')
+      //     .select('*')
+      //     .eq('status', 'pending_approval')
+      //     .eq('target_location', profile.location_id);
+      //   if (surveyError) throw surveyError;
+      //   const pending = surveys.map(survey => ({
+      //     ...survey,
+      //     demographic_filters: survey.demographic_filters as { genders: string[]; age_groups: string[]; }
+      //   })) as Survey[];
+      //   setPendingSurveys(pending);
 
-        // 2) Fetch each unique location’s name
-        const targetIds = Array.from(
-          new Set(pending.map(s => s.target_location!).filter(Boolean))
-        );
-        if (targetIds.length) {
-          const { data: locs, error: locError } = await supabase
-            .from('locations')
-            .select('location_id, name')
-            .in('location_id', targetIds);
-          if (locError) throw locError;
-          const map: Record<string, string> = {};
-          locs?.forEach(l => (map[l.location_id] = l.name));
-          setLocationNames(map);
-        }
-      } catch (err) {
-        console.error('Error fetching pending surveys:', err);
-        toast.error('Failed to load pending surveys');
-      }
+      //   // 2) Fetch each unique location’s name
+      //   const targetIds = Array.from(
+      //     new Set(pending.map(s => s.target_location!).filter(Boolean))
+      //   );
+      //   if (targetIds.length) {
+      //     const { data: locs, error: locError } = await supabase
+      //       .from('locations')
+      //       .select('location_id, name')
+      //       .in('location_id', targetIds);
+      //     if (locError) throw locError;
+      //     const map: Record<string, string> = {};
+      //     locs?.forEach(l => (map[l.location_id] = l.name));
+      //     setLocationNames(map);
+      //   }
+      // } catch (err) {
+      //   console.error('Error fetching pending surveys:', err);
+      //   toast.error('Failed to load pending surveys');
+      // }
     })();
   }, [profile]);
 
@@ -208,43 +208,43 @@ const RepDashboard: React.FC = () => {
   }
 
   const handleApproveSurvey = async (surveyId: string) => {
-    try {
-      await supabase
-        .from('surveys')
-        .update({ 
-          status: 'active',
-          approved_by_rep: profile?.id,
-          approved_at: new Date().toISOString()
-        })
-        .eq('survey_id', surveyId);
+    // try {
+    //   await supabase
+    //     .from('surveys')
+    //     .update({ 
+    //       status: 'active',
+    //       approved_by_rep: profile?.id,
+    //       approved_at: new Date().toISOString()
+    //     })
+    //     .eq('survey_id', surveyId);
       
-      toast.success('Survey approved and will go live!');
-      setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
+    //   toast.success('Survey approved and will go live!');
+    //   setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
       
-      // TODO: Trigger voice call scheduling if voice-enabled
-    } catch (err) {
-      console.error('Error approving survey:', err);
-      toast.error('Failed to approve survey');
-    }
+    //   // TODO: Trigger voice call scheduling if voice-enabled
+    // } catch (err) {
+    //   console.error('Error approving survey:', err);
+    //   toast.error('Failed to approve survey');
+    // }
   };
 
   const handleDeclineSurvey = async (surveyId: string, reason: string) => {
-    try {
-      await supabase
-        .from('surveys')
-        .update({ 
-          status: 'declined',
-          approved_by_rep: profile?.id,
-          declined_reason: reason
-        })
-        .eq('survey_id', surveyId);
+    // try {
+    //   await supabase
+    //     .from('surveys')
+    //     .update({ 
+    //       status: 'declined',
+    //       approved_by_rep: profile?.id,
+    //       declined_reason: reason
+    //     })
+    //     .eq('survey_id', surveyId);
       
-      toast.success('Survey declined');
-      setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
-    } catch (err) {
-      console.error('Error declining survey:', err);
-      toast.error('Failed to decline survey');
-    }
+    //   toast.success('Survey declined');
+    //   setPendingSurveys(ps => ps.filter(s => s.survey_id !== surveyId));
+    // } catch (err) {
+    //   console.error('Error declining survey:', err);
+    //   toast.error('Failed to decline survey');
+    // }
   };
 
   return (
@@ -298,7 +298,7 @@ const RepDashboard: React.FC = () => {
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Pending Surveys for Approval</h2>
           <div className="space-y-6">
-            {pendingSurveys.map(survey => (
+            {/* {pendingSurveys.map(survey => (
               <SurveyApprovalCard
                 key={survey.survey_id}
                 survey={survey}
@@ -308,7 +308,7 @@ const RepDashboard: React.FC = () => {
                 estimatedTime={survey.estimated_duration_minutes || 5}
                 targetUsers={surveyTargetCounts[survey.survey_id] || 0}
               />
-            ))}
+            ))} */}
           </div>
         </div>
       )}
