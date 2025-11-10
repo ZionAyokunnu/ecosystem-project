@@ -629,6 +629,207 @@ export type Database = {
           },
         ]
       }
+      new_domains: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          indicator_id: string | null
+          level: number
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          indicator_id?: string | null
+          level: number
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          indicator_id?: string | null
+          level?: number
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_domains_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "new_indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "new_domains_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "new_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      new_indicator_relationships: {
+        Row: {
+          calculated_at: string | null
+          child_indicator_id: string
+          correlation_coefficient: number | null
+          parent_indicator_id: string
+          sample_size: number | null
+        }
+        Insert: {
+          calculated_at?: string | null
+          child_indicator_id: string
+          correlation_coefficient?: number | null
+          parent_indicator_id: string
+          sample_size?: number | null
+        }
+        Update: {
+          calculated_at?: string | null
+          child_indicator_id?: string
+          correlation_coefficient?: number | null
+          parent_indicator_id?: string
+          sample_size?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_indicator_relationships_child_indicator_id_fkey"
+            columns: ["child_indicator_id"]
+            isOneToOne: false
+            referencedRelation: "new_indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "new_indicator_relationships_parent_indicator_id_fkey"
+            columns: ["parent_indicator_id"]
+            isOneToOne: false
+            referencedRelation: "new_indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      new_indicators: {
+        Row: {
+          category: string
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          measurement_type: string
+          name: string
+          scale_config: Json
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          measurement_type: string
+          name: string
+          scale_config?: Json
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          measurement_type?: string
+          name?: string
+          scale_config?: Json
+        }
+        Relationships: []
+      }
+      new_learning_nodes: {
+        Row: {
+          created_at: string | null
+          day_number: number
+          description: string | null
+          estimated_minutes: number | null
+          id: string
+          is_active: boolean | null
+          node_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          day_number: number
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          node_type: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          day_number?: number
+          description?: string | null
+          estimated_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          node_type?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      new_user_node_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          insights_earned: number | null
+          node_id: string | null
+          response_data: Json | null
+          started_at: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          insights_earned?: number | null
+          node_id?: string | null
+          response_data?: Json | null
+          started_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          insights_earned?: number | null
+          node_id?: string | null
+          response_data?: Json | null
+          started_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_user_node_progress_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "new_learning_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "new_user_node_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_settings: {
         Row: {
           created_at: string | null
@@ -794,6 +995,7 @@ export type Database = {
           created_at: string | null
           daily_goal: number | null
           email: string
+          exploration_preferences: Json | null
           family_status: string | null
           first_name: string
           gender: string | null
@@ -808,6 +1010,7 @@ export type Database = {
           mobility_level: string | null
           occupation_sector: string | null
           phone_number: string | null
+          preferred_domains: string[] | null
           profile_photo: string | null
           role: string
           selected_domain: string | null
@@ -823,6 +1026,7 @@ export type Database = {
           created_at?: string | null
           daily_goal?: number | null
           email: string
+          exploration_preferences?: Json | null
           family_status?: string | null
           first_name: string
           gender?: string | null
@@ -837,6 +1041,7 @@ export type Database = {
           mobility_level?: string | null
           occupation_sector?: string | null
           phone_number?: string | null
+          preferred_domains?: string[] | null
           profile_photo?: string | null
           role?: string
           selected_domain?: string | null
@@ -852,6 +1057,7 @@ export type Database = {
           created_at?: string | null
           daily_goal?: number | null
           email?: string
+          exploration_preferences?: Json | null
           family_status?: string | null
           first_name?: string
           gender?: string | null
@@ -866,6 +1072,7 @@ export type Database = {
           mobility_level?: string | null
           occupation_sector?: string | null
           phone_number?: string | null
+          preferred_domains?: string[] | null
           profile_photo?: string | null
           role?: string
           selected_domain?: string | null
@@ -1791,44 +1998,87 @@ export type Database = {
       }
       user_domain_progress: {
         Row: {
-          confidence_level: number | null
-          created_at: string | null
-          domain_id: string | null
-          domain_level: number
-          id: string
-          last_explored_day: number | null
-          proficiency_score: number | null
-          times_explored: number | null
-          updated_at: string | null
-          user_id: string | null
+          completion_count: number | null
+          cooldown_until: string | null
+          domain_id: string
+          is_unlocked: boolean | null
+          last_completed_at: string | null
+          unlocked_at: string | null
+          user_id: string
         }
         Insert: {
-          confidence_level?: number | null
-          created_at?: string | null
-          domain_id?: string | null
-          domain_level: number
-          id?: string
-          last_explored_day?: number | null
-          proficiency_score?: number | null
-          times_explored?: number | null
-          updated_at?: string | null
-          user_id?: string | null
+          completion_count?: number | null
+          cooldown_until?: string | null
+          domain_id: string
+          is_unlocked?: boolean | null
+          last_completed_at?: string | null
+          unlocked_at?: string | null
+          user_id: string
         }
         Update: {
-          confidence_level?: number | null
-          created_at?: string | null
-          domain_id?: string | null
-          domain_level?: number
-          id?: string
-          last_explored_day?: number | null
-          proficiency_score?: number | null
-          times_explored?: number | null
-          updated_at?: string | null
-          user_id?: string | null
+          completion_count?: number | null
+          cooldown_until?: string | null
+          domain_id?: string
+          is_unlocked?: boolean | null
+          last_completed_at?: string | null
+          unlocked_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "user_domain_progress_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "new_domains"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_domain_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_exploration_history: {
+        Row: {
+          created_at: string | null
+          day_completed: number
+          domain_path: string[]
+          final_indicator_id: string
+          id: string
+          node_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          day_completed: number
+          domain_path: string[]
+          final_indicator_id: string
+          id?: string
+          node_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          day_completed?: number
+          domain_path?: string[]
+          final_indicator_id?: string
+          id?: string
+          node_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_exploration_history_final_indicator_id_fkey"
+            columns: ["final_indicator_id"]
+            isOneToOne: false
+            referencedRelation: "new_indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_exploration_history_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -2223,6 +2473,10 @@ export type Database = {
         }[]
       }
       get_node_for_day: { Args: { day: number }; Returns: string }
+      get_recent_exploration_indicators: {
+        Args: { days_back?: number; p_user_id: string }
+        Returns: string[]
+      }
       get_survey_target_users: {
         Args: { location_id_param: string; survey_id_param: string }
         Returns: {
@@ -2235,6 +2489,10 @@ export type Database = {
       increment_insights: {
         Args: { p_amount: number; p_user_id: string }
         Returns: number
+      }
+      unlock_next_domains: {
+        Args: { completed_domain_id: string; p_user_id: string }
+        Returns: undefined
       }
       update_quest_progress: {
         Args: {
