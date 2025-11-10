@@ -1215,6 +1215,45 @@ export type Database = {
         }
         Relationships: []
       }
+      story_comments: {
+        Row: {
+          comment_text: string
+          created_at: string | null
+          id: string
+          story_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          comment_text: string
+          created_at?: string | null
+          id?: string
+          story_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          comment_text?: string
+          created_at?: string | null
+          id?: string
+          story_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_comments_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "qualitative_stories"
+            referencedColumns: ["story_id"]
+          },
+          {
+            foreignKeyName: "story_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_reactions: {
         Row: {
           created_at: string | null

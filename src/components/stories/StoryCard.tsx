@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { MessageCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StoryCardProps {
   story: any;
@@ -8,11 +11,49 @@ interface StoryCardProps {
 }
 
 export const StoryCard: React.FC<StoryCardProps> = ({ story, onReaction, userReactions = [] }) => {
+  const { profile } = useAuth();
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState<any[]>([]);
+  
   const reactionTypes = [
     { type: 'heart', emoji: '❤️', label: 'Like' },
     { type: 'helpful', emoji: '💡', label: 'Helpful' },
     { type: 'inspiring', emoji: '⭐', label: 'Inspiring' }
   ];
+
+  useEffect(() => {
+    if (showComments) {
+      loadComments();
+    }
+  }, [showComments]);
+
+  const loadComments = async () => {
+    const { data } = await supabase
+      .from('story_comments')
+      .select('*, profiles(first_name)')
+      .eq('story_id', story.story_id)
+      .order('created_at', { ascending: false });
+    
+    if (data) setComments(data);
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !profile?.id) return;
+
+    const { error } = await supabase
+      .from('story_comments')
+      .insert({
+        story_id: story.story_id,
+        user_id: profile.id,
+        comment_text: newComment
+      });
+
+    if (!error) {
+      setNewComment('');
+      loadComments();
+    }
+  };
 
   const handleReaction = (reactionType: string) => {
     onReaction(story.story_id, reactionType);
@@ -66,7 +107,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onReaction, userRea
       </div>
 
       {/* Reaction Bar */}
-      <div className="border-t border-gray-100 px-6 py-4">
+      <div className="border-t border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex gap-1">
             {reactionTypes.map(reaction => {
@@ -79,8 +120,8 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onReaction, userRea
                   onClick={() => handleReaction(reaction.type)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-red-50 text-red-600 scale-110'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-destructive/10 text-destructive scale-110'
+                      : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
                   <span className={`transition-transform ${
@@ -90,7 +131,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onReaction, userRea
                   </span>
                   <span>{reaction.label}</span>
                   {count > 0 && (
-                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">
                       {count}
                     </span>
                   )}
@@ -99,6 +140,62 @@ export const StoryCard: React.FC<StoryCardProps> = ({ story, onReaction, userRea
             })}
           </div>
         </div>
+      </div>
+
+      {/* Comments Section */}
+      <div className="border-t border-border px-6 py-4">
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-2"
+        >
+          <MessageCircle className="w-4 h-4" />
+          {comments.length} comments
+        </button>
+
+        {showComments && (
+          <div className="mt-4 space-y-3">
+            {/* Add Comment Input */}
+            <div className="flex gap-3">
+              <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-sm">👤</span>
+              </div>
+              <div className="flex-1">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="w-full p-2 border border-border rounded-lg text-sm resize-none bg-background"
+                  rows={2}
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="mt-2 px-3 py-1 bg-primary text-primary-foreground text-sm rounded-lg disabled:opacity-50"
+                >
+                  Post
+                </button>
+              </div>
+            </div>
+
+            {/* Comments List */}
+            {comments.map((comment: any) => (
+              <div key={comment.id} className="flex gap-3">
+                <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm">👤</span>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-muted rounded-lg p-3">
+                    <div className="text-sm font-medium">{comment.profiles?.first_name || 'Community Member'}</div>
+                    <div className="text-sm text-foreground">{comment.comment_text}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {formatDistanceToNow(new Date(comment.created_at))} ago
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
