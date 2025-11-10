@@ -341,3 +341,24 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
   padding: 0.5rem !important;
 }
+
+/* Rewards Center Animations */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
