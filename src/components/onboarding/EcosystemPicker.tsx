@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AnimatedProgress } from './AnimatedProgress';
+import { MascotGuide } from './MascotGuide';
 import { Button } from '@/components/ui/button';
 
 export interface EcosystemDomain {
@@ -83,23 +85,29 @@ interface EcosystemPickerProps {
 
 export const EcosystemPicker: React.FC<EcosystemPickerProps> = ({ onSelect }) => {
   const [selected, setSelected] = useState<string | null>(null);
+  const [hoveredDomain, setHoveredDomain] = useState<string | null>(null);
 
   const handleSelect = (domain: EcosystemDomain) => {
     setSelected(domain.id);
     // Auto-advance after a brief moment to show selection
-    setTimeout(() => onSelect(domain), 400);
+    setTimeout(() => onSelect(domain), 800);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12 animate-slide-up">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
-            Choose your focus area
-          </h2>
-          <p className="text-lg text-gray-600">
-            What aspect of your community interests you most?
+        <AnimatedProgress
+          currentStep={2}
+          totalSteps={5}
+          stepLabels={['Welcome', 'Interest', 'Goals', 'Test', 'Ready!']}
+        />
+
+        <div className="text-center mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            🎯 What interests you most?
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Choose your starting point! You can explore other areas later.
           </p>
         </div>
 
@@ -109,11 +117,13 @@ export const EcosystemPicker: React.FC<EcosystemPickerProps> = ({ onSelect }) =>
             <button
               key={domain.id}
               onClick={() => handleSelect(domain)}
+              onMouseEnter={() => setHoveredDomain(domain.id)}
+              onMouseLeave={() => setHoveredDomain(null)}
               className={`
                 group relative w-full h-32 rounded-2xl p-5 cursor-pointer
-                transition-all duration-200
+                transition-all duration-300
                 hover:-translate-y-1 hover:shadow-xl
-                ${selected === domain.id ? 'scale-105 ring-4 ring-success shadow-2xl' : 'shadow-md'}
+                ${selected === domain.id ? 'scale-105 ring-4 ring-green-500 shadow-2xl' : 'shadow-md'}
               `}
               style={{
                 background: domain.gradient,
@@ -121,7 +131,7 @@ export const EcosystemPicker: React.FC<EcosystemPickerProps> = ({ onSelect }) =>
               }}
             >
               {/* Icon */}
-              <div className="text-4xl mb-2">{domain.icon}</div>
+              <div className="text-4xl mb-2 transform group-hover:scale-110 transition-transform duration-300">{domain.icon}</div>
 
               {/* Content */}
               <div className="text-left">
@@ -139,9 +149,20 @@ export const EcosystemPicker: React.FC<EcosystemPickerProps> = ({ onSelect }) =>
                   <span className="text-xl">✓</span>
                 </div>
               )}
+
+              {/* Hover glow effect */}
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
             </button>
           ))}
         </div>
+
+        <MascotGuide
+          message={hoveredDomain 
+            ? `${ecosystemDomains.find(d => d.id === hoveredDomain)?.title} sounds interesting! Click to select it.`
+            : "Each area offers unique insights into your community. Pick the one that sparks your curiosity! ✨"
+          }
+          position="bottom-right"
+        />
       </div>
     </div>
   );

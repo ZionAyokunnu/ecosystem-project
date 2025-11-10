@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AnimatedProgress } from './AnimatedProgress';
+import { MascotGuide } from './MascotGuide';
 import { Button } from '@/components/ui/button';
 
 interface GoalOption {
@@ -62,15 +64,21 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({ onSelect }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-32 pb-20 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-8 px-4">
       <div className="max-w-lg mx-auto">
+        <AnimatedProgress
+          currentStep={3}
+          totalSteps={5}
+          stepLabels={['Welcome', 'Interest', 'Goals', 'Test', 'Ready!']}
+        />
+
         {/* Header */}
-        <div className="text-center mb-12 animate-slide-up">
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
-            Set your learning goal
-          </h2>
+        <div className="text-center mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            🎯 Set Your Goals
+          </h1>
           <p className="text-lg text-gray-600">
-            How much time can you dedicate to exploring your community ecosystem?
+            Let's set some friendly goals to keep you motivated!
           </p>
         </div>
 
@@ -81,10 +89,10 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({ onSelect }) => {
               key={option.id}
               onClick={() => setSelected(option.id)}
               className={`
-                relative w-full p-5 rounded-2xl transition-all duration-200
+                relative w-full p-5 rounded-2xl transition-all duration-300
                 ${selected === option.id
-                  ? 'border-[3px] border-success scale-[1.02] shadow-lg'
-                  : 'border-2 border-gray-200 hover:border-gray-300'
+                  ? 'border-[3px] border-green-500 scale-[1.02] shadow-lg'
+                  : 'border-2 border-gray-200 hover:border-gray-300 hover:shadow-md'
                 }
               `}
               style={{
@@ -94,7 +102,7 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({ onSelect }) => {
             >
               {/* Recommended badge */}
               {option.recommended && (
-                <div className="absolute -top-2 -right-2 px-3 py-1 bg-success text-white text-xs font-bold rounded-xl shadow-md animate-bounce-soft">
+                <div className="absolute -top-2 -right-2 px-3 py-1 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-xl shadow-md animate-bounce-soft">
                   RECOMMENDED
                 </div>
               )}
@@ -120,7 +128,7 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({ onSelect }) => {
 
                 {/* Selection indicator */}
                 {selected === option.id && (
-                  <div className="w-6 h-6 rounded-full bg-success flex items-center justify-center flex-shrink-0 animate-scale-in">
+                  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 animate-scale-in">
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
@@ -135,11 +143,16 @@ export const GoalSetting: React.FC<GoalSettingProps> = ({ onSelect }) => {
         <div className="flex justify-center pt-4">
           <Button
             onClick={handleContinue}
-            className="w-full max-w-xs h-14 text-lg font-semibold bg-gradient-to-r from-success to-success-light hover:from-success-hover hover:to-success shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            className="w-full max-w-xs h-14 text-lg font-semibold bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
           >
             Continue
           </Button>
         </div>
+
+        <MascotGuide
+          message="Setting goals helps you stay motivated! Don't worry - you can adjust these anytime. You're in control! 💪"
+          position="bottom-right"
+        />
       </div>
     </div>
   );
