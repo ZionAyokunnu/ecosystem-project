@@ -35,7 +35,6 @@ import UnitSurvey from './pages/UnitSurvey';
 import Achievements from './pages/Achievements';
 import PersonalizedInsights from './pages/PersonalizedInsights';
 import "./App.css"
-import SurveysPage from "./pages/SurveysPage";
 
 const queryClient = new QueryClient();
 
@@ -150,7 +149,6 @@ const App = () => (
                       </ProtectedRoute>
                     } />
                   </Route>
-                  <Route path="/surveys" element={<SurveysPage />} />
                   <Route path="/path" element={<LearningPath />} />
                   <Route path="/unit-survey" element={<UnitSurvey />} />
                   <Route path="/achievements" element={<Achievements />} />

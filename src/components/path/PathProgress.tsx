@@ -29,23 +29,24 @@ export const PathProgress: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get user's path state
-      const { data: pathState } = await supabase
-        .from('user_path_state')
-        .select('*')
+      // Get current day from user progress (find highest completed or current node)
+      const { data: allProgress } = await supabase
+        .from('user_node_progress')
+        .select('node_id, status, learning_nodes!inner(day_number)')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .order('learning_nodes(day_number)', { ascending: false })
+        .limit(1);
 
-      const currentDayValue = pathState?.current_day || 1;
+      const currentDayValue = (allProgress?.[0]?.learning_nodes as any)?.day_number || 1;
       setCurrentDay(currentDayValue);
 
       // Get learning nodes with user progress
       const { data: learningNodes } = await supabase
         .from('learning_nodes')
         .select('*')
-        .gte('sequence_day', currentDayValue)
-        .lte('sequence_day', currentDayValue + 9)
-        .order('sequence_day');
+        .gte('day_number', currentDayValue)
+        .lte('day_number', currentDayValue + 9)
+        .order('day_number');
 
       // Get user progress for these nodes
       const nodeIds = learningNodes?.map(n => n.id) || [];
@@ -64,9 +65,9 @@ export const PathProgress: React.FC = () => {
           node_type: node.node_type as PathNodeData['node_type'],
           status: (progress?.status as PathNodeData['status']) || 'locked',
           title: node.title,
-          sequence_day: node.sequence_day,
+          sequence_day: node.day_number,
           estimated_minutes: node.estimated_minutes || 3,
-          isCheckpoint: node.sequence_day % 7 === 0
+          isCheckpoint: node.day_number % 7 === 0
         };
       });
 

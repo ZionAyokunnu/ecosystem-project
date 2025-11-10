@@ -1,11 +1,17 @@
 export interface Indicator {
-  indicator_id: string;
+  id: string;
+  code: string;
   name: string;
-  current_value: number;
+  description?: string;
   category: string;
-  description: string | null;
-  created_at?: string;
-  updated_at?: string;
+  measurement_type: 'rating_scale' | 'percentage' | 'multiple_choice' | 'checkbox' | 'text';
+  scale_config: {
+    min?: number;
+    max?: number;
+    labels?: string[];
+    options?: string[];
+  };
+  created_at: string;
 }
 
 export interface Location {

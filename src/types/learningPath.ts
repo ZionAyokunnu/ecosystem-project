@@ -1,14 +1,11 @@
 export interface LearningNode {
   id: string;
-  sequence_day: number;
+  day_number: number;
   node_type: 'domain_drill' | 'connection_explore' | 'local_measure' | 'knowledge_review';
-  week_number: number;
-  day_in_week: number;
   title: string;
   description?: string;
   estimated_minutes: number;
-  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
-  unlock_requirements?: any;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -16,30 +13,15 @@ export interface UserNodeProgress {
   id: string;
   user_id: string;
   node_id: string;
-  status: 'locked' | 'available' | 'current' | 'completed' | 'skipped';
+  status: 'locked' | 'available' | 'current' | 'completed';
   started_at?: string;
   completed_at?: string;
   insights_earned: number;
-  completion_data?: any;
-  hearts_spent: number;
-  is_practice_mode: boolean;
+  response_data?: Record<string, any>;
   created_at: string;
-  updated_at: string;
 }
 
-export interface UserPathState {
-  user_id: string;
-  current_day: number;
-  furthest_unlocked_day: number;
-  total_days_completed: number;
-  current_streak: number;
-  longest_streak: number;
-  preferred_domains: string[];
-  exploration_domains: string[];
-  last_session_date: string;
-  created_at: string;
-  updated_at: string;
-}
+// UserPathState removed - replaced by profiles.last_session and user_node_progress
 
 export interface LocalMeasurement {
   id: string;
@@ -57,29 +39,9 @@ export interface LocalMeasurement {
   created_at: string;
 }
 
-export interface UserIndicatorHistory {
-  id: string;
-  user_id: string;
-  indicator_id: string;
-  usage_day: number;
-  usage_type: 'domain_focus' | 'connection_parent' | 'connection_child' | 'measurement_target';
-  domain_context?: string;
-  cooldown_until_day: number;
-  created_at: string;
-}
+// UserIndicatorHistory removed - replaced by user_exploration_history and user_domain_progress.cooldown_until
 
-export interface UserDomainProgress {
-  id: string;
-  user_id: string;
-  domain_id: string;
-  domain_level: number;
-  times_explored: number;
-  last_explored_day?: number;
-  proficiency_score: number;
-  confidence_level: number;
-  created_at: string;
-  updated_at: string;
-}
+// UserDomainProgress moved to src/types/database.ts
 
 export interface DailyQuest {
   id: string;
