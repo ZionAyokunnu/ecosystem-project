@@ -28,6 +28,7 @@ export interface SurveyNotification {
 
 // Schedule voice calls for all eligible users when a survey goes live
 export const scheduleVoiceCalls = async (surveyId: string, locationId: string) => {
+  console.warn('scheduleVoiceCalls is deprecated. Voice call system has been disabled.');
   try {
     // Get target users for this survey
     const { data: targetUsers, error: usersError } = await supabase
@@ -57,19 +58,8 @@ export const scheduleVoiceCalls = async (surveyId: string, locationId: string) =
 
     if (callsError) throw callsError;
 
-    // Send pre-call notifications
-    const notifications = targetUsers.map(user => ({
-      survey_id: surveyId,
-      user_id: user.user_id,
-      notification_type: 'sms_pre_call' as const,
-      message_content: `You have a new survey available. We'll call you within the next hour. Reply STOP to opt out, or RESCHEDULE to pick another time.`
-    }));
-
-    const { error: notificationsError } = await supabase
-      .from('survey_notifications')
-      .insert(notifications);
-
-    if (notificationsError) throw notificationsError;
+    // Note: survey_notifications table no longer exists
+    console.log('Survey notifications feature has been disabled');
 
     console.log(`Scheduled ${callAttempts.length} voice calls for survey ${surveyId}`);
     return callAttempts.length;
@@ -118,22 +108,12 @@ export const makeTestCall = async (phoneNumber: string) => {
 
 // Get survey notifications
 export const getSurveyNotifications = async (userId: string): Promise<SurveyNotification[]> => {
-  const { data, error } = await supabase
-    .from('survey_notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('sent_at', { ascending: false });
-
-  if (error) throw error;
-  return data as SurveyNotification[];
+  console.warn('getSurveyNotifications is deprecated. survey_notifications table no longer exists.');
+  return [];
 };
 
 // Mark survey notification as delivered
 export const markNotificationDelivered = async (notificationId: string) => {
-  const { error } = await supabase
-    .from('survey_notifications')
-    .update({ delivery_status: 'delivered' })
-    .eq('id', notificationId);
-
-  if (error) throw error;
+  console.warn('markNotificationDelivered is deprecated. survey_notifications table no longer exists.');
+  throw new Error('Survey notifications feature has been disabled');
 };

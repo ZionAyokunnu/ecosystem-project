@@ -38,20 +38,9 @@ export const completeOnboarding = async (userId: string, data: OnboardingData) =
       throw profileError;
     }
 
-    // 2. Save placement results
-    const { error: placementError } = await supabase
-      .from('placement_results')
-      .insert({
-        user_id: userId,
-        domain: data.domain.id,
-        total_score: data.knowledgeScore,
-        unlocked_to_unit: data.unlockedUnit
-      });
-
-    if (placementError) {
-      console.error('Placement results error:', placementError);
-      throw placementError;
-    }
+    // 2. Note: placement_results table no longer exists in new schema
+    // Knowledge level is now stored directly in profiles table
+    console.log('Placement results saved in profiles.knowledge_level');
 
     // 3. Save notification settings if enabled
     if (data.notificationsEnabled) {
@@ -70,21 +59,10 @@ export const completeOnboarding = async (userId: string, data: OnboardingData) =
       }
     }
 
-    // 4. Initialize path progress - unlock units based on knowledge check
-    const initialUnits = Array.from({ length: data.unlockedUnit }, (_, i) => ({
-      user_id: userId,
-      unit_id: `unit_${i + 1}`,
-      status: i === 0 ? 'current' : (i < data.unlockedUnit ? 'available' : 'locked')
-    }));
-
-    const { error: pathError } = await supabase
-      .from('path_progress')
-      .insert(initialUnits);
-
-    if (pathError) {
-      console.error('Path progress error:', pathError);
-      throw pathError;
-    }
+    // 4. Note: path_progress table no longer exists in new schema
+    // Progress is now tracked via user_node_progress table
+    // Initial progress is created by learningPathService.initializeUserPath()
+    console.log('Path progress will be initialized by learning path service');
 
     return { success: true };
   } catch (error) {

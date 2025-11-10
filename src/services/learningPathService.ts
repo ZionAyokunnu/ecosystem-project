@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { LearningNode, UserNodeProgress, UserPathState, LocalMeasurement, UserIndicatorHistory } from '@/types/learningPath';
+import type { LearningNode, UserNodeProgress, LocalMeasurement } from '@/types/learningPath';
 import { toast } from 'sonner';
 
 export class LearningPathService {
@@ -9,29 +9,29 @@ export class LearningPathService {
    */
   async initializeUserPath(userId: string, selectedDomain?: string): Promise<{ success: boolean; currentDay: number }> {
     try {
-      // Check if user already has path state
-      const { data: existingState } = await supabase
-        .from('user_path_state')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Check if user already has profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('selected_domain')
+        .eq('id', userId)
+        .single();
 
-      if (existingState) {
-        return { success: true, currentDay: existingState.current_day };
+      if (profile?.selected_domain) {
+        const { count } = await supabase
+          .from('user_node_progress')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('status', 'completed');
+        return { success: true, currentDay: (count || 0) + 1 };
       }
 
-      // Create initial path state
-      const { error: stateError } = await supabase
-        .from('user_path_state')
-        .insert({
-          user_id: userId,
-          current_day: 1,
-          furthest_unlocked_day: 1,
-          preferred_domains: selectedDomain ? [selectedDomain] : [],
-          exploration_domains: []
-        });
-
-      if (stateError) throw stateError;
+      // Update profile with selected domain
+      if (selectedDomain) {
+        await supabase
+          .from('profiles')
+          .update({ selected_domain: selectedDomain })
+          .eq('id', userId);
+      }
 
       // Generate first week of learning nodes
       await this.generateNodesUpToDay(userId, 7);
@@ -48,22 +48,14 @@ export class LearningPathService {
    */
   async generateNodesUpToDay(userId: string, targetDay: number): Promise<void> {
     try {
-      const { data: userState } = await supabase
-        .from('user_path_state')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (!userState) throw new Error('User path state not found');
-
       // Check which nodes already exist
       const { data: existingNodes } = await supabase
         .from('learning_nodes')
-        .select('sequence_day')
-        .lte('sequence_day', targetDay)
-        .order('sequence_day');
+        .select('day_number')
+        .lte('day_number', targetDay)
+        .order('day_number');
 
-      const existingDays = new Set(existingNodes?.map(n => n.sequence_day) || []);
+      const existingDays = new Set(existingNodes?.map(n => n.day_number) || []);
 
       // Generate missing nodes
       for (let day = 1; day <= targetDay; day++) {
@@ -112,11 +104,10 @@ export class LearningPathService {
     const { data: newNode, error } = await supabase
       .from('learning_nodes')
       .insert({
-        sequence_day: day,
+        day_number: day,
         node_type: nodeType,
         title,
         description,
-        difficulty_level: difficulty,
         estimated_minutes: 3
       })
       .select()
@@ -161,8 +152,8 @@ export class LearningPathService {
     const { data: nodes } = await supabase
       .from('learning_nodes')
       .select('*')
-      .lte('sequence_day', upToDay)
-      .order('sequence_day');
+      .lte('day_number', upToDay)
+      .order('day_number');
 
     if (!nodes) return;
 
@@ -196,28 +187,42 @@ export class LearningPathService {
    * Get user's current learning path state
    */
   async getUserPathData(userId: string): Promise<{
-    pathState: UserPathState | null;
+    pathState: any | null;
     currentNodes: (LearningNode & { progress: UserNodeProgress })[];
     availableQuests: any[];
   }> {
     try {
-      // Get path state
-      const { data: pathState } = await supabase
-        .from('user_path_state')
-        .select('*')
+      // Get current day from completed nodes
+      const { count: completedCount } = await supabase
+        .from('user_node_progress')
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .maybeSingle();
+        .eq('status', 'completed');
 
-      // Get current and upcoming nodes (next 10 days)
-      const currentDay = pathState?.current_day || 1;
+      const currentDay = (completedCount || 0) + 1;
+
+      // Get profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('streak, selected_domain, preferred_domains')
+        .eq('id', userId)
+        .single();
+
+      const pathState = profile ? {
+        user_id: userId,
+        current_day: currentDay,
+        furthest_unlocked_day: currentDay,
+        preferred_domains: profile.preferred_domains || [],
+        current_streak: profile.streak || 0
+      } : null;
       
       // First get nodes
       const { data: nodes } = await supabase
         .from('learning_nodes')
         .select('*')
-        .gte('sequence_day', currentDay)
-        .lte('sequence_day', currentDay + 9)
-        .order('sequence_day');
+        .gte('day_number', currentDay)
+        .lte('day_number', currentDay + 9)
+        .order('day_number');
 
       // Then get progress for those nodes
       const nodeIds = nodes?.map(n => n.id) || [];
@@ -231,17 +236,13 @@ export class LearningPathService {
       const currentNodes = (nodes?.map(node => ({
         ...node,
         node_type: node.node_type as LearningNode['node_type'],
-        difficulty_level: node.difficulty_level as LearningNode['difficulty_level'],
         progress: progressData?.find(p => p.node_id === node.id) || {
           id: '',
           user_id: userId,
           node_id: node.id,
           status: 'locked' as const,
           insights_earned: 0,
-          hearts_spent: 0,
-          is_practice_mode: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          created_at: new Date().toISOString()
         }
       })) || []) as (LearningNode & { progress: UserNodeProgress })[];
 
@@ -367,14 +368,6 @@ export class LearningPathService {
    * Update path state after node completion
    */
   private async updatePathState(userId: string): Promise<void> {
-    const { data: pathState } = await supabase
-      .from('user_path_state')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (!pathState) return;
-
     // Count completed nodes
     const { count: completedCount } = await supabase
       .from('user_node_progress')
@@ -382,53 +375,38 @@ export class LearningPathService {
       .eq('user_id', userId)
       .eq('status', 'completed');
 
-    // Get current node
-    const { data: nodes } = await supabase
-      .from('learning_nodes')
-      .select('id')
-      .eq('sequence_day', pathState.current_day)
-      .maybeSingle();
+    const currentDay = (completedCount || 0) + 1;
 
-    const { data: currentProgress } = await supabase
-      .from('user_node_progress')
-      .select('status')
-      .eq('user_id', userId)
-      .eq('node_id', nodes?.id || '')
-      .maybeSingle();
+    // Get profile for streak management
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('streak, last_session')
+      .eq('id', userId)
+      .single();
 
-    let updates: any = {
-      total_days_completed: completedCount || 0
-    };
+    if (!profile) return;
 
-    // Move to next day if current is completed
-    if (currentProgress?.status === 'completed') {
-      updates.current_day = pathState.current_day + 1;
-      updates.furthest_unlocked_day = Math.max(
-        pathState.furthest_unlocked_day,
-        pathState.current_day + 1
-      );
-
-      // Update streak
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      if (pathState.last_session_date === yesterday) {
-        updates.current_streak = pathState.current_streak + 1;
-        updates.longest_streak = Math.max(pathState.longest_streak, updates.current_streak);
-      } else if (pathState.last_session_date !== today) {
-        updates.current_streak = 1;
-      }
-      
-      updates.last_session_date = today;
+    // Update streak
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    let newStreak = profile.streak || 0;
+    if (profile.last_session === yesterday) {
+      newStreak = profile.streak + 1;
+    } else if (profile.last_session !== today) {
+      newStreak = 1;
     }
 
     await supabase
-      .from('user_path_state')
-      .update(updates)
-      .eq('user_id', userId);
+      .from('profiles')
+      .update({
+        streak: newStreak,
+        last_session: today
+      })
+      .eq('id', userId);
 
     // Generate more nodes if needed
-    await this.generateNodesUpToDay(userId, updates.current_day + 6);
+    await this.generateNodesUpToDay(userId, currentDay + 6);
   }
 
   /**
@@ -469,15 +447,17 @@ export class LearningPathService {
     indicatorId: string, 
     currentDay: number
   ): Promise<boolean> {
-    const { data: history } = await supabase
-      .from('user_indicator_history')
-      .select('cooldown_until_day')
+    const { data: domainProgress } = await supabase
+      .from('user_domain_progress')
+      .select('cooldown_until')
       .eq('user_id', userId)
-      .eq('indicator_id', indicatorId)
-      .gte('cooldown_until_day', currentDay)
-      .limit(1);
+      .eq('domain_id', indicatorId)
+      .single();
 
-    return (history && history.length > 0);
+    if (!domainProgress?.cooldown_until) return false;
+    
+    const cooldownDate = new Date(domainProgress.cooldown_until);
+    return cooldownDate > new Date();
   }
 
   /**
@@ -487,20 +467,19 @@ export class LearningPathService {
     userId: string,
     indicatorId: string,
     usageDay: number,
-    usageType: UserIndicatorHistory['usage_type'],
     domainContext?: string
   ): Promise<void> {
-    const cooldownUntilDay = usageDay + 21; // 3 weeks cooldown
+    const cooldownDate = new Date();
+    cooldownDate.setDate(cooldownDate.getDate() + 21); // 3 weeks cooldown
 
     await supabase
-      .from('user_indicator_history')
+      .from('user_exploration_history')
       .insert({
         user_id: userId,
-        indicator_id: indicatorId,
-        usage_day: usageDay,
-        usage_type: usageType,
-        domain_context: domainContext,
-        cooldown_until_day: cooldownUntilDay
+        final_indicator_id: indicatorId,
+        day_completed: usageDay,
+        node_type: 'domain_drill',
+        domain_path: domainContext ? [domainContext] : []
       });
   }
 }

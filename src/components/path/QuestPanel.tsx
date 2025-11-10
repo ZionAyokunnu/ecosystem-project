@@ -36,13 +36,14 @@ export const QuestPanel: React.FC = () => {
 
       const dailyGoal = profile?.daily_goal || 3;
 
-      // Count today's survey responses
+      // Count today's completed nodes
       const today = new Date().toISOString().split('T')[0];
       const { count: surveyCount } = await supabase
-        .from('survey_responses')
+        .from('user_node_progress')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('created_at', `${today}T00:00:00`);
+        .eq('status', 'completed')
+        .gte('completed_at', `${today}T00:00:00`);
 
       // Default quests
       const defaultQuests: Quest[] = [

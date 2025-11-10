@@ -22,6 +22,27 @@ export interface UserNodeProgress {
 }
 
 // UserPathState removed - replaced by profiles.last_session and user_node_progress
+export interface UserPathState {
+  user_id: string;
+  current_day: number;
+  furthest_unlocked_day: number;
+  preferred_domains: string[];
+  exploration_domains?: string[];
+  current_streak?: number;
+  last_session_date?: string;
+}
+
+// UserIndicatorHistory removed - replaced by user_exploration_history and user_domain_progress.cooldown_until
+export interface UserIndicatorHistory {
+  id: string;
+  user_id: string;
+  indicator_id: string;
+  usage_day: number;
+  usage_type: 'domain_drill' | 'connection_explore' | 'local_measure';
+  cooldown_until_day: number;
+  domain_context?: string;
+  created_at: string;
+}
 
 export interface LocalMeasurement {
   id: string;

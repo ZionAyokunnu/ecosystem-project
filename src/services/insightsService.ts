@@ -35,16 +35,26 @@ export const generatePersonalizedInsights = async (
   userProfile: any
 ): Promise<PersonalizedInsightData> => {
   
-  const { data: pathState } = await supabase
-    .from('user_path_state')
-    .select('*')
-    .eq('user_id', userId)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('streak, last_session, preferred_domains')
+    .eq('id', userId)
     .single();
+
+  const { count: completedCount } = await supabase
+    .from('user_node_progress')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'completed');
+
+  const pathState = profile ? {
+    current_day: (completedCount || 0) + 1
+  } : null;
 
   const { data: indicator } = await supabase
     .from('indicators')
     .select('*')
-    .eq('indicator_id', indicatorId)
+    .eq('id', indicatorId)
     .single();
 
   const { data: userResponses } = await supabase

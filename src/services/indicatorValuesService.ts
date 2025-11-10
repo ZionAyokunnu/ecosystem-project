@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const getIndicatorValue = async (indicatorId: string, locationId: string): Promise<number> => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .rpc('get_indicator_current_value', {
       p_indicator_id: indicatorId,
       p_location_id: locationId
@@ -35,7 +35,7 @@ export const getIndicatorTrend = async (
   locationId: string, 
   yearsBack: number = 2
 ): Promise<number> => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .rpc('get_indicator_trend', {
       p_indicator_id: indicatorId,
       p_location_id: locationId,
@@ -125,7 +125,7 @@ export const calculateCorrelation = async (
   indicator2Id: string,
   minYears: number = 3
 ) => {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .rpc('calculate_indicator_correlation', {
       p_indicator1_id: indicator1Id,
       p_indicator2_id: indicator2Id,
@@ -141,7 +141,7 @@ export const calculateCorrelation = async (
 };
 
 export const updateAllCorrelations = async () => {
-  const { data, error } = await supabase.rpc('update_all_correlations');
+  const { data, error } = await (supabase as any).rpc('update_all_correlations');
   
   if (error) {
     console.error('Error updating correlations:', error);

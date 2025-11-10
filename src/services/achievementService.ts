@@ -103,7 +103,7 @@ export const achievementService = {
 
       // Get completed units count
       const { data: progress } = await supabase
-        .from('path_progress')
+        .from('user_node_progress')
         .select('*')
         .eq('user_id', userId)
         .eq('status', 'completed');

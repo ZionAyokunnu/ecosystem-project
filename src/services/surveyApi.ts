@@ -15,24 +15,17 @@ export interface SurveyResponse {
   created_at: string;
 }
 
-export const getSurveys = async (): Promise<Survey[]> => {
-  const { data, error } = await supabase
-    .from('surveys')
-    .select('*')
-    .eq('status', 'active');
+// Note: surveys, survey_questions, and survey_responses tables no longer exist
+// They have been replaced by the learning nodes system
 
-  if (error) throw error;
-  return data as any[];
+export const getSurveys = async (): Promise<Survey[]> => {
+  console.warn('getSurveys is deprecated. Surveys system has been replaced by learning nodes.');
+  return [];
 };
 
 export const getSurveyQuestions = async (surveyId: string): Promise<SurveyQuestion[]> => {
-  const { data, error } = await supabase
-    .from('survey_questions')
-    .select('*')
-    .eq('survey_id', surveyId);
-
-  if (error) throw error;
-  return data as SurveyQuestion[];
+  console.warn('getSurveyQuestions is deprecated. Surveys system has been replaced by learning nodes.');
+  return [];
 };
 
 export const submitSurveyResponse = async (response: Omit<RelationshipUserResponse, 'response_id' | 'created_at'>): Promise<void> => {
@@ -56,56 +49,26 @@ export const getRelationshipResponses = async (parentId?: string, childId?: stri
 };
 
 export const submitSurveyAnswer = async (response: Omit<SurveyResponse, 'id' | 'created_at'>): Promise<void> => {
-  const { error } = await supabase
-    .from('survey_responses')
-    .insert([response]);
-
-  if (error) throw error;
+  console.warn('submitSurveyAnswer is deprecated. Surveys system has been replaced by learning nodes.');
+  throw new Error('Survey responses functionality has been replaced by learning nodes system');
 };
 
 export const getSurveyResponses = async (surveyId: string): Promise<SurveyResponse[]> => {
-  const { data, error } = await supabase
-    .from('survey_responses')
-    .select('*')
-    .eq('survey_id', surveyId);
-
-  if (error) throw error;
-  return data as SurveyResponse[];
+  console.warn('getSurveyResponses is deprecated. Surveys system has been replaced by learning nodes.');
+  return [];
 };
 
 export const getSurveysForApproval = async (locationId: string): Promise<any[]> => {
-  const { data, error } = await supabase
-    .from('surveys')
-    .select('*')
-    .eq('status', 'pending_approval')
-    .eq('target_location', locationId);
-
-  if (error) throw error;
-  return data as any[];
+  console.warn('getSurveysForApproval is deprecated. Surveys system has been replaced by learning nodes.');
+  return [];
 };
 
 export const approveSurvey = async (surveyId: string, repId: string): Promise<void> => {
-  const { error } = await supabase
-    .from('surveys')
-    .update({
-      status: 'active',
-      approved_by_rep: repId,
-      approved_at: new Date().toISOString()
-    })
-    .eq('survey_id', surveyId);
-
-  if (error) throw error;
+  console.warn('approveSurvey is deprecated. Surveys system has been replaced by learning nodes.');
+  throw new Error('Survey approval functionality has been replaced by learning nodes system');
 };
 
 export const declineSurvey = async (surveyId: string, repId: string, reason: string): Promise<void> => {
-  const { error } = await supabase
-    .from('surveys')
-    .update({
-      status: 'declined',
-      approved_by_rep: repId,
-      declined_reason: reason
-    })
-    .eq('survey_id', surveyId);
-
-  if (error) throw error;
+  console.warn('declineSurvey is deprecated. Surveys system has been replaced by learning nodes.');
+  throw new Error('Survey decline functionality has been replaced by learning nodes system');
 };

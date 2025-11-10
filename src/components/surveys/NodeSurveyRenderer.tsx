@@ -34,11 +34,26 @@ export const NodeSurveyRenderer: React.FC<NodeSurveyRendererProps> = ({
         .eq('id', nodeId)
         .single();
 
-      const { data: pathState } = await supabase
-        .from('user_path_state')
-        .select('*')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('streak, last_session, preferred_domains, selected_domain')
+        .eq('id', user.id)
+        .single();
+
+      const { count: completedCount } = await supabase
+        .from('user_node_progress')
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('status', 'completed');
+
+      const pathState = profile ? {
+        user_id: user.id,
+        current_day: (completedCount || 0) + 1,
+        furthest_unlocked_day: (completedCount || 0) + 1,
+        preferred_domains: profile.preferred_domains || [],
+        current_streak: profile.streak || 0,
+        last_session_date: profile.last_session
+      } : null;
 
       setNodeData(node);
       setUserState(pathState);

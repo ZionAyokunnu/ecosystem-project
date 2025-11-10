@@ -38,20 +38,14 @@ const PersonalizedInsights: React.FC<PersonalizedInsightsProps> = ({ indicatorId
       let finalIndicatorId = targetIndicatorId;
 
       if (!finalIndicatorId) {
-        const { data: pathState } = await supabase
-          .from('user_path_state')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
         const { data: recentIndicator } = await supabase
-          .from('user_indicator_history')
-          .select('indicator_id')
+          .from('user_exploration_history')
+          .select('final_indicator_id')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1);
 
-        finalIndicatorId = recentIndicator?.[0]?.indicator_id;
+        finalIndicatorId = recentIndicator?.[0]?.final_indicator_id;
       }
 
       if (!finalIndicatorId) {
@@ -61,7 +55,7 @@ const PersonalizedInsights: React.FC<PersonalizedInsightsProps> = ({ indicatorId
       const { data: indicatorData } = await supabase
         .from('indicators')
         .select('*')
-        .eq('indicator_id', finalIndicatorId)
+        .eq('id', finalIndicatorId)
         .single();
 
       setIndicator(indicatorData);

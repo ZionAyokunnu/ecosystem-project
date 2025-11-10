@@ -10,60 +10,28 @@ export interface PathProgressUpdate {
 export const pathProgressService = {
   /**
    * Initialize path progress for a new user
+   * Note: path_progress table no longer exists - using user_node_progress instead
    */
   async initializePathProgress(userId: string, domain: string) {
-    try {
-      // Create initial path progress - Unit 1 is current, rest are locked
-      const initialProgress = Array.from({ length: 10 }, (_, i) => ({
-        user_id: userId,
-        unit_id: `unit_${i + 1}`,
-        status: i === 0 ? 'current' : 'locked',
-        insights_earned: 0
-      }));
-
-      const { error } = await supabase
-        .from('path_progress')
-        .insert(initialProgress);
-
-      if (error) throw error;
-      return { success: true };
-    } catch (error) {
-      console.error('Error initializing path progress:', error);
-      return { success: false, error };
-    }
+    console.warn('pathProgressService.initializePathProgress is deprecated. Use learningPathService.initializeUserPath() instead.');
+    return { success: true };
   },
 
   /**
    * Complete a unit and unlock the next one
+   * Note: path_progress table no longer exists - using user_node_progress instead
    */
   async completeUnit(unitId: string, insightsEarned: number = 10) {
+    console.warn('pathProgressService.completeUnit is deprecated. Use learningPathService.completeNode() instead.');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Get current unit number
-      const unitNum = parseInt(unitId.split('_')[1]);
-      const nextUnitId = `unit_${unitNum + 1}`;
-      const isCheckpoint = unitNum % 5 === 0;
-
-      // Mark current unit as completed
-      const { error: updateError } = await supabase
-        .from('path_progress')
-        .update({
-          status: 'completed',
-          insights_earned: insightsEarned,
-          completed_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .eq('unit_id', unitId);
-
-      if (updateError) throw updateError;
-
-      // Award bonus insights for checkpoints
+      const isCheckpoint = parseInt(unitId.split('_')[1] || '0') % 5 === 0;
       const checkpointBonus = isCheckpoint ? 20 : 0;
       const totalInsights = insightsEarned + checkpointBonus;
 
-      // Get current insights and update
+      // Award insights to profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('insights')
@@ -79,18 +47,7 @@ export const pathProgressService = {
 
       if (profileError) throw profileError;
 
-      // If not the last unit, unlock the next one and make it current
-      if (unitNum < 10) {
-        const { error: nextError } = await supabase
-          .from('path_progress')
-          .update({ status: 'current' })
-          .eq('user_id', user.id)
-          .eq('unit_id', nextUnitId);
-
-        if (nextError) throw nextError;
-      }
-
-      // Check for new achievements (imported dynamically to avoid circular deps)
+      // Check for new achievements
       const { achievementService } = await import('./achievementService');
       const newBadges = await achievementService.checkAndAwardAchievements(user.id);
 
@@ -98,7 +55,7 @@ export const pathProgressService = {
         success: true, 
         insightsEarned: totalInsights,
         isCheckpoint,
-        unitNumber: unitNum,
+        unitNumber: parseInt(unitId.split('_')[1] || '0'),
         newBadges
       };
     } catch (error) {
@@ -110,24 +67,11 @@ export const pathProgressService = {
 
   /**
    * Get user's current progress
+   * Note: path_progress table no longer exists - using user_node_progress instead
    */
   async getUserProgress() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data, error } = await supabase
-        .from('path_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('unit_id');
-
-      if (error) throw error;
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error fetching user progress:', error);
-      return { success: false, error };
-    }
+    console.warn('pathProgressService.getUserProgress is deprecated. Use learningPathService.getUserPathData() instead.');
+    return { success: true, data: [] };
   },
 
   /**
