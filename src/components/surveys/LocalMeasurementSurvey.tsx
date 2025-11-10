@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { MobileSurveyLayout } from './MobileSurveyLayout';
+import { TouchButton } from './TouchButton';
+import { AnswerFeedback } from './AnswerFeedback';
 
 interface LocalMeasurementSurveyProps {
   nodeData: any;
@@ -18,6 +21,16 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [surveyQuestions, setSurveyQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  const progress = surveyQuestions.length > 0 ? ((currentQuestion + 1) / surveyQuestions.length) * 100 : 0;
+
+  const mascotMessages = [
+    "Rate honestly based on your experience! 🏠",
+    "You're helping your community! 💪",
+    "Almost there! Your input matters! 🌟",
+    "Last one - you're doing amazing! ✨"
+  ];
 
   useEffect(() => {
     const loadLocalMeasurementSurvey = async () => {
@@ -85,141 +98,148 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
 
   const handleResponse = (response: any) => {
     const questionId = surveyQuestions[currentQuestion].question_id;
-    const updatedResponses = { ...responses, [questionId]: response };
-    setResponses(updatedResponses);
+    setResponses(prev => ({ ...prev, [questionId]: response }));
+    setShowFeedback(true);
 
-    if (currentQuestion < surveyQuestions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      const completionData = {
-        responses: updatedResponses,
-        nodeId: nodeData.id,
-        insights_earned: 4,
-        measurement_type: 'local_assessment'
-      };
-      onComplete(completionData);
-    }
+    setTimeout(() => {
+      if (currentQuestion < surveyQuestions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+        setShowFeedback(false);
+      } else {
+        const completionData = {
+          responses: { ...responses, [questionId]: response },
+          nodeId: nodeData.id,
+          insights_earned: 4,
+          measurement_type: 'local_assessment'
+        };
+        onComplete(completionData);
+      }
+    }, 1500);
   };
 
-  const renderQuestionInput = (question: any) => {
-    switch (question.input_type) {
-      case 'rating_scale':
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between text-sm text-muted-foreground mb-4">
-              <span>{question.scale_labels[0]}</span>
-              <span>{question.scale_labels[question.scale_labels.length - 1]}</span>
-            </div>
-            <div className="flex justify-center gap-4">
-              {Array.from({ length: question.scale_max }, (_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => handleResponse(i + 1)}
-                  className="w-16 h-16 rounded-full border-4 border-primary/20 hover:border-primary transition-all duration-200 flex items-center justify-center font-bold text-xl hover:scale-110 hover:shadow-lg bg-card"
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-            <div className="text-center text-xs text-muted-foreground space-y-1">
-              {question.scale_labels.map((label: string, index: number) => (
-                <div key={index}>{index + 1}: {label}</div>
-              ))}
-            </div>
-          </div>
-        );
+  const renderRatingScale = (question: any) => {
+    return (
+      <div className="space-y-8">
+        <div className="flex justify-between text-sm text-gray-500 px-4">
+          <span>{question.scale_labels[0]}</span>
+          <span>{question.scale_labels[question.scale_labels.length - 1]}</span>
+        </div>
+        
+        {/* Mobile-optimized rating circles */}
+        <div className="grid grid-cols-5 gap-3 max-w-sm mx-auto">
+          {Array.from({ length: question.scale_max }, (_, i) => (
+            <TouchButton
+              key={i + 1}
+              onClick={() => handleResponse(i + 1)}
+              className="w-16 h-16 rounded-full border-4 border-blue-200 hover:border-blue-400 flex items-center justify-center text-xl font-bold relative overflow-visible"
+            >
+              <span className="relative z-10">{i + 1}</span>
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 whitespace-nowrap">
+                {question.scale_labels[i]}
+              </div>
+            </TouchButton>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
-      case 'text':
-        return (
-          <div className="space-y-4">
-            <textarea
-              placeholder="Share your thoughts... (Optional)"
-              className="w-full p-4 border-2 border-border rounded-2xl resize-none h-32 focus:border-primary focus:outline-none bg-background text-foreground"
-              onChange={(e) => setResponses(prev => ({
-                ...prev,
-                [question.question_id]: e.target.value
-              }))}
-              value={responses[question.question_id] || ''}
-            />
-            <div className="flex gap-4">
-              <button
-                onClick={() => handleResponse('')}
-                className="flex-1 p-3 border-2 border-border rounded-xl text-muted-foreground hover:bg-muted"
-              >
-                Skip
-              </button>
-              <button
-                onClick={() => handleResponse(responses[question.question_id] || '')}
-                className="flex-1 p-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        );
-
-      default:
-        return <div>Unsupported question type: {question.input_type}</div>;
-    }
+  const renderTextInput = (question: any) => {
+    return (
+      <div className="space-y-6">
+        <textarea
+          placeholder="Share your thoughts... (Optional)"
+          className="w-full p-4 border-2 border-gray-200 rounded-2xl resize-none h-32 focus:border-blue-400 focus:outline-none text-lg"
+          onChange={(e) => setResponses(prev => ({ 
+            ...prev, 
+            [question.question_id]: e.target.value 
+          }))}
+          value={responses[question.question_id] || ''}
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <TouchButton
+            onClick={() => handleResponse('')}
+            variant="secondary"
+          >
+            Skip
+          </TouchButton>
+          <TouchButton
+            onClick={() => handleResponse(responses[question.question_id] || '')}
+            variant="primary"
+          >
+            Continue
+          </TouchButton>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-accent/10 to-accent/5">
-        <div className="animate-spin text-4xl">📍</div>
-      </div>
+      <MobileSurveyLayout 
+        progress={0} 
+        totalQuestions={4} 
+        currentQuestion={1}
+        showMascot={false}
+      >
+        <div className="text-center py-12">
+          <div className="text-6xl animate-spin mb-4">📍</div>
+          <p className="text-lg text-gray-600">Loading survey...</p>
+        </div>
+      </MobileSurveyLayout>
     );
   }
 
   if (surveyQuestions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-accent/10 to-accent/5">
-        <div className="text-center">
+      <MobileSurveyLayout 
+        progress={0} 
+        totalQuestions={4} 
+        currentQuestion={1}
+        showMascot={false}
+      >
+        <div className="text-center py-12">
           <div className="text-6xl mb-4">📍</div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">No measurement available</h2>
-          <p className="text-muted-foreground">Complete some exploration first!</p>
+          <h2 className="text-2xl font-bold mb-2">No measurement available</h2>
+          <p className="text-gray-600">Complete some exploration first!</p>
         </div>
-      </div>
+      </MobileSurveyLayout>
     );
   }
 
   const question = surveyQuestions[currentQuestion];
-  const progress = ((currentQuestion + 1) / surveyQuestions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-accent/10 to-accent/5 p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">
-              Question {currentQuestion + 1} of {surveyQuestions.length}
-            </span>
-            <span className="text-sm font-medium text-muted-foreground">
-              {Math.round(progress)}% complete
-            </span>
-          </div>
-          <div className="w-full bg-muted rounded-full h-3">
-            <div
-              className="bg-accent h-3 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="bg-card rounded-3xl shadow-xl p-8 border border-border">
+    <>
+      <MobileSurveyLayout
+        progress={progress}
+        totalQuestions={surveyQuestions.length}
+        currentQuestion={currentQuestion + 1}
+        mascotMessage={mascotMessages[Math.min(currentQuestion, mascotMessages.length - 1)]}
+      >
+        {/* Question Card */}
+        <div className="bg-white rounded-3xl shadow-xl p-6 mb-8">
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">📍</div>
-            <h1 className="text-2xl font-bold text-foreground mb-4">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">
               {question.prompt}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-gray-600">
               Based on your experience in your local area
             </p>
           </div>
 
-          {renderQuestionInput(question)}
+          {/* Dynamic question input - mobile optimized */}
+          {question.input_type === 'rating_scale' ? renderRatingScale(question) : renderTextInput(question)}
         </div>
-      </div>
-    </div>
+      </MobileSurveyLayout>
+
+      <AnswerFeedback
+        show={showFeedback}
+        type="good"
+        message={question.input_type === 'text' ? "Thanks for sharing! 💭" : "Perfect rating! ⭐"}
+        onComplete={() => setShowFeedback(false)}
+      />
+    </>
   );
 };

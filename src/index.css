@@ -362,3 +362,37 @@
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
+
+/* Mobile-first utilities */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+  
+  .active\:scale-95:active {
+    transform: scale(0.95);
+  }
+}
+
+/* Mobile viewport adjustments */
+@media screen and (max-width: 480px) {
+  .text-6xl { font-size: 3rem; }
+  .text-5xl { font-size: 2.5rem; }
+  .text-4xl { font-size: 2rem; }
+}
+
+/* Ensure good touch targets */
+@media (pointer: coarse) {
+  button, input, textarea, select {
+    min-height: 48px;
+  }
+}
