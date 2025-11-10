@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BottomNavigation } from "@/components/BottomNavigation";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { EcosystemProvider } from "@/context/EcosystemContext";
 import { UserProvider } from "@/context/UserContext";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -23,7 +23,7 @@ import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 import Wallet from "@/pages/Wallet";
 import ResearcherInsights from "@/pages/ResearcherInsights";
 import Auth from "@/pages/Auth";
-import Dashboard from "@/pages/Dashboard";
+import DataSimulations from "@/pages/DataSimulations";
 import RepDashboard from "@/pages/RepDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Leaderboard from "@/pages/Leaderboard";
@@ -54,14 +54,13 @@ const App = () => (
                   <Route path="/unit-survey" element={<UnitSurvey />} />
 
                   <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Home />} />
-
-                    <Route path="home" element={<Home />} />
-                    <Route path="home-alone" element={<Homepage />} />
+                    <Route path="/" element={<Navigate to="/path" replace />} />
                     
-                    <Route path="dashboard" element={
+                    <Route path="simulations" element={
                       <ProtectedRoute>
-                        <Dashboard />
+                        <RoleProtectedRoute allowedRoles={['researcher', 'admin']}>
+                          <DataSimulations />
+                        </RoleProtectedRoute>
                       </ProtectedRoute>
                     } />
                     

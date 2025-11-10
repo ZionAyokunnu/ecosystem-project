@@ -173,92 +173,6 @@ const CommunityStoriesPage: React.FC = () => {
             Real stories from community members about local initiatives and changes
           </p>
         </div>
-<div className="relative">
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Share Your Story
-          </Button>
-          
-          {showForm && (
-            <Card className="absolute right-0 top-12 w-96 z-10 shadow-lg">
-              <CardHeader>
-                <CardTitle>Share Your Story</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmitStory} className="space-y-4">
-                  <Input
-                    placeholder="Story title"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    required
-                  />
-                  
-                  <Textarea
-                    placeholder="Tell your story..."
-                    value={formData.body}
-                    onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
-                    rows={4}
-                    required
-                  />
-                  
-                  <Select
-                    value={formData.indicator_id}
-                    onValueChange={(value) => {
-                      const indicator = indicators.find(ind => ind.indicator_id === value);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        indicator_id: value,
-                        category: indicator?.category || ''
-                      }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select indicator" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {indicators.sort((a, b) => a.name.localeCompare(b.name)).map(indicator => (
-                        <SelectItem key={indicator.indicator_id} value={indicator.indicator_id}>
-                          {indicator.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.filter(cat => cat !== 'all').map(category => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Input
-                    placeholder="Photo URL (optional)"
-                    value={formData.photo}
-                    onChange={(e) => setFormData(prev => ({ ...prev, photo: e.target.value }))}
-                  />
-                  
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={!isFormValid} className="flex-1">
-                      Submit
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-        </div>
       </div>
 
       <div className="flex items-center gap-4 mb-6">
@@ -281,6 +195,113 @@ const CommunityStoriesPage: React.FC = () => {
           </Badge>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-40">
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-14 h-14 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center hover:scale-110"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Story Creation Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Share Your Story</h2>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitStory} className="space-y-4">
+              <Input
+                placeholder="Story title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                required
+              />
+              
+              <Textarea
+                placeholder="Tell your story..."
+                value={formData.body}
+                onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
+                rows={4}
+                required
+              />
+              
+              <Select
+                value={formData.indicator_id}
+                onValueChange={(value) => {
+                  const indicator = indicators.find(ind => ind.indicator_id === value);
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    indicator_id: value,
+                    category: indicator?.category || ''
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select indicator" />
+                </SelectTrigger>
+                <SelectContent>
+                  {indicators.sort((a, b) => a.name.localeCompare(b.name)).map(indicator => (
+                    <SelectItem key={indicator.indicator_id} value={indicator.indicator_id}>
+                      {indicator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.filter(cat => cat !== 'all').map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Input
+                placeholder="Photo URL (optional)"
+                value={formData.photo}
+                onChange={(e) => setFormData(prev => ({ ...prev, photo: e.target.value }))}
+              />
+              
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!isFormValid}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  Share Story
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-6">

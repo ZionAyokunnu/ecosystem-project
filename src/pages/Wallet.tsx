@@ -1,22 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Coins, Trophy, Gift, TrendingUp, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Coins, Trophy, Gift, TrendingUp, Clock, ArrowLeft } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { getUserPoints, getUserBadges, getUserVouchers, redeemVoucher } from '@/services/gamificationApi';
+import PointsTracker from '@/components/PointsTracker';
 import BadgeRenderer from '@/components/BadgeRenderer';
 import VoucherCard from '@/components/VoucherCard';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Wallet = () => {
+  const navigate = useNavigate();
   const { userProfile } = useUser();
   const [points, setPoints] = useState({ total_points: 0, recent_activities: [] });
   const [badges, setBadges] = useState([]);
+  const [recentBadges, setRecentBadges] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // const userId = userProfile?.name || userProfile?.id;
   const userId = userProfile?.id;
 
   useEffect(() => {
@@ -32,6 +37,16 @@ const Wallet = () => {
         setPoints(pointsData);
         setBadges(badgesData);
         setVouchers(vouchersData);
+
+        // Fetch recent badges from database
+        const { data: recentBadgeData } = await supabase
+          .from('user_badges')
+          .select('*')
+          .eq('user_id', userId)
+          .order('awarded_at', { ascending: false })
+          .limit(3);
+        
+        setRecentBadges(recentBadgeData || []);
       } catch (error) {
         console.error('Error fetching wallet data:', error);
         toast.error('Failed to load wallet data');
@@ -71,9 +86,45 @@ const Wallet = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-100 p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Community Wallet</h1>
-          <p className="text-gray-600">Track your contributions and rewards</p>
+        <div className="flex items-center gap-4 mb-8">
+          <Button variant="ghost" onClick={() => navigate('/path')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Learning
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">Your Rewards</h1>
+            <p className="text-gray-600">Track your contributions and rewards</p>
+          </div>
+        </div>
+
+        {/* Points Summary - Hero Section */}
+        <div className="mb-8">
+          <PointsTracker userId={userId} />
+        </div>
+
+        {/* Recent Badges Section */}
+        <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-2xl">🏆</span>
+            <h2 className="text-xl font-bold text-gray-800">Recent Achievements</h2>
+          </div>
+          {recentBadges.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {recentBadges.map((badge) => (
+                <div key={badge.id} className="text-center p-4 bg-yellow-50 rounded-xl">
+                  <BadgeRenderer badges={[badge]} variant="full" />
+                  <p className="text-sm text-gray-600 mt-2">
+                    {new Date(badge.awarded_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <span className="text-4xl block mb-2">🎯</span>
+              <p className="text-gray-600">Complete learning tasks to earn your first badge!</p>
+            </div>
+          )}
         </div>
 
         {/* Overview Cards */}

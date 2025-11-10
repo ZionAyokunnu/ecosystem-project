@@ -133,6 +133,14 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Location Info */}
+              <div className="border-t border-border pt-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Location:</span>
+                  <span className="text-muted-foreground">{userProfile.location_id || 'Not set'}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

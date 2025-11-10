@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
-import { User, LogOut, Settings, Trophy, Wallet, BarChart3, FileText, Home, MessageSquare, TreePine, PieChart } from 'lucide-react';
+import { User, LogOut, Settings, Trophy, Wallet, BarChart3, FileText, Home, MessageSquare, TreePine, Brain, Shield, Search } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { user, profile, signOut } = useAuth();
@@ -41,9 +41,9 @@ const Header: React.FC = () => {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/path', label: 'Learning', icon: TreePine },
-    { path: '/insights', label: 'Insights', icon: BarChart3 },
+    { path: '/insights', label: 'Insights', icon: Brain },
     { path: '/stories', label: 'Stories', icon: MessageSquare },
-    { path: '/surveys', label: 'Surveys', icon: FileText },
+    { path: '/wallet', label: 'Rewards', icon: Trophy },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -104,14 +104,9 @@ const Header: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate(getRoleDashboard())}>
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </DropdownMenuItem>
-                  
                   <DropdownMenuItem onClick={() => navigate('/wallet')}>
                     <Wallet className="w-4 h-4 mr-2" />
-                    Wallet
+                    Rewards
                   </DropdownMenuItem>
                   
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
@@ -124,23 +119,30 @@ const Header: React.FC = () => {
                     Leaderboard
                   </DropdownMenuItem>
                   
+                  {(profile.role === 'researcher' || profile.role === 'admin') && (
+                    <DropdownMenuItem onClick={() => navigate('/simulations')}>
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Simulations
+                    </DropdownMenuItem>
+                  )}
+                  
                   {(profile.role === 'community_rep' || profile.role === 'admin') &&  (
                     <DropdownMenuItem onClick={() => navigate('/rep-dashboard')}>
-                      <BarChart3 className="w-4 h-4 mr-2" />
+                      <FileText className="w-4 h-4 mr-2" />
                       Rep Dashboard
                     </DropdownMenuItem>
                   )}
                   
                   {profile.role === 'admin' && (
                     <DropdownMenuItem onClick={() => navigate('/admin')}>
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Shield className="w-4 h-4 mr-2" />
                       Admin Panel
                     </DropdownMenuItem>
                   )}
 
                   {(profile.role === 'researcher' || profile.role === 'admin') && (
                     <DropdownMenuItem onClick={() => navigate('/researcher/insights')}>
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Search className="w-4 h-4 mr-2" />
                       Research Panel
                     </DropdownMenuItem>
                   )}
