@@ -1215,6 +1215,45 @@ export type Database = {
         }
         Relationships: []
       }
+      story_reactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          reaction_type: string
+          story_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reaction_type: string
+          story_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reaction_type?: string
+          story_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "qualitative_stories"
+            referencedColumns: ["story_id"]
+          },
+          {
+            foreignKeyName: "story_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_votes: {
         Row: {
           created_at: string
@@ -2112,6 +2151,19 @@ export type Database = {
       calculate_survey_duration: {
         Args: { survey_id_param: string }
         Returns: number
+      }
+      get_leaderboard_data: {
+        Args: { p_location_id?: string }
+        Returns: {
+          badge_count: number
+          current_streak: number
+          first_name: string
+          league_tier: string
+          rank_position: number
+          survey_count: number
+          total_points: number
+          user_id: string
+        }[]
       }
       get_location_children: {
         Args: { parent_location_id?: string }

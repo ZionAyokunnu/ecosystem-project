@@ -12,6 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getCommunityStories, createCommunityStory, likeStory, isStoryLiked, type CommunityStory } from '@/services/communityStoriesApi';
 import SuggestedInitiativeBox from '@/components/SuggestedInitiativeBox';
+import { StoryCard } from '@/components/stories/StoryCard';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 
 
@@ -19,6 +22,7 @@ const CommunityStoriesPage: React.FC = () => {
   const navigate = useNavigate();
   const { indicators } = useEcosystem();
   const { selectedLocation } = useLocation();
+  const { profile } = useAuth();
   const [stories, setStories] = useState<CommunityStory[]>([]);
   const [filteredStories, setFilteredStories] = useState<CommunityStory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -27,6 +31,7 @@ const CommunityStoriesPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
   const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
+  const [userReactions, setUserReactions] = useState<Record<string, string[]>>({});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -82,6 +87,55 @@ const CommunityStoriesPage: React.FC = () => {
       setError('Failed to load community stories');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReaction = async (storyId: string, reactionType: string) => {
+    if (!profile?.id) return;
+
+    try {
+      // Check if user already has this reaction
+      const { data: existing } = await supabase
+        .from('story_reactions')
+        .select('*')
+        .eq('story_id', storyId)
+        .eq('user_id', profile.id)
+        .eq('reaction_type', reactionType)
+        .single();
+
+      if (existing) {
+        // Remove reaction
+        await supabase
+          .from('story_reactions')
+          .delete()
+          .eq('id', existing.id);
+        
+        // Update local state
+        setUserReactions(prev => ({
+          ...prev,
+          [storyId]: prev[storyId]?.filter(r => r !== reactionType) || []
+        }));
+      } else {
+        // Add reaction
+        await supabase
+          .from('story_reactions')
+          .insert({
+            story_id: storyId,
+            user_id: profile.id,
+            reaction_type: reactionType
+          });
+        
+        // Update local state
+        setUserReactions(prev => ({
+          ...prev,
+          [storyId]: [...(prev[storyId] || []), reactionType]
+        }));
+      }
+
+      // Refresh stories to get updated counts
+      fetchStories();
+    } catch (err) {
+      console.error('Error handling reaction:', err);
     }
   };
 
@@ -327,89 +381,15 @@ const CommunityStoriesPage: React.FC = () => {
         </Card>
       ) : (
         <div className="space-y-6">
-          {filteredStories.map(story => {
-            const indicatorName = getIndicatorName(story.parent_id);
-            const category = getIndicatorCategory(story.parent_id);
-            const isLiked = likedStories.has(story.story_id);
-            const isExpanded = expandedStory === story.story_id;
-            
-            // Extract title from story_text (assuming format: "Title\n\nBody")
-            const parts = story.story_text.split('\n\n');
-            const title = parts[0] || story.story_text.substring(0, 100) + '...';
-            const body = parts.slice(1).join('\n\n') || story.story_text;
-            
-            return (
-              <Card key={story.story_id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-                        <Badge variant="secondary">{category}</Badge>
-                      </div>
-                      <p className="text-gray-600 leading-relaxed">{body}</p>
-                       <div className="mt-2 text-sm text-gray-500">
-                         Related to: {indicatorName}
-                       </div>
-                       
-                       {/* AI-Suggested Initiative */}
-                       <SuggestedInitiativeBox 
-                         storyText={body}
-                         indicatorName={indicatorName}
-                         locationName={selectedLocation?.name || 'Your area'}
-                       />
-                     </div>
+          {filteredStories.map(story => (
+            <StoryCard
+              key={story.story_id}
+              story={story}
+              onReaction={handleReaction}
+              userReactions={userReactions[story.story_id] || []}
+            />
+          ))}
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleVote(story.story_id)}
-                      disabled={isLiked}
-                      className={`ml-4 flex flex-col items-center gap-1 h-auto py-2 px-3 ${
-                        isLiked ? 'text-red-500' : ''
-                      }`}
-                    >
-                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                      <span className="text-sm font-medium">{story.votes || 0}</span>
-                    </Button>
-
-                  </div>
-
-                    <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t">
-                    <div className="flex items-center gap-4">
-                      <span>By {story.author}</span>
-                      <span>{getTimeAgo(story.created_at)}</span>
-                      {story.location && <span>in {story.location}</span>}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleExpand(story.story_id)}
-                      className="flex items-center gap-1"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      Discuss
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </Button>
-
-                  </div>
-                
-                   {isExpanded && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-                      <div className="text-sm font-medium text-gray-700 mb-2">
-                        Related discussions about {indicatorName}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Discussion panel with related stories, charts, and recommendations coming soon...
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-
-          
           {filteredStories.length === 0 && (
             <Card>
               <CardContent className="p-12 text-center">
