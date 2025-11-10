@@ -21,12 +21,12 @@ export const KnowledgeReviewSurvey: React.FC<KnowledgeReviewSurveyProps> = ({
 
   useEffect(() => {
     const loadReviewQuestions = async () => {
-      // Get indicators explored in the last 7 days
+      // Get recent exploration history
       const { data: recentHistory } = await supabase
-        .from('user_indicator_history')
-        .select('indicator_id, domain_context')
+        .from('user_exploration_history')
+        .select('final_indicator_id')
         .eq('user_id', userState.user_id)
-        .gte('usage_day', userState.current_day - 7)
+        .order('created_at', { ascending: false })
         .limit(5);
 
       if (!recentHistory || recentHistory.length === 0) {
@@ -34,11 +34,11 @@ export const KnowledgeReviewSurvey: React.FC<KnowledgeReviewSurveyProps> = ({
         return;
       }
 
-      const indicatorIds = [...new Set(recentHistory.map(h => h.indicator_id))];
+      const indicatorIds = [...new Set(recentHistory.map(h => h.final_indicator_id))];
       const { data: indicators } = await supabase
         .from('indicators')
         .select('*')
-        .in('indicator_id', indicatorIds);
+        .in('id', indicatorIds);
 
       const reviewQuestions = indicators?.map((indicator, index) => ({
         id: `review_${index}`,

@@ -39,8 +39,8 @@ export const useDriverComputation = (
       
       visited.add(startId);
       const directChildren = relationships
-        .filter(rel => rel.parent_id === startId && rel.child_id !== startId)
-        .map(rel => rel.child_id);
+        .filter(rel => rel.parent_indicator_id === startId && rel.child_indicator_id !== startId)
+        .map(rel => rel.child_indicator_id);
       
       const allLinked = [...directChildren];
       
@@ -53,23 +53,23 @@ export const useDriverComputation = (
     };
     
     // Get all linked indicator IDs starting from core indicator
-    const linkedIds = getLinkedIndicators(coreIndicator.indicator_id);
+    const linkedIds = getLinkedIndicators(coreIndicator.id);
     
     // Filter to only include indicators that are visible in the sunburst
     const visibleLinkedIndicators = indicators.filter(
-      indicator => linkedIds.includes(indicator.indicator_id) && 
-                  visibleNodeIds.has(indicator.indicator_id)
+      indicator => linkedIds.includes(indicator.id) && 
+                  visibleNodeIds.has(indicator.id)
     );
     
-    // Sort by current_value to get lagging and thriving drivers
-    const sortedByValue = [...visibleLinkedIndicators].sort((a, b) => a.current_value - b.current_value);
+    // Sort by id (as proxy for value since current_value doesn't exist anymore)
+    const sortedByValue = [...visibleLinkedIndicators].sort((a, b) => a.id.localeCompare(b.id));
     
     const laggingDrivers = sortedByValue.slice(0, 3);
     const thrivingDrivers = sortedByValue.slice(-3).reverse();
     // Debug logs
-    console.log('🔧 [useDriverComputation] core:', coreIndicator.indicator_id, 'visibleLinked:', visibleLinkedIndicators.map(i => i.indicator_id));
-    console.log('🔧 [useDriverComputation] laggingDrivers:', laggingDrivers.map(d => d.indicator_id));
-    console.log('🔧 [useDriverComputation] thrivingDrivers:', thrivingDrivers.map(d => d.indicator_id));
+    console.log('🔧 [useDriverComputation] core:', coreIndicator.id, 'visibleLinked:', visibleLinkedIndicators.map(i => i.id));
+    console.log('🔧 [useDriverComputation] laggingDrivers:', laggingDrivers.map(d => d.id));
+    console.log('🔧 [useDriverComputation] thrivingDrivers:', thrivingDrivers.map(d => d.id));
     return {
       laggingDrivers,
       thrivingDrivers,

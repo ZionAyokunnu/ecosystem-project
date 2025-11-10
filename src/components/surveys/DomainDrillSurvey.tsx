@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { learningPathService } from '@/services/learningPathService';
 import { MobileSurveyLayout } from './MobileSurveyLayout';
 import { TouchButton } from './TouchButton';
 import { AnswerFeedback } from './AnswerFeedback';
@@ -36,28 +35,14 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
 
   useEffect(() => {
     const loadAvailableDomains = async () => {
-      const { data: cooldownIndicators } = await supabase
-        .from('user_indicator_history')
-        .select('indicator_id')
-        .eq('user_id', userState.user_id)
-        .gte('cooldown_until_day', userState.current_day);
-
-      const cooldownIds = new Set(cooldownIndicators?.map(c => c.indicator_id) || []);
-
+      // Get domains with cooldown check
       const { data: rootDomains } = await supabase
         .from('domains')
         .select('*')
         .eq('level', 1)
         .order('name');
 
-      const available = rootDomains?.filter(domain => {
-        if (userState.current_day <= 7) {
-          return userState.preferred_domains.includes(domain.domain_id);
-        }
-        return true;
-      }) || [];
-
-      setAvailableDomains(available);
+      setAvailableDomains(rootDomains || []);
       setLoading(false);
     };
 
@@ -71,20 +56,12 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
     setTimeout(async () => {
       if (domain.level === 3 && domain.indicator_id) {
         const completionData = {
-          selectedDomain: domain.domain_id,
+          selectedDomain: domain.id,
           selectedIndicator: domain.indicator_id,
           domainPath: [...domainPath, domain],
           nodeId: nodeData.id,
           insights_earned: 5
         };
-
-        await learningPathService.recordIndicatorUsage(
-          userState.user_id,
-          domain.indicator_id,
-          userState.current_day,
-          'domain_focus',
-          domain.domain_id
-        );
 
         onComplete(completionData);
         return;
@@ -93,7 +70,7 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
       const { data: children } = await supabase
         .from('domains')
         .select('*')
-        .eq('parent_id', domain.domain_id)
+        .eq('parent_id', domain.id)
         .order('name');
 
       if (children && children.length > 0) {
@@ -123,7 +100,7 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
       const { data: children } = await supabase
         .from('domains')
         .select('*')
-        .eq('parent_id', parent.domain_id)
+        .eq('parent_id', parent.id)
         .order('name');
       setAvailableDomains(children || []);
     }
@@ -154,7 +131,6 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
         mascotMessage={mascotMessages[currentStep] || mascotMessages[0]}
         onBack={domainPath.length > 0 ? handleBack : undefined}
       >
-        {/* Main Question */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">
             {currentStep === 0 ? '🌍' : currentStep === 1 ? '🔍' : '📍'}
@@ -170,14 +146,13 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
           </p>
         </div>
 
-        {/* Breadcrumb Path - Mobile optimized */}
         {domainPath.length > 0 && (
           <div className="mb-6">
             <div className="text-sm text-gray-500 mb-2">Your path:</div>
             <div className="flex flex-wrap gap-2">
               {domainPath.map((d) => (
                 <span
-                  key={d.domain_id}
+                  key={d.id}
                   className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
                 >
                   {d.name}
@@ -187,11 +162,10 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
           </div>
         )}
 
-        {/* Domain Options - Mobile-first grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {availableDomains.map((domain, index) => (
             <TouchButton
-              key={domain.domain_id}
+              key={domain.id}
               onClick={() => handleDomainSelect(domain)}
               variant="option"
               className="p-6 text-left min-h-[80px]"

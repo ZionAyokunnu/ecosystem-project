@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
-import SurveyCreationForm from '@/components/SurveyCreationForm';
 import { useEcosystem } from '@/context/EcosystemContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Settings, Database, Users, BarChart, Save, AlertCircle } from 'lucide-react';

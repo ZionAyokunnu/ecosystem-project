@@ -22,16 +22,16 @@ export const ConnectionExploreSurvey: React.FC<ConnectionExploreSurveyProps> = (
 
   useEffect(() => {
     const loadConnectionQuestions = async () => {
-      const { data: lastDomainUsage } = await supabase
-        .from('user_indicator_history')
-        .select('indicator_id, domain_context')
+      // Get recent exploration history
+      const { data: recentHistory } = await supabase
+        .from('user_exploration_history')
+        .select('final_indicator_id')
         .eq('user_id', userState.user_id)
-        .eq('usage_type', 'domain_focus')
         .order('created_at', { ascending: false })
         .limit(1);
 
       let indicator;
-      if (!lastDomainUsage || lastDomainUsage.length === 0) {
+      if (!recentHistory || recentHistory.length === 0) {
         const { data: indicators } = await supabase
           .from('indicators')
           .select('*')
@@ -41,7 +41,7 @@ export const ConnectionExploreSurvey: React.FC<ConnectionExploreSurveyProps> = (
         const { data } = await supabase
           .from('indicators')
           .select('*')
-          .eq('indicator_id', lastDomainUsage[0].indicator_id)
+          .eq('id', recentHistory[0].final_indicator_id)
           .single();
         indicator = data;
       }
@@ -58,31 +58,31 @@ export const ConnectionExploreSurvey: React.FC<ConnectionExploreSurveyProps> = (
     if (!target) return;
 
     const { data: relationships } = await supabase
-      .from('relationships')
+      .from('indicator_relationships')
       .select('*')
-      .or(`parent_id.eq.${target.indicator_id},child_id.eq.${target.indicator_id}`)
+      .or(`parent_indicator_id.eq.${target.id},child_indicator_id.eq.${target.id}`)
       .limit(5);
 
     if (!relationships) return;
 
-    const parentIds = relationships.map(r => r.parent_id);
-    const childIds = relationships.map(r => r.child_id);
+    const parentIds = relationships.map(r => r.parent_indicator_id);
+    const childIds = relationships.map(r => r.child_indicator_id);
     const allIds = [...new Set([...parentIds, ...childIds])];
 
     const { data: indicators } = await supabase
       .from('indicators')
       .select('*')
-      .in('indicator_id', allIds);
+      .in('id', allIds);
 
-    const indicatorMap = new Map(indicators?.map(i => [i.indicator_id, i]) || []);
+    const indicatorMap = new Map(indicators?.map(i => [i.id, i]) || []);
 
     const questionSet = relationships.map((rel, index) => ({
       id: `connection_${index}`,
       type: 'relationship',
-      parentIndicator: indicatorMap.get(rel.parent_id),
-      childIndicator: indicatorMap.get(rel.child_id),
-      relationshipId: rel.relationship_id,
-      question: `How does ${indicatorMap.get(rel.parent_id)?.name} influence ${indicatorMap.get(rel.child_id)?.name} in your community?`,
+      parentIndicator: indicatorMap.get(rel.parent_indicator_id),
+      childIndicator: indicatorMap.get(rel.child_indicator_id),
+      relationshipId: `${rel.parent_indicator_id}_${rel.child_indicator_id}`,
+      question: `How does ${indicatorMap.get(rel.parent_indicator_id)?.name} influence ${indicatorMap.get(rel.child_indicator_id)?.name} in your community?`,
       options: [
         { value: 5, label: 'Very Strong Positive Impact', color: 'hsl(var(--chart-1))' },
         { value: 4, label: 'Some Positive Impact', color: 'hsl(var(--chart-2))' },
@@ -103,7 +103,7 @@ export const ConnectionExploreSurvey: React.FC<ConnectionExploreSurveyProps> = (
       setCurrentQuestion(currentQuestion + 1);
     } else {
       const completionData = {
-        targetIndicator: targetIndicator.indicator_id,
+        targetIndicator: targetIndicator.id,
         responses,
         nodeId: nodeData.id,
         insights_earned: 5

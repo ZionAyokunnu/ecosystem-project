@@ -34,9 +34,10 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
 
   useEffect(() => {
     const loadLocalMeasurementSurvey = async () => {
+      // Get recent exploration history
       const { data: recentIndicator } = await supabase
-        .from('user_indicator_history')
-        .select('indicator_id')
+        .from('user_exploration_history')
+        .select('final_indicator_id')
         .eq('user_id', userState.user_id)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -46,7 +47,7 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
         return;
       }
 
-      await generateDefaultMeasurementQuestions(recentIndicator[0].indicator_id);
+      await generateDefaultMeasurementQuestions(recentIndicator[0].final_indicator_id);
       setLoading(false);
     };
 
@@ -57,7 +58,7 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
     const { data: indicator } = await supabase
       .from('indicators')
       .select('name')
-      .eq('indicator_id', indicatorId)
+      .eq('id', indicatorId)
       .single();
 
     const defaultQuestions = [
@@ -125,7 +126,6 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
           <span>{question.scale_labels[question.scale_labels.length - 1]}</span>
         </div>
         
-        {/* Mobile-optimized rating circles */}
         <div className="grid grid-cols-5 gap-3 max-w-sm mx-auto">
           {Array.from({ length: question.scale_max }, (_, i) => (
             <TouchButton
@@ -217,7 +217,6 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
         currentQuestion={currentQuestion + 1}
         mascotMessage={mascotMessages[Math.min(currentQuestion, mascotMessages.length - 1)]}
       >
-        {/* Question Card */}
         <div className="bg-white rounded-3xl shadow-xl p-6 mb-8">
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">📍</div>
@@ -229,7 +228,6 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
             </p>
           </div>
 
-          {/* Dynamic question input - mobile optimized */}
           {question.input_type === 'rating_scale' ? renderRatingScale(question) : renderTextInput(question)}
         </div>
       </MobileSurveyLayout>

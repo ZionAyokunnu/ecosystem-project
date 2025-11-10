@@ -40,16 +40,26 @@ export const EcosystemProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         getRelationships()
       ]);
       
-      setIndicators(indicatorsData);
+      // Add compatibility aliases to indicators
+      const enhancedIndicators = indicatorsData.map(ind => ({
+        ...ind,
+        indicator_id: ind.id,
+        current_value: 50 // Default value, will be fetched from indicator_values when needed
+      }));
+      
+      setIndicators(enhancedIndicators);
       setRelationships(relationshipsData);
     } catch (err) {
       console.error('Error fetching ecosystem data:', err);
       setError(err as Error);
-      toast({
-        title: "Error Loading Data",
-        description: "There was a problem loading the ecosystem data.",
-        variant: "destructive"
-      });
+      
+      if (!(err as any)?.message?.includes('does not exist')) {
+        toast({
+          title: "Error Loading Data",
+          description: "There was a problem loading the ecosystem data.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }

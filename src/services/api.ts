@@ -28,15 +28,6 @@ export const recordAdminIndicatorChange = async ({
     return { success: false, error: adminInputError };
   }
 
-  const { error: updateError } = await supabase
-    .from('indicators')
-    .update({ current_value: value })
-    .eq('indicator_id', indicator_id);
-
-  if (updateError) {
-    return { success: false, error: updateError };
-  }
-
   return { success: true };
 };
 
@@ -57,10 +48,9 @@ export const updateHistoricalValue = async ({
   const { error: logError } = await supabase.from('admin_inputs').insert({
     indicator_id,
     value,
-    input_type: 'historical_value',
+    input_type: 'historical_trend',
     rationale,
-    admin_id,
-    year
+    admin_id
   });
 
   if (logError) return { success: false, error: logError };
@@ -108,10 +98,19 @@ export const getIndicators = async (): Promise<Indicator[]> => {
 };
 
 export const updateIndicatorValue = async (indicator_id: string, new_value: number): Promise<void> => {
+  // Update through indicator_values table instead
+  const currentYear = new Date().getFullYear();
   const { error } = await supabase
-    .from('indicators')
-    .update({ current_value: new_value, updated_at: new Date().toISOString() })
-    .eq('indicator_id', indicator_id);
+    .from('indicator_values')
+    .upsert({
+      indicator_id: indicator_id,
+      location_id: '00000000-0000-0000-0000-000000000000',
+      year: currentYear,
+      value: new_value,
+      data_source: 'system_generated'
+    }, {
+      onConflict: 'indicator_id,location_id,year'
+    });
   
   if (error) throw error;
 };
@@ -120,7 +119,7 @@ export const getIndicatorById = async (indicator_id: string): Promise<Indicator>
   const { data, error } = await supabase
     .from('indicators')
     .select('*')
-    .eq('indicator_id', indicator_id)
+    .eq('id', indicator_id)
     .single();
   
   if (error) throw error;
@@ -130,31 +129,70 @@ export const getIndicatorById = async (indicator_id: string): Promise<Indicator>
 // Relationships API
 export const getRelationships = async (): Promise<Relationship[]> => {
   const { data, error } = await supabase
-    .from('relationships')
+    .from('indicator_relationships')
     .select('*');
   
   if (error) throw error;
-  return data as Relationship[];
+  
+  return (data || []).map(item => ({
+    parent_indicator_id: item.parent_indicator_id,
+    child_indicator_id: item.child_indicator_id,
+    correlation_coefficient: item.correlation_coefficient || 0,
+    sample_size: item.sample_size || 0,
+    calculated_at: item.calculated_at,
+    relationship_id: `${item.parent_indicator_id}_${item.child_indicator_id}`,
+    parent_id: item.parent_indicator_id,
+    child_id: item.child_indicator_id,
+    influence_weight: item.correlation_coefficient || 0,
+    influence_score: item.correlation_coefficient || 0,
+    child_to_parent_weight: (item.correlation_coefficient || 0) * 0.1
+  })) as Relationship[];
 };
 
 export const getChildrenByParentId = async (parent_id: string): Promise<Relationship[]> => {
   const { data, error } = await supabase
-    .from('relationships')
+    .from('indicator_relationships')
     .select('*')
-    .eq('parent_id', parent_id);
+    .eq('parent_indicator_id', parent_id);
   
   if (error) throw error;
-  return data as Relationship[];
+  
+  return (data || []).map(item => ({
+    parent_indicator_id: item.parent_indicator_id,
+    child_indicator_id: item.child_indicator_id,
+    correlation_coefficient: item.correlation_coefficient || 0,
+    sample_size: item.sample_size || 0,
+    calculated_at: item.calculated_at,
+    relationship_id: `${item.parent_indicator_id}_${item.child_indicator_id}`,
+    parent_id: item.parent_indicator_id,
+    child_id: item.child_indicator_id,
+    influence_weight: item.correlation_coefficient || 0,
+    influence_score: item.correlation_coefficient || 0,
+    child_to_parent_weight: (item.correlation_coefficient || 0) * 0.1
+  })) as Relationship[];
 };
 
 export const getParentsByChildId = async (child_id: string): Promise<Relationship[]> => {
-  const { data, error } = await supabase
-    .from('relationships')
+  const { data, error} = await supabase
+    .from('indicator_relationships')
     .select('*')
-    .eq('child_id', child_id);
+    .eq('child_indicator_id', child_id);
   
   if (error) throw error;
-  return data as Relationship[];
+  
+  return (data || []).map(item => ({
+    parent_indicator_id: item.parent_indicator_id,
+    child_indicator_id: item.child_indicator_id,
+    correlation_coefficient: item.correlation_coefficient || 0,
+    sample_size: item.sample_size || 0,
+    calculated_at: item.calculated_at,
+    relationship_id: `${item.parent_indicator_id}_${item.child_indicator_id}`,
+    parent_id: item.parent_indicator_id,
+    child_id: item.child_indicator_id,
+    influence_weight: item.correlation_coefficient || 0,
+    influence_score: item.correlation_coefficient || 0,
+    child_to_parent_weight: (item.correlation_coefficient || 0) * 0.1
+  })) as Relationship[];
 };
 
 // Historical Trends API

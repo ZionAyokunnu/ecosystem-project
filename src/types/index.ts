@@ -12,6 +12,10 @@ export interface Indicator {
     options?: string[];
   };
   created_at: string;
+  
+  // Legacy compatibility aliases
+  indicator_id?: string;
+  current_value?: number;
 }
 
 export interface Location {
@@ -38,13 +42,18 @@ export interface IndicatorValue {
 }
 
 export interface Relationship {
-  relationship_id: string;
-  parent_id: string;
-  child_id: string;
-  influence_weight: number;
-  influence_score: number;
-  created_at?: string;
-  updated_at?: string;
+  parent_indicator_id: string;
+  child_indicator_id: string;
+  correlation_coefficient: number;
+  sample_size: number;
+  calculated_at: string;
+  
+  // Legacy compatibility aliases
+  relationship_id?: string;
+  parent_id?: string;
+  child_id?: string;
+  influence_weight?: number;
+  influence_score?: number;
   child_to_parent_weight?: number;
 }
 
