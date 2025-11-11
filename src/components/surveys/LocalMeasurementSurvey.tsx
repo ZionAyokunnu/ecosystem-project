@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { indicatorQuestionsService, IndicatorQuestion } from '@/services/indicatorQuestionsService';
 import { MobileSurveyLayout } from './MobileSurveyLayout';
 import { TouchButton } from './TouchButton';
 import { AnswerFeedback } from './AnswerFeedback';
@@ -18,154 +19,223 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
   onStart
 }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [questions, setQuestions] = useState<IndicatorQuestion[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
-  const [surveyQuestions, setSurveyQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [targetIndicatorId, setTargetIndicatorId] = useState<string>('');
+  const [sessionId] = useState(() => crypto.randomUUID());
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
-  const progress = surveyQuestions.length > 0 ? ((currentQuestion + 1) / surveyQuestions.length) * 100 : 0;
+  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
   const mascotMessages = [
-    "Rate honestly based on your experience! 🏠",
-    "You're helping your community! 💪",
-    "Almost there! Your input matters! 🌟",
-    "Last one - you're doing amazing! ✨"
+    "Tell us about your local area! 🏠",
+    "Your answers help your community! 💪", 
+    "Almost there! You're doing great! 🌟",
+    "Last question - you're amazing! ✨"
   ];
 
   useEffect(() => {
-    const loadLocalMeasurementSurvey = async () => {
-      // Get recent exploration history
-      const { data: recentIndicator } = await supabase
+    loadLocalMeasurementSurvey();
+  }, [userState]);
+
+  const loadLocalMeasurementSurvey = async () => {
+    try {
+      const { data: recentHistory } = await supabase
         .from('user_exploration_history')
         .select('final_indicator_id')
         .eq('user_id', userState.user_id)
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (!recentIndicator || recentIndicator.length === 0) {
+      if (!recentHistory || recentHistory.length === 0) {
+        console.log('No recent exploration history found');
         setLoading(false);
         return;
       }
 
-      await generateDefaultMeasurementQuestions(recentIndicator[0].final_indicator_id);
-      setLoading(false);
-    };
+      const indicatorId = recentHistory[0].final_indicator_id;
+      setTargetIndicatorId(indicatorId);
 
-    loadLocalMeasurementSurvey();
-  }, [userState]);
+      const unansweredQuestions = await indicatorQuestionsService.getUnansweredQuestions(
+        userState.user_id,
+        indicatorId,
+        userState.location_id
+      );
 
-  const generateDefaultMeasurementQuestions = async (indicatorId: string) => {
-    const { data: indicator } = await supabase
-      .from('indicators')
-      .select('name')
-      .eq('id', indicatorId)
-      .single();
-
-    const defaultQuestions = [
-      {
-        question_id: 'current_state',
-        prompt: `How would you rate the current state of ${indicator?.name} in your area?`,
-        input_type: 'rating_scale',
-        scale_min: 1,
-        scale_max: 5,
-        scale_labels: ['Very Poor', 'Poor', 'Average', 'Good', 'Excellent']
-      },
-      {
-        question_id: 'trend',
-        prompt: `Over the past year, has ${indicator?.name} been getting better or worse?`,
-        input_type: 'rating_scale',
-        scale_min: 1,
-        scale_max: 5,
-        scale_labels: ['Much Worse', 'Worse', 'Same', 'Better', 'Much Better']
-      },
-      {
-        question_id: 'confidence',
-        prompt: 'How confident are you in your assessment?',
-        input_type: 'rating_scale',
-        scale_min: 1,
-        scale_max: 5,
-        scale_labels: ['Not Confident', 'Slightly Confident', 'Moderately Confident', 'Very Confident', 'Extremely Confident']
-      },
-      {
-        question_id: 'observations',
-        prompt: `Any specific observations about ${indicator?.name} in your area?`,
-        input_type: 'text',
-        is_required: false
+      if (unansweredQuestions.length === 0) {
+        const allQuestions = await indicatorQuestionsService.getQuestionsForIndicator(indicatorId);
+        setQuestions(allQuestions.slice(0, 3));
+      } else {
+        setQuestions(unansweredQuestions.slice(0, 4));
       }
-    ];
 
-    setSurveyQuestions(defaultQuestions);
+    } catch (error) {
+      console.error('Error loading local measurement survey:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleResponse = (response: any) => {
-    const questionId = surveyQuestions[currentQuestion].question_id;
-    setResponses(prev => ({ ...prev, [questionId]: response }));
+  const handleResponse = async (response: any) => {
+    const question = questions[currentQuestion];
+    const responseTime = Math.round((Date.now() - questionStartTime) / 1000);
+    
+    setResponses(prev => ({ ...prev, [question.id]: response }));
+
+    await indicatorQuestionsService.submitQuestionResponse(
+      userState.user_id,
+      question.id,
+      targetIndicatorId,
+      userState.location_id,
+      response,
+      {
+        nodeId: nodeData.id,
+        responseTimeSeconds: responseTime,
+        sessionId: sessionId
+      }
+    );
+
     setShowFeedback(true);
 
     setTimeout(() => {
-      if (currentQuestion < surveyQuestions.length - 1) {
+      if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);
+        setQuestionStartTime(Date.now());
         setShowFeedback(false);
       } else {
-        const completionData = {
-          responses: { ...responses, [questionId]: response },
-          nodeId: nodeData.id,
-          insights_earned: 4,
-          measurement_type: 'local_assessment'
-        };
-        onComplete(completionData);
+        completeLocalMeasurement();
       }
     }, 1500);
   };
 
-  const renderRatingScale = (question: any) => {
+  const completeLocalMeasurement = async () => {
+    try {
+      await indicatorQuestionsService.updateLocalMeasurementSummary(
+        userState.user_id,
+        targetIndicatorId,
+        userState.location_id,
+        nodeData.id
+      );
+
+      const completionData = {
+        responses,
+        nodeId: nodeData.id,
+        insights_earned: 4,
+        measurement_type: 'local_assessment',
+        questions_answered: questions.length,
+        target_indicator: targetIndicatorId
+      };
+      
+      onComplete(completionData);
+    } catch (error) {
+      console.error('Error completing local measurement:', error);
+    }
+  };
+
+  const renderQuestionInput = (question: IndicatorQuestion) => {
+    switch (question.question_type) {
+      case 'rating_emoji':
+        return renderRatingEmoji(question);
+      case 'simple_choice':
+        return renderSimpleChoice(question);
+      case 'yes_no':
+        return renderYesNo(question);
+      case 'count_estimate':
+        return renderCountEstimate(question);
+      case 'text_short':
+        return renderTextShort(question);
+      default:
+        return <div>Unsupported question type</div>;
+    }
+  };
+
+  const renderRatingEmoji = (question: IndicatorQuestion) => {
+    const options = question.response_config.options || [];
     return (
-      <div className="space-y-8">
-        <div className="flex justify-between text-sm text-gray-500 px-4">
-          <span>{question.scale_labels[0]}</span>
-          <span>{question.scale_labels[question.scale_labels.length - 1]}</span>
-        </div>
-        
-        <div className="grid grid-cols-5 gap-3 max-w-sm mx-auto">
-          {Array.from({ length: question.scale_max }, (_, i) => (
-            <TouchButton
-              key={i + 1}
-              onClick={() => handleResponse(i + 1)}
-              className="w-16 h-16 rounded-full border-4 border-blue-200 hover:border-blue-400 flex items-center justify-center text-xl font-bold relative overflow-visible"
-            >
-              <span className="relative z-10">{i + 1}</span>
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-gray-500 whitespace-nowrap">
-                {question.scale_labels[i]}
-              </div>
-            </TouchButton>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+        {options.map((option: any, index: number) => (
+          <TouchButton
+            key={index}
+            onClick={() => handleResponse({ value: option.value, emoji: option.emoji })}
+            className="p-6 flex flex-col items-center gap-2"
+          >
+            <span className="text-4xl">{option.emoji}</span>
+            <span className="text-sm">{option.label}</span>
+          </TouchButton>
+        ))}
       </div>
     );
   };
 
-  const renderTextInput = (question: any) => {
+  const renderSimpleChoice = (question: IndicatorQuestion) => {
+    const options = question.response_config.options || [];
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
+        {options.map((option: string, index: number) => (
+          <TouchButton
+            key={index}
+            onClick={() => handleResponse({ choice: option, index })}
+            className="w-full p-4 text-left"
+          >
+            {option}
+          </TouchButton>
+        ))}
+      </div>
+    );
+  };
+
+  const renderYesNo = (question: IndicatorQuestion) => {
+    const config = question.response_config;
+    return (
+      <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+        <TouchButton
+          onClick={() => handleResponse({ answer: true })}
+          className="p-6 bg-green-50 border-green-200 text-green-800"
+        >
+          <div className="text-2xl mb-2">✅</div>
+          <div>{config.true_label || 'Yes'}</div>
+        </TouchButton>
+        <TouchButton
+          onClick={() => handleResponse({ answer: false })}
+          className="p-6 bg-red-50 border-red-200 text-red-800"
+        >
+          <div className="text-2xl mb-2">❌</div>
+          <div>{config.false_label || 'No'}</div>
+        </TouchButton>
+      </div>
+    );
+  };
+
+  const renderCountEstimate = (question: IndicatorQuestion) => {
+    return renderSimpleChoice(question);
+  };
+
+  const renderTextShort = (question: IndicatorQuestion) => {
+    const [textValue, setTextValue] = useState('');
+    const config = question.response_config;
+    
+    return (
+      <div className="space-y-4">
         <textarea
-          placeholder="Share your thoughts... (Optional)"
-          className="w-full p-4 border-2 border-gray-200 rounded-2xl resize-none h-32 focus:border-blue-400 focus:outline-none text-lg"
-          onChange={(e) => setResponses(prev => ({ 
-            ...prev, 
-            [question.question_id]: e.target.value 
-          }))}
-          value={responses[question.question_id] || ''}
+          placeholder={config.placeholder || "Type your answer..."}
+          className="w-full p-4 border-2 border-gray-200 rounded-2xl resize-none h-24 focus:border-blue-400 focus:outline-none text-lg"
+          value={textValue}
+          onChange={(e) => setTextValue(e.target.value)}
+          maxLength={config.max_words * 10 || 150}
         />
         <div className="grid grid-cols-2 gap-4">
           <TouchButton
-            onClick={() => handleResponse('')}
+            onClick={() => handleResponse({ text: '' })}
             variant="secondary"
           >
             Skip
           </TouchButton>
           <TouchButton
-            onClick={() => handleResponse(responses[question.question_id] || '')}
+            onClick={() => handleResponse({ text: textValue })}
             variant="primary"
+            disabled={textValue.trim().length === 0}
           >
             Continue
           </TouchButton>
@@ -184,36 +254,42 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
       >
         <div className="text-center py-12">
           <div className="text-6xl animate-spin mb-4">📍</div>
-          <p className="text-lg text-gray-600">Loading survey...</p>
+          <p className="text-lg text-gray-600">Loading questions about your area...</p>
         </div>
       </MobileSurveyLayout>
     );
   }
 
-  if (surveyQuestions.length === 0) {
+  if (questions.length === 0) {
     return (
       <MobileSurveyLayout 
-        progress={0} 
-        totalQuestions={4} 
+        progress={100} 
+        totalQuestions={1} 
         currentQuestion={1}
         showMascot={false}
       >
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">📍</div>
-          <h2 className="text-2xl font-bold mb-2">No measurement available</h2>
-          <p className="text-gray-600">Complete some exploration first!</p>
+          <div className="text-6xl mb-4">✅</div>
+          <h2 className="text-2xl font-bold mb-2">All done!</h2>
+          <p className="text-gray-600">You've answered all available questions for this area.</p>
+          <TouchButton
+            onClick={() => onComplete({ insights_earned: 2 })}
+            className="mt-6"
+          >
+            Continue Learning
+          </TouchButton>
         </div>
       </MobileSurveyLayout>
     );
   }
 
-  const question = surveyQuestions[currentQuestion];
+  const question = questions[currentQuestion];
 
   return (
     <>
       <MobileSurveyLayout
         progress={progress}
-        totalQuestions={surveyQuestions.length}
+        totalQuestions={questions.length}
         currentQuestion={currentQuestion + 1}
         mascotMessage={mascotMessages[Math.min(currentQuestion, mascotMessages.length - 1)]}
       >
@@ -221,21 +297,21 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">📍</div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">
-              {question.prompt}
+              {question.question_text}
             </h1>
             <p className="text-gray-600">
-              Based on your experience in your local area
+              Help us understand your local area
             </p>
           </div>
 
-          {question.input_type === 'rating_scale' ? renderRatingScale(question) : renderTextInput(question)}
+          {renderQuestionInput(question)}
         </div>
       </MobileSurveyLayout>
 
       <AnswerFeedback
         show={showFeedback}
         type="good"
-        message={question.input_type === 'text' ? "Thanks for sharing! 💭" : "Perfect rating! ⭐"}
+        message="Great answer! 🌟"
         onComplete={() => setShowFeedback(false)}
       />
     </>

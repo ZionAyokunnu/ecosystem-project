@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { learningPathService } from '@/services/learningPathService';
 import { MobileSurveyLayout } from './MobileSurveyLayout';
 import { TouchButton } from './TouchButton';
 import { AnswerFeedback } from './AnswerFeedback';
@@ -83,7 +84,7 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
     setSelectedDomain(domain);
     setShowFeedback(true);
     
-    setTimeout(async () => {
+      setTimeout(async () => {
       if (domain.level === 3 && domain.indicator_id) {
         const completionData = {
           selectedDomain: domain.id,
@@ -92,6 +93,15 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
           nodeId: nodeData.id,
           insights_earned: 5
         };
+
+        // Record the exploration for Day 2 to use
+        await learningPathService.recordIndicatorExploration(
+          userState.user_id,
+          nodeData.id,
+          domain.indicator_id,
+          [...domainPath, domain].map(d => d.name),
+          userState.current_day
+        );
 
         onComplete(completionData);
         return;

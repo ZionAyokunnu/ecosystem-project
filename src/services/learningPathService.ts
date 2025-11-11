@@ -543,6 +543,31 @@ export class LearningPathService {
         domain_path: domainContext ? [domainContext] : []
       });
   }
+
+  /**
+   * Record exploration completion with indicator tracking
+   */
+  async recordIndicatorExploration(
+    userId: string,
+    nodeId: string,
+    indicatorId: string,
+    domainPath: string[],
+    dayCompleted: number
+  ): Promise<void> {
+    try {
+      await supabase
+        .from('user_exploration_history')
+        .insert({
+          user_id: userId,
+          day_completed: dayCompleted,
+          node_type: 'domain_drill',
+          domain_path: domainPath,
+          final_indicator_id: indicatorId
+        });
+    } catch (error) {
+      console.error('Error recording indicator exploration:', error);
+    }
+  }
 }
 
 export const learningPathService = new LearningPathService();
