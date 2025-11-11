@@ -296,6 +296,59 @@ export type Database = {
         }
         Relationships: []
       }
+      indicator_questions: {
+        Row: {
+          age_range: string | null
+          created_at: string | null
+          difficulty_level: string | null
+          id: string
+          indicator_id: string
+          is_active: boolean | null
+          location_type: string
+          question_order: number
+          question_text: string
+          question_type: string
+          response_config: Json
+          updated_at: string | null
+        }
+        Insert: {
+          age_range?: string | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          id?: string
+          indicator_id: string
+          is_active?: boolean | null
+          location_type?: string
+          question_order: number
+          question_text: string
+          question_type: string
+          response_config?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          age_range?: string | null
+          created_at?: string | null
+          difficulty_level?: string | null
+          id?: string
+          indicator_id?: string
+          is_active?: boolean | null
+          location_type?: string
+          question_order?: number
+          question_text?: string
+          question_type?: string
+          response_config?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_questions_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicator_relationships: {
         Row: {
           calculated_at: string | null
@@ -522,47 +575,68 @@ export type Database = {
       }
       local_measurements: {
         Row: {
+          average_response_time: number | null
           community_confidence: number | null
+          completion_percentage: number | null
           created_at: string | null
           current_state_rating: number
+          emoji_summary: string | null
           id: string
           improvement_suggestions: string | null
           indicator_id: string | null
+          last_response_date: string | null
           location_id: string | null
           node_id: string | null
           personal_confidence: number
           qualitative_notes: string | null
+          questions_answered: number | null
           response_time_seconds: number | null
+          session_id: string | null
+          total_questions: number | null
           trend_direction: number
           user_id: string | null
         }
         Insert: {
+          average_response_time?: number | null
           community_confidence?: number | null
+          completion_percentage?: number | null
           created_at?: string | null
           current_state_rating: number
+          emoji_summary?: string | null
           id?: string
           improvement_suggestions?: string | null
           indicator_id?: string | null
+          last_response_date?: string | null
           location_id?: string | null
           node_id?: string | null
           personal_confidence: number
           qualitative_notes?: string | null
+          questions_answered?: number | null
           response_time_seconds?: number | null
+          session_id?: string | null
+          total_questions?: number | null
           trend_direction: number
           user_id?: string | null
         }
         Update: {
+          average_response_time?: number | null
           community_confidence?: number | null
+          completion_percentage?: number | null
           created_at?: string | null
           current_state_rating?: number
+          emoji_summary?: string | null
           id?: string
           improvement_suggestions?: string | null
           indicator_id?: string | null
+          last_response_date?: string | null
           location_id?: string | null
           node_id?: string | null
           personal_confidence?: number
           qualitative_notes?: string | null
+          questions_answered?: number | null
           response_time_seconds?: number | null
+          session_id?: string | null
+          total_questions?: number | null
           trend_direction?: number
           user_id?: string | null
         }
@@ -1424,6 +1498,87 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_question_responses: {
+        Row: {
+          confidence_emoji: string | null
+          created_at: string | null
+          device_type: string | null
+          id: string
+          indicator_id: string
+          location_id: string
+          node_id: string | null
+          question_id: string
+          response_time_seconds: number | null
+          response_value: Json
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence_emoji?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          indicator_id: string
+          location_id: string
+          node_id?: string | null
+          question_id: string
+          response_time_seconds?: number | null
+          response_value: Json
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence_emoji?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          indicator_id?: string
+          location_id?: string
+          node_id?: string | null
+          question_id?: string
+          response_time_seconds?: number | null
+          response_value?: Json
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_question_responses_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_question_responses_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["location_id"]
+          },
+          {
+            foreignKeyName: "user_question_responses_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "learning_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_question_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "indicator_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_question_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_vouchers: {
         Row: {
