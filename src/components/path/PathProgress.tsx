@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { PathNode } from './PathNode';
 import { PathMascot } from './PathMascot';
+import { learningPathService } from '@/services/learningPathService';
 
 interface PathNodeData {
   id: string;
@@ -20,49 +21,29 @@ export const PathProgress: React.FC = () => {
   const [currentDay, setCurrentDay] = useState<number>(1);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPathProgress();
-  }, []);
-
-  const loadPathProgress = async () => {
+  const refreshProgress = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get current day from count of completed nodes (next available day)
-      const { count: completedCount } = await supabase
-        .from('user_node_progress')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'completed');
-
-      const currentDayValue = (completedCount || 0) + 1;
-      setCurrentDay(currentDayValue);
-      console.log('🐛 Current day calculation:', {
-        completedCount,
-        currentDayValue,
-        shouldStartAtDay1: completedCount === 0
-      });
-
-      // Get learning nodes with user progress
-      const { data: learningNodes } = await supabase
-        .from('learning_nodes')
-        .select('*')
-        .gte('day_number', currentDayValue)
-        .lte('day_number', currentDayValue + 9)
-        .order('day_number');
-
-      // Get user progress for these nodes
-      const nodeIds = learningNodes?.map(n => n.id) || [];
+      // Get current progress
       const { data: progressData } = await supabase
         .from('user_node_progress')
         .select('*')
-        .eq('user_id', user.id)
-        .in('node_id', nodeIds);
+        .eq('user_id', user.id);
 
+      // Get nodes
+      const { data: learningNodes } = await supabase
+        .from('learning_nodes')
+        .select('*')
+        .gte('day_number', 1)
+        .lte('day_number', 10)
+        .order('day_number');
+
+      // Update nodes with current progress
       const progressMap = new Map(progressData?.map(p => [p.node_id, p]) || []);
-
-      const nodesData: PathNodeData[] = (learningNodes || []).map((node, i) => {
+      
+      const nodesData: PathNodeData[] = (learningNodes || []).map((node) => {
         const progress = progressMap.get(node.id);
         return {
           id: node.id,
@@ -77,12 +58,61 @@ export const PathProgress: React.FC = () => {
 
       setNodes(nodesData);
       
+      // Update current day
+      const { count: completedCount } = await supabase
+        .from('user_node_progress')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+      
+      setCurrentDay((completedCount || 0) + 1);
+    } catch (error) {
+      console.error('Error refreshing progress:', error);
+    }
+  }, []);
+
+  const loadPathProgress = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if user has any progress
+      const { count: progressCount } = await supabase
+        .from('user_node_progress')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // If no progress, initialize the user
+      if (!progressCount || progressCount === 0) {
+        await learningPathService.initializeUserPath(user.id);
+      }
+
+      // Load progress
+      await refreshProgress();
+      
     } catch (error) {
       console.error('Error loading path progress:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPathProgress();
+  }, []);
+
+  useEffect(() => {
+    const handleNodeCompletion = () => {
+      refreshProgress();
+    };
+
+    // Listen for custom completion events
+    window.addEventListener('nodeCompleted', handleNodeCompletion);
+    
+    return () => {
+      window.removeEventListener('nodeCompleted', handleNodeCompletion);
+    };
+  }, [refreshProgress]);
 
   if (loading) {
     return (

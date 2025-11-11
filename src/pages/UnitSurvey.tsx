@@ -26,16 +26,25 @@ const UnitSurvey = () => {
     );
 
     if (result.success) {
-      setCelebrationData({
-        unitNumber: completionData.nodeId?.sequence_day || 1,
-        insightsEarned: result.insightsEarned,
-        isCheckpoint: false,
-        newBadges: result.achievements?.map((a: any) => a.title) || [],
-        onViewInsights: () => navigate('/insights')
+      toast.success(`🎉 Day completed! +${result.insightsEarned} insights`, {
+        duration: 2000,
       });
-      setShowCelebration(true);
+
+      // Emit event for UI refresh
+      window.dispatchEvent(new CustomEvent('nodeCompleted'));
+
+      if (result.nextNodeUnlocked) {
+        toast.success("🚀 Next day unlocked!", {
+          duration: 2000,
+        });
+      }
+
+      // Navigate back to path after brief delay
+      setTimeout(() => {
+        navigate('/path');
+      }, 2500);
     } else {
-      toast.error('Failed to complete task');
+      toast.error('Failed to complete lesson. Please try again.');
     }
   };
 

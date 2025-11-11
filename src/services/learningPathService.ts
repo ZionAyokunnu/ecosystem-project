@@ -9,20 +9,14 @@ export class LearningPathService {
    */
   async initializeUserPath(userId: string, selectedDomain?: string): Promise<{ success: boolean; currentDay: number }> {
     try {
-      // Check if user already has profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('selected_domain')
-        .eq('id', userId)
-        .single();
+      // Check if user already has progress
+      const { count: existingProgress } = await supabase
+        .from('user_node_progress')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
 
-      if (profile?.selected_domain) {
-        const { count } = await supabase
-          .from('user_node_progress')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .eq('status', 'completed');
-        return { success: true, currentDay: (count || 0) + 1 };
+      if (existingProgress && existingProgress > 0) {
+        return { success: true, currentDay: 1 };
       }
 
       // Update profile with selected domain
@@ -33,8 +27,29 @@ export class LearningPathService {
           .eq('id', userId);
       }
 
-      // Generate first week of learning nodes
-      await this.generateNodesUpToDay(userId, 7);
+      // Get first 10 learning nodes
+      const { data: nodes } = await supabase
+        .from('learning_nodes')
+        .select('id, day_number')
+        .lte('day_number', 10)
+        .order('day_number');
+
+      if (!nodes || nodes.length === 0) {
+        throw new Error('No learning nodes found');
+      }
+
+      // Create progress records - Day 1 as current, rest as locked
+      const progressRecords = nodes.map(node => ({
+        user_id: userId,
+        node_id: node.id,
+        status: node.day_number === 1 ? 'current' : 'locked'
+      }));
+
+      const { error } = await supabase
+        .from('user_node_progress')
+        .insert(progressRecords);
+
+      if (error) throw error;
 
       return { success: true, currentDay: 1 };
     } catch (error) {
@@ -279,15 +294,24 @@ export class LearningPathService {
     userId: string, 
     nodeId: string, 
     completionData: any
-  ): Promise<{ success: boolean; insightsEarned: number; achievements: any[] }> {
+  ): Promise<{ success: boolean; insightsEarned: number; achievements: any[]; nextNodeUnlocked: boolean }> {
     try {
-      // Update node progress
+      // Get current node info
+      const { data: currentNode } = await supabase
+        .from('learning_nodes')
+        .select('day_number')
+        .eq('id', nodeId)
+        .single();
+
+      if (!currentNode) throw new Error('Node not found');
+
+      // 1. Mark current node as completed
       const { error: progressError } = await supabase
         .from('user_node_progress')
         .update({
           status: 'completed',
           completed_at: new Date().toISOString(),
-          completion_data: completionData,
+          response_data: completionData,
           insights_earned: completionData.insights_earned || 5
         })
         .eq('user_id', userId)
@@ -295,16 +319,46 @@ export class LearningPathService {
 
       if (progressError) throw progressError;
 
-      // Update user path state
-      await this.updatePathState(userId);
+      // 2. Find and unlock next sequential node
+      const nextDay = currentNode.day_number + 1;
+      const { data: nextNode } = await supabase
+        .from('learning_nodes')
+        .select('id')
+        .eq('day_number', nextDay)
+        .maybeSingle();
 
-      // Update daily quests
-      await this.updateQuestProgress(userId, 'complete_nodes', 1);
+      let nextNodeUnlocked = false;
+      
+      if (nextNode) {
+        // Check if next node progress exists
+        const { data: existingProgress } = await supabase
+          .from('user_node_progress')
+          .select('id, status')
+          .eq('user_id', userId)
+          .eq('node_id', nextNode.id)
+          .maybeSingle();
 
-      // Check for achievements
-      const achievements = await this.checkAchievements(userId);
+        if (existingProgress) {
+          // Update existing progress to make it current
+          await supabase
+            .from('user_node_progress')
+            .update({ status: 'current' })
+            .eq('user_id', userId)
+            .eq('node_id', nextNode.id);
+        } else {
+          // Create new progress record as current
+          await supabase
+            .from('user_node_progress')
+            .insert({
+              user_id: userId,
+              node_id: nextNode.id,
+              status: 'current'
+            });
+        }
+        nextNodeUnlocked = true;
+      }
 
-      // Award insights to profile
+      // 3. Update user profile insights
       const { data: profile } = await supabase
         .from('profiles')
         .select('insights')
@@ -314,19 +368,26 @@ export class LearningPathService {
       await supabase
         .from('profiles')
         .update({
-          insights: (profile?.insights || 0) + (completionData.insights_earned || 5)
+          insights: (profile?.insights || 0) + (completionData.insights_earned || 5),
+          last_session: new Date().toISOString()
         })
         .eq('id', userId);
+
+      // 4. Update daily quests
+      await this.updateQuestProgress(userId, 'complete_nodes', 1);
+
+      // 5. Check for achievements
+      const achievements = await this.checkAchievements(userId);
 
       return {
         success: true,
         insightsEarned: completionData.insights_earned || 5,
-        achievements
+        achievements,
+        nextNodeUnlocked
       };
     } catch (error) {
       console.error('Error completing node:', error);
-      toast.error('Failed to complete learning task');
-      return { success: false, insightsEarned: 0, achievements: [] };
+      return { success: false, insightsEarned: 0, achievements: [], nextNodeUnlocked: false };
     }
   }
 
