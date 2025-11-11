@@ -35,7 +35,37 @@ export const DomainDrillSurvey: React.FC<DomainDrillSurveyProps> = ({
 
   useEffect(() => {
     const loadAvailableDomains = async () => {
-      // Get domains with cooldown check
+      // If user has selected_domain from onboarding, find its Level 1 parent
+      if (userState.selected_domain === 'altruism') {
+        // Map altruism to "Community, Culture & Relationships" domain
+        const { data: level1Domains } = await supabase
+          .from('domains')
+          .select('*')
+          .eq('level', 1)
+          .ilike('name', '%Community%Culture%Relationships%');
+        
+        if (level1Domains && level1Domains.length > 0) {
+          // Start directly with this domain's children
+          const { data: children } = await supabase
+            .from('domains')
+            .select('*')
+            .eq('parent_id', level1Domains[0].id)
+            .order('name');
+          
+          if (children && children.length > 0) {
+            setAvailableDomains(children);
+            setDomainPath([level1Domains[0]]); // Set Level 1 as already selected
+            setCurrentStep(1); // Start at Level 2
+          } else {
+            // No children, show Level 1 domains for user to choose
+            setAvailableDomains(level1Domains);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Fallback: Show all Level 1 domains
       const { data: rootDomains } = await supabase
         .from('domains')
         .select('*')

@@ -29,16 +29,20 @@ export const PathProgress: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get current day from user progress (find highest completed or current node)
-      const { data: allProgress } = await supabase
+      // Get current day from count of completed nodes (next available day)
+      const { count: completedCount } = await supabase
         .from('user_node_progress')
-        .select('node_id, status, learning_nodes!inner(day_number)')
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .order('learning_nodes(day_number)', { ascending: false })
-        .limit(1);
+        .eq('status', 'completed');
 
-      const currentDayValue = (allProgress?.[0]?.learning_nodes as any)?.day_number || 1;
+      const currentDayValue = (completedCount || 0) + 1;
       setCurrentDay(currentDayValue);
+      console.log('🐛 Current day calculation:', {
+        completedCount,
+        currentDayValue,
+        shouldStartAtDay1: completedCount === 0
+      });
 
       // Get learning nodes with user progress
       const { data: learningNodes } = await supabase
