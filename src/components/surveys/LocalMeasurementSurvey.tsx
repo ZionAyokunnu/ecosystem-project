@@ -42,6 +42,9 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
 
   const loadLocalMeasurementSurvey = async () => {
     try {
+      let indicatorId = '';
+      
+      // Try to get from recent exploration history first
       const { data: recentHistory } = await supabase
         .from('user_exploration_history')
         .select('final_indicator_id')
@@ -49,13 +52,31 @@ export const LocalMeasurementSurvey: React.FC<LocalMeasurementSurveyProps> = ({
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (!recentHistory || recentHistory.length === 0) {
-        console.log('No recent exploration history found');
+      if (recentHistory && recentHistory.length > 0) {
+        indicatorId = recentHistory[0].final_indicator_id;
+        console.log('Using indicator from exploration history:', indicatorId);
+      } else {
+        console.warn('No recent exploration history found, using fallback indicator');
+        
+        // Fallback: Use any indicator that has questions
+        const { data: indicatorWithQuestions } = await supabase
+          .from('indicator_questions' as any)
+          .select('indicator_id')
+          .eq('is_active', true)
+          .limit(1);
+        
+        if (indicatorWithQuestions && indicatorWithQuestions.length > 0) {
+          indicatorId = (indicatorWithQuestions as any)[0].indicator_id;
+          console.log('Using fallback indicator:', indicatorId);
+        }
+      }
+
+      if (!indicatorId) {
+        console.error('No indicator found for local measurement');
         setLoading(false);
         return;
       }
 
-      const indicatorId = recentHistory[0].final_indicator_id;
       setTargetIndicatorId(indicatorId);
 
       const unansweredQuestions = await indicatorQuestionsService.getUnansweredQuestions(
