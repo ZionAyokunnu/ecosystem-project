@@ -37,6 +37,8 @@ export class IndicatorQuestionsService {
     ageRange: string = '11+',
     difficultyLevel?: string
   ): Promise<IndicatorQuestion[]> {
+    console.log('Fetching questions for:', { indicatorId, locationType, ageRange, difficultyLevel });
+    
     let query = supabase
       .from('indicator_questions' as any)
       .select('*')
@@ -52,7 +54,12 @@ export class IndicatorQuestionsService {
 
     const { data, error } = await query;
     
-    if (error) throw error;
+    console.log('Questions result:', { count: (data as any)?.length, error });
+    
+    if (error) {
+      console.error('Database error fetching questions:', error);
+      throw error;
+    }
     return (data as any) || [];
   }
 

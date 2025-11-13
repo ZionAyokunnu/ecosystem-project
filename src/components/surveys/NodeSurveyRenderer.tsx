@@ -36,7 +36,7 @@ export const NodeSurveyRenderer: React.FC<NodeSurveyRendererProps> = ({
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('streak, last_session, preferred_domains, selected_domain')
+        .select('streak, last_session, preferred_domains, selected_domain, location_id')
         .eq('id', user.id)
         .single();
 
@@ -48,6 +48,7 @@ export const NodeSurveyRenderer: React.FC<NodeSurveyRendererProps> = ({
 
       const pathState = profile ? {
         user_id: user.id,
+        location_id: profile.location_id,
         current_day: (completedCount || 0) + 1,
         furthest_unlocked_day: (completedCount || 0) + 1,
         preferred_domains: profile.preferred_domains || [],
