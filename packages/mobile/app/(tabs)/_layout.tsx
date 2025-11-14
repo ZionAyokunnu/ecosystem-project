@@ -1,34 +1,56 @@
 import { Tabs } from 'expo-router';
-import { Home, User, Award, BookOpen } from 'lucide-react-native';
+import { Home, TrendingUp, Trophy, Wallet, User, MessageCircle } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: 'hsl(222.2 47.4% 11.2%)',
-        tabBarInactiveTintColor: 'hsl(215.4 16.3% 46.9%)',
+        tabBarActiveTintColor: '#3b82f6',
+        tabBarInactiveTintColor: '#6b7280',
         headerShown: false,
       }}
     >
       <Tabs.Screen 
         name="index" 
         options={{ 
-          title: 'Learning Path',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />
+        }} 
+      />
+      <Tabs.Screen 
+        name="path" 
+        options={{ 
+          title: 'Learning',
+          tabBarIcon: ({ color, size }) => <TrendingUp color={color} size={size} />
+        }} 
+      />
+      <Tabs.Screen 
+        name="stories" 
+        options={{ 
+          title: 'Stories',
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />
+        }} 
+      />
+      <Tabs.Screen 
+        name="leaderboard" 
+        options={{ 
+          title: 'Leaderboard',
+          tabBarIcon: ({ color, size }) => <Trophy color={color} size={size} />
         }} 
       />
       <Tabs.Screen 
         name="achievements" 
         options={{ 
           title: 'Achievements',
-          tabBarIcon: ({ color, size }) => <Award color={color} size={size} />
+          tabBarIcon: ({ color, size }) => <Trophy color={color} size={size} />,
+          href: null
         }} 
       />
       <Tabs.Screen 
         name="wallet" 
         options={{ 
-          title: 'Wallet',
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />
+          title: 'Rewards',
+          tabBarIcon: ({ color, size }) => <Wallet color={color} size={size} />
         }} 
       />
       <Tabs.Screen 
