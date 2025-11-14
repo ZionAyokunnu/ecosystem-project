@@ -114,7 +114,7 @@ serve(async (req) => {
     console.error('Error in twilio-voice-handler:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
+        error: error instanceof Error ? error.message : 'Internal server error',
         success: false 
       }),
       { 
